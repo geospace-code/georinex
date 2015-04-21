@@ -11,6 +11,7 @@ from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
 from pandas.io.pytables import read_hdf
+#from pandas.io.parsers import read_fwf
 from os.path import splitext
 import sys
 if sys.version_info<(3,):
@@ -116,8 +117,19 @@ def _block2df(block,svnum,obstypes,svnames):
                          delimiter=(14,1,1, 14,1,1, 14,1,1, 14,1,1, 14,1,1)).reshape((svnum,-1),
                          order='C'
                          )
+    #because of format of file, array needs to be reshaped immediately upon read, thus read_fwf may not be
+    #suitable because it immediately returns a DataFrame.
+#    barr = read_fwf(strio,
+#                    colspecs=[(0,13), (13,14),(14,15),],
+##                              (15,28),(28,29),(29,30),
+##                              (30,43),(43,44),(45,45),
+##                              (45,58),(58,59),(59,60)],
+#                    skiprows=0,
+#                    header=None,)
+                    #names=obstypes)
     #FIXME: I didn't return the "signal strength" and "lock indicator" columns
     return DataFrame(index=svnames,columns=obstypes, data = barr[:,::3])
+
 
 
 def makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes):
@@ -132,7 +144,7 @@ def makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes):
     outputs:
     blocks: dimensions timeINTERVALs x maxsv x ntypes (page x row x col)
     """
-    blocks = Panel(items=obstimes, #FIXME items should be datetime based on start,stop,INTERVAL
+    blocks = Panel(items=obstimes,
                    major_axis=svnames,
                    minor_axis=obstypes)
 
@@ -149,9 +161,8 @@ def makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes):
         blocksvnames = grouper(satnames,3)
 #%% read this INTERVAL's text block
         block = ''.join(rinex.readline() for _ in range(blocksize))
-        btime = _obstime(sathead[:26].split()) #FIXME use this to index panel
+        btime = _obstime(sathead[:26].split())
         bdf = _block2df(block,svnum,obstypes,blocksvnames)
-        #FIXME index by time, not "i"
         blocks.loc[btime,blocksvnames] = bdf
         i+=1
 
@@ -179,6 +190,8 @@ if __name__ == '__main__':
         blocks = rinexobs(p.obsfn,p.h5,p.maxtimes)
 #%% plot
         plt.plot(blocks.items,blocks.ix[:,'G 1','P1'])
-
+        plt.xlabel('time [UTC]')
+        plt.ylabel('P1')
+        plt.title('G 1')
         plt.show()
 #%% TEC can be made another column (on the minor_axis) of the blocks Panel.
