@@ -6,7 +6,10 @@ MIT License
 """
 from __future__ import division
 import numpy as np
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError as e:
+    print('skipped loading matplotlib (for selftest)  {}'.format(e))
 from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel

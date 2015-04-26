@@ -4,7 +4,7 @@ language: python
 python:
   - "3.4"
   - "2.7"
-before_install: 
+before_install:
   - if [[ $(python --version 2>&1) == "Python 3."* ]]; then
      pyv=3;
     fi
@@ -21,14 +21,14 @@ install:
   fi
  - conda install --yes --file requirements.txt
 
-script:  
-#  - if [[ -z $pyv ]]; then
-#        echo "running coverage";
-#        coverage run test_rinexobs.py;
-#    else
-   -     python test_rinexobs.py;
-#    fi
-    
+script:
+  - if [[ -z $pyv ]]; then
+        echo "running coverage";
+        coverage run test_rinexobs.py;
+    else
+        python test_rinexobs.py;
+    fi
+
 after_success:
   - if [[ -z $pyv ]]; then
      coveralls;
