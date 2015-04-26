@@ -11,15 +11,8 @@ from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
 from pandas.io.pytables import read_hdf
-#from pandas.io.parsers import read_fwf
 from os.path import splitext
-import sys
-if sys.version_info<(3,):
-    py3 = False
-    from StringIO import StringIO
-else:
-    from io import BytesIO
-    py3 = True
+from io import BytesIO
 
 def rinexobs(obsfn,writeh5,maxtimes=None):
     stem,ext = splitext(obsfn)
@@ -77,7 +70,7 @@ def makeSvSet(header,maxtimes):
     interval_delta = timedelta(seconds=int(interval_sec),
                                microseconds=int(interval_sec % 1)*100000)
     if maxtimes is None:
-        ntimes = int(np.ceil((lastObs-firstObs)/interval_delta) + 1)
+        ntimes = int(np.ceil((lastObs-firstObs).total_seconds()/interval_delta.total_seconds()) + 1)
     else:
         ntimes = maxtimes
     obstimes = firstObs + interval_delta * np.arange(ntimes)
@@ -109,10 +102,7 @@ def _block2df(block,svnum,obstypes,svnames):
     input: block of text corresponding to one time increment INTERVAL of RINEX file
     output: 2-D array of float64 data from block. Future: consider whether best to use Numpy, Pandas, or Xray.
     """
-    if py3:
-        strio = BytesIO(block.encode())
-    else:
-        strio = StringIO(block)
+    strio = BytesIO(block.encode())
     barr = np.genfromtxt(strio,
                          delimiter=(14,1,1, 14,1,1, 14,1,1, 14,1,1, 14,1,1)).reshape((svnum,-1),
                          order='C'
