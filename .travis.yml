@@ -1,0 +1,35 @@
+git:
+  depth: 1
+language: python
+python:
+  - "3.4"
+  - "2.7"
+before_install: 
+  - if [[ $(python --version 2>&1) == "Python 3."* ]]; then
+     pyv=3;
+    fi
+  - url=http://repo.continuum.io/miniconda/Miniconda"$pyv"-latest-Linux-x86_64.sh
+  - wget $url -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda update --yes conda
+  - python --version #just checking
+
+install:
+ - if [[ -z $pyv ]]; then
+   pip -q install coveralls;
+  fi
+ - conda install --yes --file requirements.txt
+
+script:  
+#  - if [[ -z $pyv ]]; then
+#        echo "running coverage";
+#        coverage run test.py;
+#    else
+   -     python test.py;
+#    fi
+    
+after_success:
+  - if [[ -z $pyv ]]; then
+     coveralls;
+    fi
