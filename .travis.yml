@@ -24,9 +24,9 @@ install:
 script:
   - if [[ -z $pyv ]]; then
         echo "running coverage";
-        coverage run test_rinexobs.py;
+        coverage run test.py;
     else
-        python test_rinexobs.py;
+        python test.py;
     fi
 
 after_success:
