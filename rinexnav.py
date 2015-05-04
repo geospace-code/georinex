@@ -10,12 +10,7 @@ import numpy as np
 from datetime import datetime
 from pandas import DataFrame,Panel
 import sys
-if sys.version_info<(3,):
-    py3 = False
-    from StringIO import StringIO
-else:
-    from io import BytesIO
-    py3 = True
+from io import BytesIO
 
 def readRINEXnav(fn):
     """
@@ -59,10 +54,7 @@ def readRINEXnav(fn):
 
     raws = raws.replace('D','E')
 
-    if py3:
-        strio = BytesIO(raws.encode())
-    else:
-        strio = StringIO(raws)
+    strio = BytesIO(raws.encode())
     darr = np.genfromtxt(strio,delimiter=nfloat)
 
     nav= DataFrame(np.hstack((np.asarray(sv,int)[:,None],darr)), epoch,
