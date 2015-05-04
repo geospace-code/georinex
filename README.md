@@ -4,6 +4,13 @@
 # rinex-reader-python
 RINEX reader in Python -- reads NAV and OBS files
 
+## Usage:
+```
+python RinexNavReader.py myrinex.XXn
+python RinexObsReader.py myrinex.XXo
+```
+
+
 ### RINEX OBS reader algorithm:
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
 2. preallocate pandas 3D Panel to fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending and gets very very slow.  The Panel is a self-describing variable, each axis has text indices.
