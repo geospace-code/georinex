@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/scienceopen/rinex-reader-python/badge.svg)](https://coveralls.io/r/scienceopen/rinex-reader-python)
 
 # rinex-reader-python
-RINEX reader in Python
+RINEX reader in Python -- reads NAV and OBS files
 
 ### RINEX OBS reader algorithm:
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
