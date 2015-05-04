@@ -5,6 +5,6 @@
 RINEX reader in Python
 
 ### RINEX OBS reader algorithm:
-1) read overall OBS header (so we know what to expect in the rest of the OBS file)
-2) preallocate pandas 3D Panel to fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending and gets very very slow.  The Panel is a self-describing variable, each axis has text indices.
-3) fill the 3D Panel with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster. 
+1. read overall OBS header (so we know what to expect in the rest of the OBS file)
+2. preallocate pandas 3D Panel to fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending and gets very very slow.  The Panel is a self-describing variable, each axis has text indices.
+3. fill the 3D Panel with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster. 
