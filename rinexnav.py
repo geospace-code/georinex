@@ -2,7 +2,7 @@
 Reads RINEX 2.1 NAV files
 by Michael Hirsch
 bostonmicrowave.com
-LGPLv3+
+MIT License
 """
 from __future__ import division
 from os.path import expanduser
