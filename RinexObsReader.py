@@ -3,6 +3,16 @@ RINEX 2 OBS reader
 under testing
 Michael Hirsch, Greg Starr
 MIT License
+
+Program overviw:
+1) read the OBS file header:   readHead()
+2) parse the OBS file header, obtaining the times, satellites, and data measurement types:   makeSvset()
+3) read the OBS files in blocks, where each block is one time interval of data (all sats, all measurements):  makeBlock()
+
+makeBlock dumps the results into a preallocated pandas 3-D Panel with axes:
+items / page: time
+rows / major_axis: SV
+column / minor_axis: data type P1,P2, etc.
 """
 from __future__ import division
 import numpy as np
