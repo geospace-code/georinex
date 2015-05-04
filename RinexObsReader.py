@@ -24,11 +24,11 @@ from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
 from pandas.io.pytables import read_hdf
-from os.path import splitext
+from os.path import splitext,expanduser
 from io import BytesIO
 
 def rinexobs(obsfn,writeh5,maxtimes=None):
-    stem,ext = splitext(obsfn)
+    stem,ext = splitext(expanduser(obsfn))
     if ext[-1].lower() == 'o': #raw text file
         with open(obsfn,'r') as rinex:
             header = readHead(rinex)
@@ -38,7 +38,7 @@ def rinexobs(obsfn,writeh5,maxtimes=None):
         if writeh5:
             h5fn = stem + '.h5'
             print('saving OBS data to {}'.format(h5fn))
-            blocks.to_hdf(h5fn,key='OBS',complevel=6)
+            blocks.to_hdf(h5fn,key='OBS',mode='a',complevel=6,append=False)
     elif ext.lower() == '.h5':
         blocks = read_hdf(obsfn,key='OBS')
         print('loaded OBS data from {} to {}'.format(blocks.items[0],blocks.items[-1]))
