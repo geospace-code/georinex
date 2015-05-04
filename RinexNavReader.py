@@ -21,7 +21,12 @@ def readRINEXnav(fn):
     """
     startcol = 3 #column where numerical data starts
     nfloat=19 #number of text elements per float data number
-    yb = 2000 # TODO I'm assuming it's the 21st century!
+    
+    if 80<= year <=99:
+        yb=1900
+    elif year<80: #good till year 2180
+        yb=2000
+    
     nline=7 #number of lines per record
     nsat = 32 #TODO account for more than just "G"?
 
