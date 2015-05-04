@@ -9,7 +9,6 @@ from os.path import expanduser
 import numpy as np
 from datetime import datetime
 from pandas import DataFrame,Panel
-import sys
 from io import BytesIO
 
 def readRINEXnav(fn):
@@ -21,12 +20,6 @@ def readRINEXnav(fn):
     """
     startcol = 3 #column where numerical data starts
     nfloat=19 #number of text elements per float data number
-    
-    if 80<= year <=99:
-        yb=1900
-    elif year<80: #good till year 2180
-        yb=2000
-    
     nline=7 #number of lines per record
     nsat = 32 #TODO account for more than just "G"?
 
@@ -41,7 +34,12 @@ def readRINEXnav(fn):
             if not headln: break
             #handle the header
             sv.append(headln[:2])
-            epoch.append(datetime(year =yb+int(headln[2:5]),
+            year = int(headln[2:5])
+            if 80<= year <=99:
+                year+=1900
+            elif year<80: #good till year 2180
+                year+=2000
+            epoch.append(datetime(year =year,
                                   month   =int(headln[5:8]),
                                   day     =int(headln[8:11]),
                                   hour    =int(headln[11:14]),
