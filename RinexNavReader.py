@@ -5,19 +5,20 @@ bostonmicrowave.com
 MIT License
 """
 from __future__ import division
-from os.path import expanduser
+from os.path import expanduser,splitext
 import numpy as np
 from datetime import datetime
 from pandas import DataFrame,Panel
 from io import BytesIO
 
-def readRINEXnav(fn):
+def readRINEXnav(fn,writeh5):
     """
     Michael Hirsch
     It may actually be faster to read the entire file via f.read() and then .split()
     and asarray().reshape() to the final result, but I did it frame by frame.
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     """
+    stem,ext = splitext(expanduser(fn))
     startcol = 3 #column where numerical data starts
     nfloat=19 #number of text elements per float data number
     nline=7 #number of lines per record
@@ -67,13 +68,19 @@ def readRINEXnav(fn):
                 'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
                 'TransTime','FitIntvl'])
 
+    if writeh5:
+        h5fn = stem + '.h5'
+        print('saving NAV data to {}'.format(h5fn))
+        nav.to_hdf(h5fn,key='NAV',mode='a',complevel=6,append=False)
+
     return nav
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='example of reading a RINEX 2 Navigation file')
     p.add_argument('navfn',help='path to RINEX Navigation file',type=str)
+    p.add_argument('--h5',help='write data as HDF5',action='store_true')
     p = p.parse_args()
 
-    nav = readRINEXnav(p.navfn)
+    nav = readRINEXnav(p.navfn,p.h5)
     print(nav.head())
