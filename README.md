@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.org/scienceopen/rinex-reader-python.svg?branch=master)](https://travis-ci.org/scienceopen/rinex-reader-python)
-[![Coverage Status](https://coveralls.io/repos/scienceopen/rinex-reader-python/badge.svg)](https://coveralls.io/r/scienceopen/rinex-reader-python)
+[![Build Status](https://travis-ci.org/scienceopen/pyrinex.svg?branch=master)](https://travis-ci.org/scienceopen/pyrinex)
+[![Coverage Status](https://coveralls.io/repos/scienceopen/pyrinex/badge.svg)](https://coveralls.io/r/scienceopen/pyrinex)
 
-# rinex-reader-python
+# PyRinex
 RINEX reader in Python -- reads NAV and OBS files
 
 ## Usage:
