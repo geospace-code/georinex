@@ -1,10 +1,18 @@
+[![Code Climate](https://codeclimate.com/github/scienceopen/pyrinex/badges/gpa.svg)](https://codeclimate.com/github/scienceopen/pyrinex)
 [![Build Status](https://travis-ci.org/scienceopen/pyrinex.svg?branch=master)](https://travis-ci.org/scienceopen/pyrinex)
 [![Coverage Status](https://coveralls.io/repos/scienceopen/pyrinex/badge.svg)](https://coveralls.io/r/scienceopen/pyrinex)
 
 # PyRinex
 RINEX reader in Python -- reads NAV and OBS files
 
-## Usage:
+Installation:
+-------------
+```
+git clone --depth 1 https://scienceopen@github.com/scienceopen/pyrinex
+```
+
+Usage:
+-------
 ```
 python RinexNavReader.py myrinex.XXn
 python RinexObsReader.py myrinex.XXo
