@@ -16,10 +16,6 @@ column / minor_axis: data type P1,P2, etc.
 """
 from __future__ import division
 import numpy as np
-try:
-    import matplotlib.pyplot as plt
-except ImportError as e:
-    print('skipped loading matplotlib (for selftest)  {}'.format(e))
 from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
@@ -31,7 +27,8 @@ def rinexobs(obsfn,writeh5,maxtimes=None):
     stem,ext = splitext(expanduser(obsfn))
     if ext[-1].lower() == 'o': #raw text file
         with open(obsfn,'r') as rinex:
-            header = readHead(rinex)
+            header,verRinex = readHead(rinex)
+            print('{} is a RINEX {} file.'.format(obsfn,verRinex))
             (svnames,types,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes)
             blocks = makeBlocks(rinex,types,maxsv,svnames,obstypes,obstimes)
     #%% save to disk (optional)
@@ -61,10 +58,19 @@ def readHead(rinex):
         if 'END OF HEADER' in header[-1]:
             break
 
-    return header
+    verRinex = float(grabfromhead(header,11,'RINEX VERSION / TYPE')[0][0])
+
+    return header,verRinex
+
+def grabfromhead(header,width,label):
+    """
+    returns (list of) strings from header based on label
+    """
+    return [l[:width].split() for l in header if label in l[60:]]
 
 def makeSvSet(header,maxtimes):
     svnames=[]
+
 #%% get number of obs types
     numberOfTypes = int([l[:6] for l in header if "# / TYPES OF OBSERV" in l[60:]][0])
     obstypes = [l[6:60].split() for l in header if "# / TYPES OF OBSERV" in l[60:]] # not [0] at end, because for obtypes>9, there are more than one list element!
@@ -207,8 +213,12 @@ if __name__ == '__main__':
     else:
         blocks = rinexobs(p.obsfn,p.h5,p.maxtimes)
 #%% plot
-        plt.plot(blocks.items,blocks.ix[:,0,'P1'])
-        plt.xlabel('time [UTC]')
-        plt.ylabel('P1')
-        plt.show()
+        try:
+            import matplotlib.pyplot as plt
+            plt.plot(blocks.items,blocks.ix[:,0,'P1'])
+            plt.xlabel('time [UTC]')
+            plt.ylabel('P1')
+            plt.show()
+        except ImportError as e:
+            print('skipped loading matplotlib (for selftest)  {}'.format(e))
 #%% TEC can be made another column (on the minor_axis) of the blocks Panel.
