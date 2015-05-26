@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 RINEX 2 OBS reader
 under testing
@@ -29,8 +30,8 @@ def rinexobs(obsfn,writeh5,maxtimes=None):
         with open(obsfn,'r') as rinex:
             header,verRinex = readHead(rinex)
             print('{} is a RINEX {} file.'.format(obsfn,verRinex))
-            (svnames,types,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes)
-            blocks = makeBlocks(rinex,types,maxsv,svnames,obstypes,obstimes)
+            (svnames,ntypes,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes,verRinex)
+            blocks = makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes)
     #%% save to disk (optional)
         if writeh5:
             h5fn = stem + '.h5'
@@ -58,25 +59,37 @@ def readHead(rinex):
         if 'END OF HEADER' in header[-1]:
             break
 
-    verRinex = float(grabfromhead(header,11,'RINEX VERSION / TYPE')[0][0])
+    verRinex = float(grabfromhead(header,None,11,'RINEX VERSION / TYPE')[0][0])
 
     return header,verRinex
 
-def grabfromhead(header,width,label):
+def grabfromhead(header,start,end,label):
     """
     returns (list of) strings from header based on label
+    header: raw text of header (one big string)
+    start: if unused set to None
+    end: if unused set to None
+    label: header text to match
     """
-    return [l[:width].split() for l in header if label in l[60:]]
+    return [l[start:end].split() for l in header if label in l[60:]]
 
-def makeSvSet(header,maxtimes):
+def makeSvSet(header,maxtimes,verRinex):
     svnames=[]
 
 #%% get number of obs types
-    numberOfTypes = int([l[:6] for l in header if "# / TYPES OF OBSERV" in l[60:]][0])
-    obstypes = [l[6:60].split() for l in header if "# / TYPES OF OBSERV" in l[60:]] # not [0] at end, because for obtypes>9, there are more than one list element!
-    obstypes = list(chain.from_iterable(obstypes)) #need this for obstypes>9
+    if '{:0.2f}'.format(verRinex)=='3.01':
+        numberOfTypes = np.asarray(grabfromhead(header,1,6,"SYS / # / OBS TYPES")).astype(int).sum()  #total number of types for all satellites
+        obstypes = grabfromhead(header,6,58,"SYS / # / OBS TYPES")
+        #get unique obstypes FIXME should we make variables for each satellite family?
+        obstypes = list(set(chain.from_iterable(obstypes)))
+    elif '{:0.1f}'.format(verRinex)=='2.1':
+        numberOfTypes = int(grabfromhead(header,None,6,"# / TYPES OF OBSERV")[0][0])
+        obstypes = grabfromhead(header,6,60,"# / TYPES OF OBSERV") # not [0] at end, because for obtypes>9, there are more than one list element!
+        obstypes = list(chain.from_iterable(obstypes)) #need this for obstypes>9
+    else:
+        raise NotImplementedError("RINEX version {} is not yet handled".format(verRinex))
 #%% get number of satellites
-    numberOfSv = int([l[:6] for l in header if "# OF SATELLITES" in l[60:]][0])
+    numberOfSv = int(grabfromhead(header,None,6,"# OF SATELLITES")[0][0])
 #%% get observation time extents
     """
     here we take advantage of that there will always be whitespaces--for the data itself
@@ -94,6 +107,8 @@ def makeSvSet(header,maxtimes):
         ntimes = min(maxtimes,ntimes)
     obstimes = firstObs + interval_delta * np.arange(ntimes)
     #%% get satellite numbers
+    if '{:0.2f}'.format(verRinex)=='3.01':
+        raise NotImplementedError('heres as far as we got with RINEX 3.01 for now')
     linespersat = int(np.ceil(numberOfTypes / 9))
     assert linespersat > 0
 
