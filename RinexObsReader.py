@@ -78,14 +78,16 @@ def makeSvSet(header,maxtimes,verRinex):
 
 #%% get number of obs types
     if '{:0.2f}'.format(verRinex)=='3.01':
-        numberOfTypes = np.asarray(grabfromhead(header,1,6,"SYS / # / OBS TYPES")).astype(int).sum()  #total number of types for all satellites
+        #numberOfTypes = np.asarray(grabfromhead(header,1,6,"SYS / # / OBS TYPES")).astype(int).sum()  #total number of types for all satellites
         obstypes = grabfromhead(header,6,58,"SYS / # / OBS TYPES")
         #get unique obstypes FIXME should we make variables for each satellite family?
         obstypes = list(set(chain.from_iterable(obstypes)))
+        numberOfTypes = len(obstypes) #unique
     elif '{:0.1f}'.format(verRinex)=='2.1':
         numberOfTypes = int(grabfromhead(header,None,6,"# / TYPES OF OBSERV")[0][0])
         obstypes = grabfromhead(header,6,60,"# / TYPES OF OBSERV") # not [0] at end, because for obtypes>9, there are more than one list element!
         obstypes = list(chain.from_iterable(obstypes)) #need this for obstypes>9
+        assert numberOfTypes == len(obstypes)
     else:
         raise NotImplementedError("RINEX version {} is not yet handled".format(verRinex))
 #%% get number of satellites
@@ -107,17 +109,21 @@ def makeSvSet(header,maxtimes,verRinex):
         ntimes = min(maxtimes,ntimes)
     obstimes = firstObs + interval_delta * np.arange(ntimes)
     #%% get satellite numbers
-    if '{:0.2f}'.format(verRinex)=='3.01':
-        raise NotImplementedError('heres as far as we got with RINEX 3.01 for now')
     linespersat = int(np.ceil(numberOfTypes / 9))
     assert linespersat > 0
 
     satlines = [l[:60] for l in header if "PRN / # OF OBS" in l[60:]]
 
-    #insert 0 if it doesn't exist for <10 satnum, RINEX files are inconsistent between header and block,
-    #so let's force a sensible convention
-    for i in range(numberOfSv):
-        svnames.append(satlines[linespersat*i][3] +'{:02d}'.format(int(satlines[linespersat*i][4:6])))
+    if '{:0.1f}'.format(verRinex)=='2.1':
+        #insert 0 if it doesn't exist for <10 satnum, RINEX files are inconsistent between header and block,
+        #so let's force a sensible convention
+        for i in range(numberOfSv):
+            svnames.append(satlines[linespersat*i][3] +'{:02d}'.format(int(satlines[linespersat*i][4:6])))
+    elif '{:0.2f}'.format(verRinex)=='3.01':
+        raise NotImplementedError('far as we got so far')
+    else:
+        raise NotImplementedError("RINEX version {} is not yet handled".format(verRinex))
+
 
     return svnames,numberOfTypes, obstimes, numberOfSv,obstypes
 
