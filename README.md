@@ -3,7 +3,9 @@
 [![Coverage Status](https://coveralls.io/repos/scienceopen/pyrinex/badge.svg)](https://coveralls.io/r/scienceopen/pyrinex)
 
 # PyRinex
-RINEX reader in Python -- reads NAV and OBS files
+RINEX 2.1 reader in Python -- reads NAV and OBS files.
+
+RINEX 3 is in work, and NOT working yet.
 
 Installation:
 -------------
