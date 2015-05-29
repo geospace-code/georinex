@@ -13,7 +13,7 @@ Installation:
 -------------
 ```
 git clone --depth 1 https://scienceopen@github.com/scienceopen/pyrinex
-pip install -r requirements.txt
+conda install --file requirements.txt
 ```
 
 Usage:
