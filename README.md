@@ -3,7 +3,8 @@
 [![Coverage Status](https://coveralls.io/repos/scienceopen/pyrinex/badge.svg)](https://coveralls.io/r/scienceopen/pyrinex)
 
 # PyRinex
-RINEX reader in Python -- reads NAV and OBS files
+RINEX reader in Python -- reads NAV and OBS files.
+Writes to HDF5 (for couple order of magnitude speedup in reading and allows filtering/processing of gigantic files too large to fit into RAM).
 
 Installation:
 -------------
