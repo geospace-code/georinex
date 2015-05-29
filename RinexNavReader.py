@@ -1,7 +1,7 @@
 """
 Reads RINEX 2.1 NAV files
 by Michael Hirsch
-bostonmicrowave.com
+https://scivision.co
 MIT License
 """
 from __future__ import division
