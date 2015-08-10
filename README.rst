@@ -22,7 +22,7 @@ Installation
 
 .. code:: bash
 
-  git clone --depth 1 https://scienceopen@github.com/scienceopen/pyrinex
+  git clone --depth 1 https://github.com/scienceopen/pyrinex
   conda install --file requirements.txt
 
 ======
