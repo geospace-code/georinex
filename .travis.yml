@@ -20,13 +20,14 @@ install:
    pip -q install coveralls;
   fi
  - conda install --yes --file requirements.txt
+ - python setup.py develop
 
 script:
   - if [[ -z $pyv ]]; then
         echo "running coverage";
-        coverage run test.py;
+        coverage run test/test.py;
     else
-        python test.py;
+        python test/test.py;
     fi
 
 after_success:

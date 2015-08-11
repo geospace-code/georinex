@@ -4,14 +4,14 @@ by Michael Hirsch
 https://scivision.co
 MIT License
 """
-from __future__ import division
+from __future__ import division,absolute_import
 from os.path import expanduser,splitext
 import numpy as np
 from datetime import datetime
-from pandas import DataFrame,Panel
+from pandas import DataFrame
 from io import BytesIO
 
-def readRINEXnav(fn,writeh5):
+def readRinexNav(fn,writeh5):
     """
     Michael Hirsch
     It may actually be faster to read the entire file via f.read() and then .split()
@@ -22,7 +22,6 @@ def readRINEXnav(fn,writeh5):
     startcol = 3 #column where numerical data starts
     nfloat=19 #number of text elements per float data number
     nline=7 #number of lines per record
-    nsat = 32 #TODO account for more than just "G"?
 
     with open(expanduser(fn),'r') as f:
         #find end of header, which has non-constant length
@@ -74,13 +73,3 @@ def readRINEXnav(fn,writeh5):
         nav.to_hdf(h5fn,key='NAV',mode='a',complevel=6,append=False)
 
     return nav
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    p = ArgumentParser(description='example of reading a RINEX 2 Navigation file')
-    p.add_argument('navfn',help='path to RINEX Navigation file',type=str)
-    p.add_argument('--h5',help='write data as HDF5',action='store_true')
-    p = p.parse_args()
-
-    nav = readRINEXnav(p.navfn,p.h5)
-    print(nav.head())

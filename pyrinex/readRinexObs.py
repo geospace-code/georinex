@@ -15,7 +15,7 @@ items / page: time
 rows / major_axis: SV
 column / minor_axis: data type P1,P2, etc.
 """
-from __future__ import division
+from __future__ import division,absolute_import
 import numpy as np
 from itertools import chain
 from datetime import datetime, timedelta
@@ -77,13 +77,13 @@ def makeSvSet(header,maxtimes,verRinex):
     svnames=[]
 
 #%% get number of obs types
-    if '{:0.2f}'.format(verRinex)=='3.01':
+    if '{:.2f}'.format(verRinex)=='3.01':
         #numberOfTypes = np.asarray(grabfromhead(header,1,6,"SYS / # / OBS TYPES")).astype(int).sum()  #total number of types for all satellites
         obstypes = grabfromhead(header,6,58,"SYS / # / OBS TYPES")
         #get unique obstypes FIXME should we make variables for each satellite family?
         obstypes = list(set(chain.from_iterable(obstypes)))
         numberOfTypes = len(obstypes) #unique
-    elif '{:0.1f}'.format(verRinex)=='2.1':
+    elif '{:.1f}'.format(verRinex)=='2.1':
         numberOfTypes = int(grabfromhead(header,None,6,"# / TYPES OF OBSERV")[0][0])
         obstypes = grabfromhead(header,6,60,"# / TYPES OF OBSERV") # not [0] at end, because for obtypes>9, there are more than one list element!
         obstypes = list(chain.from_iterable(obstypes)) #need this for obstypes>9
@@ -214,32 +214,3 @@ def satnumfixer(satnames):
 
 def grouper(txt,n,maxn):
     return [txt[n*i:n+n*i] for i in range(min(len(txt)//n,maxn))]
-
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    p = ArgumentParser('our program to read RINEX 2 OBS files')
-    p.add_argument('obsfn',help='RINEX 2 obs file',type=str)
-    p.add_argument('--h5',help='write observation data for faster loading',action='store_true')
-    p.add_argument('--maxtimes',help='Choose to read only the first N INTERVALs of OBS file',type=int,default=None)
-    p.add_argument('--profile',help='profile code for debugging',action='store_true')
-    p = p.parse_args()
-
-    if p.profile:
-        import cProfile
-        from pstats import Stats
-        profFN = 'RinexObsReader.pstats'
-        cProfile.run('rinexobs(p.obsfn,p.h5,p.maxtimes)',profFN)
-        Stats(profFN).sort_stats('time','cumulative').print_stats(20)
-    else:
-        blocks = rinexobs(p.obsfn,p.h5,p.maxtimes)
-#%% plot
-        try:
-            import matplotlib.pyplot as plt
-            plt.plot(blocks.items,blocks.ix[:,0,'P1'])
-            plt.xlabel('time [UTC]')
-            plt.ylabel('P1')
-            plt.show()
-        except ImportError as e:
-            print('skipped loading matplotlib (for selftest)  {}'.format(e))
-#%% TEC can be made another column (on the minor_axis) of the blocks Panel.
