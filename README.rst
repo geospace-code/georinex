@@ -3,7 +3,7 @@
   :alt: Code Climate
 .. image:: https://travis-ci.org/scienceopen/pyrinex.svg?branch=master
   :target: https://travis-ci.org/scienceopen/pyrinex
-.. image:: https://coveralls.io/repos/scienceopen/pyrinex/badge.svg?branch=master&service=github 
+.. image:: https://coveralls.io/repos/scienceopen/pyrinex/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/scienceopen/pyrinex?branch=master
 
 =======
@@ -24,6 +24,7 @@ Installation
 
   git clone --depth 1 https://github.com/scienceopen/pyrinex
   conda install --file requirements.txt
+  python setup.py develop
 
 ======
 Usage
@@ -38,4 +39,4 @@ RINEX OBS reader algorithm
 ==========================
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
 2. preallocate pandas 3D Panel to fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending.  The Panel is a self-describing variable, each axis has text indices.
-3. fill the 3D Panel with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster. 
+3. fill the 3D Panel with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
