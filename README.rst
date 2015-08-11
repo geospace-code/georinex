@@ -16,24 +16,20 @@ Writes to HDF5 (for couple order of magnitude speedup in reading and allows filt
 
 RINEX 3 is in work, and NOT working yet.
 
-=============
+
 Installation
 =============
-
-.. code:: bash
+from Terminal::
 
   git clone --depth 1 https://github.com/scienceopen/pyrinex
   conda install --file requirements.txt
   python setup.py develop
 
+Demo
 ======
-Usage
-======
+from Terminal::
 
-.. code:: bash
-
-  python RinexNavReader.py myrinex.XXn
-  python RinexObsReader.py myrinex.XXo
+  python ReadRinex.py myrinex.XXx
 
 RINEX OBS reader algorithm
 ==========================
