@@ -31,6 +31,16 @@ from Terminal::
 
   python ReadRinex.py myrinex.XXx
 
+Calling from other Programs
+===========================
+.. code:: python
+
+    from pyrinex.readRinexObs import rinexobs
+
+    GPSdata = rinexobs(rinexObsfilename)
+
+This returns a 3-D array of the data in your .XXo observation file
+
 Self-Test
 =========
 from Terminal::
