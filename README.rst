@@ -45,7 +45,8 @@ Read Observation file example
 
     obsdata = rinexobs(rinexObsfilename)
 
-This returns a 3-D array of the data in your .XXo observation file
+This returns a 3-D array (Pandas Panel) of the data in your .XXo observation file. 
+Indexed by time x SV x measurement
 
 Read Navigation file example
 ----------------------------
@@ -54,6 +55,10 @@ Read Navigation file example
     from pyrinex.readRinexNav import readRinexNav
     
     navdata = readRinexNav(rinexNavfilename)
+
+This returns a 2-D array (Pandas DataFrame) of the data in your .XXn navigation file.
+Indexed by time x quantity 
+one row per SV.
 
 Self-Test
 =========
