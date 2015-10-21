@@ -24,7 +24,7 @@ from pandas.io.pytables import read_hdf
 from os.path import splitext,expanduser
 from io import BytesIO
 
-def rinexobs(obsfn,writeh5,maxtimes=None):
+def rinexobs(obsfn,writeh5=None,maxtimes=None):
     stem,ext = splitext(expanduser(obsfn))
     if ext[-1].lower() == 'o': #raw text file
         with open(obsfn,'r') as rinex:
