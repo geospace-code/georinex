@@ -2,3 +2,5 @@ pandas
 numpy
 matplotlib
 pytables
+pytz
+six
