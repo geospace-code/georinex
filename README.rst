@@ -31,6 +31,12 @@ from Terminal::
 
   python ReadRinex.py myrinex.XXx
 
+Self-Test
+=========
+from Terminal::
+  
+  python test/test.py
+
 RINEX OBS reader algorithm
 ==========================
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
