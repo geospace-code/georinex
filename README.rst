@@ -16,6 +16,7 @@ Writes to HDF5 (for couple order of magnitude speedup in reading and allows filt
 
 RINEX 3 is in work, and NOT working yet.
 
+.. contents::
 
 Installation
 =============
@@ -33,13 +34,26 @@ from Terminal::
 
 Calling from other Programs
 ===========================
+Here are a couple Minimal Working Examples, assuming you have a .XXo observation file
+or .XXn navigation file.
+
+Read Observation file example
+-----------------------------
 .. code:: python
 
     from pyrinex.readRinexObs import rinexobs
 
-    GPSdata = rinexobs(rinexObsfilename)
+    obsdata = rinexobs(rinexObsfilename)
 
 This returns a 3-D array of the data in your .XXo observation file
+
+Read Navigation file example
+----------------------------
+.. code:: python
+
+    from pyrinex.readRinexNav import readRinexNav
+    
+    navdata = readRinexNav(rinexNavfilename)
 
 Self-Test
 =========

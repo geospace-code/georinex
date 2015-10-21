@@ -11,7 +11,7 @@ from datetime import datetime
 from pandas import DataFrame
 from io import BytesIO
 
-def readRinexNav(fn,writeh5):
+def readRinexNav(fn,writeh5=None):
     """
     Michael Hirsch
     It may actually be faster to read the entire file via f.read() and then .split()
