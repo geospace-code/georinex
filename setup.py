@@ -11,6 +11,5 @@ setup(name='pyrinex',
 	  long_description=long_description,
 	  author='Michael Hirsch',
 	  url='https://github.com/scienceopen/pyrinex',
-	  install_requires=['numpy','pandas','tables'],
         packages=['pyrinex']
 	  )
