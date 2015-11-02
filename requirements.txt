@@ -1,6 +1,11 @@
-pandas
-numpy
-matplotlib
-pytables
-pytz
+setuptools
 six
+python-dateutil
+pytz
+nose
+numpy
+pandas
+h5py
+pytables
+matplotlib
+seaborn
