@@ -20,15 +20,13 @@ RINEX 3 is in work, and NOT working yet.
 
 Installation
 =============
-from Terminal::
+::
 
-  git clone --depth 1 https://github.com/scienceopen/pyrinex
-  conda install --file requirements.txt
   python setup.py develop
 
 Demo
 ======
-from Terminal::
+::
 
   python ReadRinex.py myrinex.XXx
 
@@ -39,7 +37,7 @@ or .XXn navigation file.
 
 Read Observation file example
 -----------------------------
-.. code:: python
+::
 
     from pyrinex.readRinexObs import rinexobs
 
@@ -50,7 +48,7 @@ Indexed by time x SV x measurement
 
 Read Navigation file example
 ----------------------------
-.. code:: python
+::
 
     from pyrinex.readRinexNav import readRinexNav
     
@@ -62,7 +60,7 @@ one row per SV.
 
 Self-Test
 =========
-from Terminal::
+::
   
   python test/test.py
 
