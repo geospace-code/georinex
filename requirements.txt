@@ -5,6 +5,7 @@ pytz
 nose
 numpy
 pandas
+pytables
 h5py
 pytables
 matplotlib
