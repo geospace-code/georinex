@@ -2,7 +2,6 @@
 """
 Self-test file, registration case
 for OBS RINEX reader
-Michael Hirsch
 """
 from pandas.io.pytables import read_hdf
 from numpy.testing import assert_allclose
