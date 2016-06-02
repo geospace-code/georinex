@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 RINEX 2 OBS reader
 under testing
@@ -21,10 +21,10 @@ from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
 from pandas.io.pytables import read_hdf
-from os.path import splitext,expanduser
+from os.path import splitext,expanduser,join
 from io import BytesIO
 
-def rinexobs(obsfn,writeh5=None,maxtimes=None):
+def rinexobs(obsfn,odir=None,maxtimes=None):
     stem,ext = splitext(expanduser(obsfn))
     if ext[-1].lower() == 'o': #raw text file
         with open(obsfn,'r') as rinex:
@@ -33,8 +33,8 @@ def rinexobs(obsfn,writeh5=None,maxtimes=None):
             (svnames,ntypes,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes,verRinex)
             blocks = makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes)
     #%% save to disk (optional)
-        if writeh5:
-            h5fn = stem + '.h5'
+        if odir:
+            h5fn = join(odir,stem + '.h5')
             print('saving OBS data to {}'.format(h5fn))
             blocks.to_hdf(h5fn,key='OBS',mode='a',complevel=6,append=False)
     elif ext.lower() == '.h5':
@@ -151,8 +151,8 @@ def _block2df(block,svnum,obstypes,svnames):
     barr = np.genfromtxt(strio, delimiter=(14,1,1)*5).reshape((svnum,-1), order='C')
 
     data = barr[:,0:nobs*stride:stride]
-    lli  = barr[:,1:nobs*stride:stride]
-    ssi  = barr[:,2:nobs*stride:stride]
+   # lli  = barr[:,1:nobs*stride:stride]
+   # ssi  = barr[:,2:nobs*stride:stride]
 
     #because of file format, array needs to be reshaped immediately upon read,
   # thus read_fwf may not be
