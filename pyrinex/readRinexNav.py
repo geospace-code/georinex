@@ -4,8 +4,7 @@ Michael Hirsch
 https://scivision.co
 MIT License
 """
-from __future__ import division,absolute_import
-from os.path import expanduser,splitext,join
+from . import Path
 import numpy as np
 from datetime import datetime
 from pandas import DataFrame
@@ -18,13 +17,14 @@ def readRinexNav(fn,odir=None):
     and asarray().reshape() to the final result, but I did it frame by frame.
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     """
-    fn = expanduser(fn)
-    stem,ext = splitext(fn)
+    fn = Path(fn).expanduser()
+    if odir: odir = Path(odir).expanduser()
+    
     startcol = 3 #column where numerical data starts
     nfloat=19 #number of text elements per float data number
     nline=7 #number of lines per record
 
-    with open(fn,'r') as f:
+    with fn.open('r') as f:
         #find end of header, which has non-constant length
         while True:
             if 'END OF HEADER' in f.readline(): break
@@ -69,7 +69,7 @@ def readRinexNav(fn,odir=None):
                 'TransTime','FitIntvl'])
 
     if odir:
-        h5fn = join(odir,stem + '.h5')
+        h5fn = odir/fn.name.with_suffix('.h5')
         print('saving NAV data to {}'.format(h5fn))
         nav.to_hdf(h5fn,key='NAV',mode='a',complevel=6,append=False)
 
