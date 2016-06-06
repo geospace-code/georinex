@@ -1,7 +1,8 @@
 setuptools
+nose
+six
 python-dateutil
 pytz
-nose
 numpy
 pandas
 pytables

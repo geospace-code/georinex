@@ -15,29 +15,31 @@ items / page: time
 rows / major_axis: SV
 column / minor_axis: data type P1,P2, etc.
 """
-from __future__ import division,absolute_import
+from __future__ import division #yes this is needed for py2 here.
+from . import Path
 import numpy as np
 from itertools import chain
 from datetime import datetime, timedelta
 from pandas import DataFrame,Panel
 from pandas.io.pytables import read_hdf
-from os.path import splitext,expanduser,join
 from io import BytesIO
 
 def rinexobs(obsfn,odir=None,maxtimes=None):
-    stem,ext = splitext(expanduser(obsfn))
-    if ext[-1].lower() == 'o': #raw text file
-        with open(obsfn,'r') as rinex:
+    obsfn = Path(obsfn).expanduser()
+    if odir: odir = Path(odir).expanduser()
+        
+    if obsfn.suffix.lower().endswith('o'): #raw text file
+        with obsfn.open('r') as rinex:
             header,verRinex = readHead(rinex)
             print('{} is a RINEX {} file.'.format(obsfn,verRinex))
             (svnames,ntypes,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes,verRinex)
             blocks = makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes)
     #%% save to disk (optional)
         if odir:
-            h5fn = join(odir,stem + '.h5')
+            h5fn = odir/obsfn.name.with_suffix('.h5')
             print('saving OBS data to {}'.format(h5fn))
             blocks.to_hdf(h5fn,key='OBS',mode='a',complevel=6,append=False)
-    elif ext.lower() == '.h5':
+    elif obsfn.suffix.lower().endswith('.h5'):
         blocks = read_hdf(obsfn,key='OBS')
         print('loaded OBS data from {} to {}'.format(blocks.items[0],blocks.items[-1]))
     return blocks
@@ -109,7 +111,7 @@ def makeSvSet(header,maxtimes,verRinex):
         ntimes = min(maxtimes,ntimes)
     obstimes = firstObs + interval_delta * np.arange(ntimes)
     #%% get satellite numbers
-    linespersat = int(np.ceil(numberOfTypes / 9))
+    linespersat = int(np.ceil(numberOfTypes / 9.))
     assert linespersat > 0
 
     satlines = [l[:60] for l in header if "PRN / # OF OBS" in l[60:]]
