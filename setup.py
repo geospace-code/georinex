@@ -11,8 +11,10 @@ with open('README.rst','r') as f:
 	long_description = f.read()
 #%% install
 setup(name='pyrinex',
+      packages=['pyrinex'],
 	  description='Python RINEX reader that is very fast',
 	  long_description=long_description,
+      install_requires=['pathlib2'],
 	  author='Michael Hirsch',
 	  url='https://github.com/scienceopen/pyrinex',
 	  )
