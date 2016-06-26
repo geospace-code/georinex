@@ -1,7 +1,6 @@
-from __future__ import division,absolute_import,unicode_literals,print_function
-from six import PY2
-if PY2:
-    from pathlib2 import Path
-else:
+try
     from pathlib import Path
+    Path().expanduser() #fails python<3.5
+except (ImportError,AttributeError):
+    from pathlib2 import Path
 

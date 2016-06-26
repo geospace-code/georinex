@@ -62,7 +62,7 @@ Self-Test
 =========
 ::
   
-  python test/test.py
+  python tests/test.py
 
 RINEX OBS reader algorithm
 ==========================

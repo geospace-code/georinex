@@ -13,18 +13,16 @@ from pyrinex.readRinexNav import readRinexNav
 rdir=Path(__file__).parents[1]
 
 def test_obs():
-    truth = read_hdf(str(rdir/'test/demo.h5'),key='OBS')
-    blocks = rinexobs(str(rdir/'test/demo.10o'))
+    truth = read_hdf(str(rdir/'tests/demo.h5'),key='OBS')
+    blocks = rinexobs(str(rdir/'tests/demo.10o'))
     
     assert_allclose(blocks,truth)
     
 def test_nav():
-    truthnav = read_hdf(str(rdir/'test/demo.h5'),key='NAV')
-    testnav = readRinexNav(str(rdir/'test/demo.10n'))
+    truthnav = read_hdf(str(rdir/'tests/demo.h5'),key='NAV')
+    testnav = readRinexNav(str(rdir/'tests/demo.10n'))
     
     assert_allclose(testnav,truthnav)
 
 if __name__ == '__main__':
-    test_obs()
-    test_nav()
     run_module_suite()
