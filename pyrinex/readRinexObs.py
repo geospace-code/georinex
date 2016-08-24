@@ -6,128 +6,129 @@ Michael Hirsch, Greg Starr
 MIT License
 
 Program overviw:
-1) read the OBS file header:   readHead()
-2) parse the OBS file header, obtaining the times, satellites, and data measurement types:   makeSvset()
-3) read the OBS files in blocks, where each block is one time interval of data (all sats, all measurements):  makeBlock()
+1) scan the whole file for the header and other information using scan(lines)
+2) each epoch is read and the information is put in a 4D Panel
+3)  rinexobs can also be sped up with if an h5 file is provided, 
+    also rinexobs can save the rinex file as an h5. The header will
+    be returned only if specified.    
 
-makeBlock dumps the results into a preallocated pandas 3-D Panel with axes:
-items / page: time
-rows / major_axis: SV
-column / minor_axis: data type P1,P2, etc.
+rinexobs() returns the data in a 4D Panel, [Parameter,Sat #,time,data/loss of lock/signal strength]
 """
 from __future__ import division #yes this is needed for py2 here.
-from . import Path
 import numpy as np
-from itertools import chain
-from datetime import datetime, timedelta
-from pandas import DataFrame,Panel
+from pandas import Panel4D
 from pandas.io.pytables import read_hdf
 from io import BytesIO
+from os.path import splitext,expanduser,getsize
+import time
+from datetime import datetime
 
-def rinexobs(obsfn,odir=None,maxtimes=None):
-    obsfn = Path(obsfn).expanduser()
-    if odir: odir = Path(odir).expanduser()
+def rinexobs(rinexfile,h5file=None,returnHead=False,writeh5=False):
+    
+    #open file, get header info, possibly speed up reading data with a premade h5 file
+    stem,ext = splitext(expanduser(rinexfile))
+    with open(rinexfile,'r') as f:
+        t=time.time()
+        lines = f.read().splitlines(True)
+        lines.append('')
+        header,version,headlines,obstimes,sats,svset = scan(lines)
+        print('{} is a RINEX {} file, {} kB.'.format(rinexfile,version,getsize(rinexfile)/1000.0))
+        if h5file==None:
+            data = processBlocks(lines,header,obstimes,svset,headlines,sats)
+        else:
+            data = read_hdf(h5file,key='data')
+        print("finished in {0:.2f} seconds".format(time.time()-t))
         
-    if obsfn.suffix.lower().endswith('o'): #raw text file
-        with obsfn.open('r') as rinex:
-            header,verRinex = readHead(rinex)
-            print('{} is a RINEX {} file.'.format(obsfn,verRinex))
-            (svnames,ntypes,obstimes,maxsv,obstypes) = makeSvSet(header,maxtimes,verRinex)
-            blocks = makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes)
-    #%% save to disk (optional)
-        if odir:
-            h5fn = odir/obsfn.name.with_suffix('.h5')
-            print('saving OBS data to {}'.format(h5fn))
-            blocks.to_hdf(h5fn,key='OBS',mode='a',complevel=6,append=False)
-    elif obsfn.suffix.lower().endswith('.h5'):
-        blocks = read_hdf(obsfn,key='OBS')
-        print('loaded OBS data from {} to {}'.format(blocks.items[0],blocks.items[-1]))
-    return blocks
+    #write an h5 file if specified
+    if writeh5:
+        h5fn = stem + '.h5'
+        print('saving OBS data to {}'.format(h5fn))
+        data.to_hdf(h5fn,key='data',mode='w',format='table')
+        
+    #return info including header if desired
+    if returnHead:
+        return header,data
+    else:
+        return data
 
-def TEC(data,startTime):
-    # TODO: update to use datetime()
-    for d in data:
-        difference = []
-        for i in range(6):
-            difference.append(d[0][i]-startTime[i])
-        time = difference[5]+60*difference[4]+3600*difference[3]+86400*difference[2]
-        tec = (9.517)*(10**16)*(d[7]-d[2])
-        TECs.append([time,tec])
 
-def readHead(rinex):
-    header = []
-    while True:
-        header.append(rinex.readline())
-        if 'END OF HEADER' in header[-1]:
+# this will scan the document for the header info and for the line on
+# which each block starts
+def scan(lines):
+    header={}        
+    eoh=0
+    for i,line in enumerate(lines):
+        if "END OF HEADER" in line:
+            eoh=i
             break
+        if line[60:].strip() not in header:
+            header[line[60:].strip()] = line[:60].strip()
+        else:
+            header[line[60:].strip()] += " "+line[:60].strip()
+    verRinex = float(header['RINEX VERSION / TYPE'].split()[0])
+    header['APPROX POSITION XYZ'] = [float(i) for i in header['APPROX POSITION XYZ'].split()]
+    header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
+    header['# / TYPES OF OBSERV'][0] = int(header['# / TYPES OF OBSERV'][0])
+    header['INTERVAL'] = float(header['INTERVAL'])
+        
+    headlines=[]
+    obstimes=[]
+    sats=[]
+    svset=set()
+    i=eoh+1
+    while True:
+        if not lines[i]: break
+        if not int(lines[i][28]):
+            #no flag or flag=0
+            headlines.append(i)
+            obstimes.append(_obstime([lines[i][1:3],lines[i][4:6],
+                                   lines[i][7:9],lines[i][10:12],
+                                   lines[i][13:15],lines[i][16:26]]))
+            numsvs = int(lines[i][30:32])
+            if(numsvs>12):
+                sp=[]
+                for s in range(numsvs):
+                    sp.append(int(lines[i][33+(s%12)*3:35+(s%12)*3]))
+                    if s==12: i+= 1
+                sats.append(sp)
+            else:
+                sats.append([int(lines[i][33+s*3:35+s*3]) for s in range(numsvs)])
+        
+            i+=numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))+1
+        else:
+            #there was a comment or some header info
+            flag=int(lines[i][28])
+            if(flag!=4):
+                print(flag)
+            skip=int(lines[i][30:32])
+            i+=skip+1
+    for sv in sats:
+        svset = svset.union(set(sv))
 
-    verRinex = float(grabfromhead(header,None,11,'RINEX VERSION / TYPE')[0][0])
-
-    return header,verRinex
-
-def grabfromhead(header,start,end,label):
-    """
-    returns (list of) strings from header based on label
-    header: raw text of header (one big string)
-    start: if unused set to None
-    end: if unused set to None
-    label: header text to match
-    """
-    return [l[start:end].split() for l in header if label in l[60:]]
-
-def makeSvSet(header,maxtimes,verRinex):
-    svnames=[]
-
-#%% get number of obs types
-    if '{:.2f}'.format(verRinex)=='3.01':
-        #numberOfTypes = np.asarray(grabfromhead(header,1,6,"SYS / # / OBS TYPES")).astype(int).sum()  #total number of types for all satellites
-        obstypes = grabfromhead(header,6,58,"SYS / # / OBS TYPES")
-        #get unique obstypes FIXME should we make variables for each satellite family?
-        obstypes = list(set(chain.from_iterable(obstypes)))
-        numberOfTypes = len(obstypes) #unique
-    elif '{:.1f}'.format(verRinex)=='2.1':
-        numberOfTypes = int(grabfromhead(header,None,6,"# / TYPES OF OBSERV")[0][0])
-        obstypes = grabfromhead(header,6,60,"# / TYPES OF OBSERV") # not [0] at end, because for obtypes>9, there are more than one list element!
-        obstypes = list(chain.from_iterable(obstypes)) #need this for obstypes>9
-        assert numberOfTypes == len(obstypes)
-    else:
-        raise NotImplementedError("RINEX version {} is not yet handled".format(verRinex))
-#%% get number of satellites
-    numberOfSv = int(grabfromhead(header,None,6,"# OF SATELLITES")[0][0])
-#%% get observation time extents
-    """
-    here we take advantage of that there will always be whitespaces--for the data itself
-    there aren't always whitespaces between data, so we have to get more explicit.
-    Pynex currently takes the explicit indexing by text column instead of split().
-    """
-    firstObs = _obstime([l[:60] for l in header if "TIME OF FIRST OBS" in l[60:]][0].split(None))
-    lastObs  = _obstime([l[:60] for l in header if "TIME OF LAST OBS" in l[60:]][0].split(None))
-    interval_sec = float([l[:10] for l in header if "INTERVAL" in l[60:]][0])
-    interval_delta = timedelta(seconds=int(interval_sec),
-                               microseconds=int(interval_sec % 1)*100000)
-
-    ntimes = int(np.ceil((lastObs-firstObs).total_seconds()/interval_delta.total_seconds()) + 1)
-    if maxtimes is not None:
-        ntimes = min(maxtimes,ntimes)
-    obstimes = firstObs + interval_delta * np.arange(ntimes)
-    #%% get satellite numbers
-    linespersat = int(np.ceil(numberOfTypes / 9.))
-    assert linespersat > 0
-
-    satlines = [l[:60] for l in header if "PRN / # OF OBS" in l[60:]]
-
-    if '{:0.1f}'.format(verRinex)=='2.1':
-        #insert 0 if it doesn't exist for <10 satnum, RINEX files are inconsistent between header and block,
-        #so let's force a sensible convention
-        for i in range(numberOfSv):
-            svnames.append(satlines[linespersat*i][3] +'{:02d}'.format(int(satlines[linespersat*i][4:6])))
-    elif '{:0.2f}'.format(verRinex)=='3.01':
-        raise NotImplementedError('far as we got so far')
-    else:
-        raise NotImplementedError("RINEX version {} is not yet handled".format(verRinex))
+    return header,verRinex,headlines,obstimes,sats,svset
 
 
-    return svnames,numberOfTypes, obstimes, numberOfSv,obstypes
+
+def processBlocks(lines,header,obstimes,svset,headlines,sats):
+    
+    obstypes = header['# / TYPES OF OBSERV'][1:]
+    blocks = np.nan*np.ones((len(obstypes),max(svset)+1,len(obstimes),3))
+    
+    for i in range(len(headlines)):
+        linesinblock = len(sats[i])*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))
+        block = ''.join(lines[headlines[i]+1:headlines[i]+linesinblock+1])
+        bdf = _block2df(block,obstypes,sats[i],len(sats[i]))
+        blocks[:,np.asarray(sats[i],int),i,:] = bdf
+        
+    blocks = Panel4D(blocks,
+                     labels=obstypes,
+                     items=np.arange(max(svset)+1),
+                     major_axis=obstimes,
+                     minor_axis=['data','lli','ssi'])
+    blocks = blocks[:,list(svset),:,:]
+    
+    return blocks       
+        
 
 def _obstime(fol):
     year = int(fol[0])
@@ -141,7 +142,7 @@ def _obstime(fol):
                     microsecond=int(float(fol[5]) % 1) *100000
                     )
 
-def _block2df(block,svnum,obstypes,svnames):
+def _block2df(block,obstypes,svnames,svnum):
     """
     input: block of text corresponding to one time increment INTERVAL of RINEX file
     output: 2-D array of float64 data from block. Future: consider whether best to use Numpy, Pandas, or Xray.
@@ -153,66 +154,10 @@ def _block2df(block,svnum,obstypes,svnames):
     barr = np.genfromtxt(strio, delimiter=(14,1,1)*5).reshape((svnum,-1), order='C')
 
     data = barr[:,0:nobs*stride:stride]
-   # lli  = barr[:,1:nobs*stride:stride]
-   # ssi  = barr[:,2:nobs*stride:stride]
+    lli  = barr[:,1:nobs*stride:stride]
+    ssi  = barr[:,2:nobs*stride:stride]
 
-    #because of file format, array needs to be reshaped immediately upon read,
-  # thus read_fwf may not be
-    #suitable because it immediately returns a DataFrame.
-#    barr = read_fwf(strio,
-#                    colspecs=[(0,13), (13,14),(14,15),],
-##                              (15,28),(28,29),(29,30),
-##                              (30,43),(43,44),(45,45),
-##                              (45,58),(58,59),(59,60)],
-#                    skiprows=0,
-#                    header=None,)
-                    #names=obstypes)
+    data = np.vstack(([data],[lli],[ssi])).T
 
-    #FIXME: I didn't return the "signal strength" and "lock indicator" columns
-    return DataFrame(index=svnames,columns=obstypes, data = data)
+    return data
 
-
-
-def makeBlocks(rinex,ntypes,maxsv,svnames,obstypes,obstimes):
-    """
-    inputs:
-    rinex: file stream
-    ntypes: number of observation types
-    obstimes: datetime() of each observation
-    obstypes: type of measurment e.g. P1, P2,...
-    maxsv: maximum number of SVs the reciever saw in this file (i.e. across the entire obs. time)
-
-    outputs:
-    blocks: dimensions timeINTERVALs x maxsv x ntypes (page x row x col)
-    """
-    blocks = Panel(items=obstimes,
-                   major_axis=svnames,
-                   minor_axis=obstypes)
-
-    for i in range(obstimes.size): #this means maxtimes was specified, otherwise we'd reach end of file
-        sathead = rinex.readline()
-        if not sathead: break  #EOF
-        svnum = int(sathead[29:32])
-
-        obslinespersat = int(np.ceil(ntypes/5))
-        blockrows = svnum*obslinespersat
-
-        satnames = sathead[32:68]
-        for _ in range(int(np.ceil(svnum/12))-1):
-            line = rinex.readline()
-            sathead+=line
-            satnames+=line[32:68] #FIXME is this right end?
-        blocksvnames = satnumfixer(grouper(satnames,3,svnum))
-#%% read this INTERVAL's text block
-        block = ''.join(rinex.readline() for _ in range(blockrows))
-        btime = _obstime(sathead[:26].split())
-        bdf = _block2df(block,svnum,obstypes,blocksvnames)
-        blocks.loc[btime,blocksvnames] = bdf
-
-    return blocks
-
-def satnumfixer(satnames):
-    return [s[0] + '{:02d}'.format(int(s[1:3])) for s in satnames]
-
-def grouper(txt,n,maxn):
-    return [txt[n*i:n+n*i] for i in range(min(len(txt)//n,maxn))]
