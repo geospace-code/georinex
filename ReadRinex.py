@@ -22,10 +22,10 @@ if __name__ == '__main__':
             import cProfile
             from pstats import Stats
             profFN = 'RinexObsReader.pstats'
-            cProfile.run('rinexobs(rinexfn,p.odir,p.maxtimes)',profFN)
+            cProfile.run('rinexobs(rinexfn)',profFN)
             Stats(profFN).sort_stats('time','cumulative').print_stats(20)
         else:
-            blocks = rinexobs(rinexfn,p.odir,p.maxtimes)
+            data = rinexobs(rinexfn)
                
             ax = figure().gca()
             ax.plot(blocks.items,blocks.ix[:,0,'P1'])
