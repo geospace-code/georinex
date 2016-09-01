@@ -1,7 +1,3 @@
-.. image:: https://codeclimate.com/github/scienceopen/pyrinex/badges/gpa.svg
-  :target: https://codeclimate.com/github/scienceopen/pyrinex
-  :alt: Code Climate
-
 .. image:: https://travis-ci.org/scienceopen/pyrinex.svg?branch=master
   :target: https://travis-ci.org/scienceopen/pyrinex
 
