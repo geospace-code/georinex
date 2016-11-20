@@ -3,7 +3,7 @@
 Self-test file, registration case
 for OBS RINEX reader
 """
-from pyrinex import Path
+from pathlib import Path
 from pandas.io.pytables import read_hdf
 from numpy.testing import assert_allclose,run_module_suite
 #
