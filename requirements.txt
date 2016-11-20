@@ -4,6 +4,7 @@ six
 python-dateutil
 pytz
 numpy
+xarray
 pandas
 pytables
 h5py
