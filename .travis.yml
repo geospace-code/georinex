@@ -9,12 +9,6 @@ git:
 matrix:
   include:
     - os: osx
-      env: pyv=2.7
-
-    - os: linux
-      env: pyv=2.7
-      
-    - os: osx
       env: pyv=3.5
 
     - os: linux
