@@ -7,7 +7,7 @@ from pathlib import Path
 from pandas.io.pytables import read_hdf
 from numpy.testing import assert_allclose,run_module_suite
 #
-from pyrinex.readRinexObs import rinexobs, readRinexNav
+from pyrinex import rinexobs, readRinexNav
 
 rdir=Path(__file__).parents[1]
 
