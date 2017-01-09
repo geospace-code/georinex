@@ -37,7 +37,7 @@ Read Observation file example
 -----------------------------
 ::
 
-    from pyrinex.readRinexObs import rinexobs
+    from pyrinex import rinexobs
 
     obsdata = rinexobs(rinexObsfilename)
 
@@ -48,7 +48,7 @@ Read Navigation file example
 ----------------------------
 ::
 
-    from pyrinex.readRinexNav import readRinexNav
+    from pyrinex import readRinexNav
     
     navdata = readRinexNav(rinexNavfilename)
 
