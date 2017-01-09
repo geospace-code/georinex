@@ -31,10 +31,10 @@ def rinexobs(rinexfile,h5file=None,returnHead=False,writeh5=False):
         t=time.time()
         lines = f.read().splitlines(True)
         lines.append('')
-        header,version,headlines,obstimes,sats,svset = scan(lines)
+        header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
         print('{} is a RINEX {} file, {} kB.'.format(rinexfile,version,getsize(rinexfile)/1000.0))
         if h5file==None:
-            data = processBlocks(lines,header,obstimes,svset,headlines,sats)
+            data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
         else:
             data = read_hdf(h5file,key='data')
         print("finished in {0:.2f} seconds".format(time.time()-t))
@@ -72,6 +72,7 @@ def scan(lines):
     header['INTERVAL'] = float(header['INTERVAL'])
         
     headlines=[]
+    headlength = []
     obstimes=[]
     sats=[]
     svset=set()
@@ -84,12 +85,14 @@ def scan(lines):
             obstimes.append(_obstime([lines[i][1:3],lines[i][4:6],
                                    lines[i][7:9],lines[i][10:12],
                                    lines[i][13:15],lines[i][16:26]]))
-            numsvs = int(lines[i][30:32])
+            numsvs = int(lines[i][30:32])  # Number of visible satellites
+            headlength.append(1 + numsvs//12)
             if(numsvs>12):
                 sp=[]
                 for s in range(numsvs):
                     sp.append(int(lines[i][33+(s%12)*3:35+(s%12)*3]))
-                    if s==12: i+= 1
+                    if s>0 and s%12 == 0:
+                        i+= 1  # For every 12th satellite there will be a new row with satellite names
                 sats.append(sp)
             else:
                 sats.append([int(lines[i][33+s*3:35+s*3]) for s in range(numsvs)])
@@ -105,18 +108,18 @@ def scan(lines):
     for sv in sats:
         svset = svset.union(set(sv))
 
-    return header,verRinex,headlines,obstimes,sats,svset
+    return header,verRinex,headlines,headlength,obstimes,sats,svset
 
 
 
-def processBlocks(lines,header,obstimes,svset,headlines,sats):
+def processBlocks(lines,header,obstimes,svset,headlines, headlength,sats):
     
     obstypes = header['# / TYPES OF OBSERV'][1:]
     blocks = np.nan*np.ones((len(obstypes),max(svset)+1,len(obstimes),3))
     
     for i in range(len(headlines)):
         linesinblock = len(sats[i])*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))
-        block = ''.join(lines[headlines[i]+1:headlines[i]+linesinblock+1])
+        block = ''.join(lines[headlines[i]+headlength[i]:headlines[i]+linesinblock+headlength[i]])
         bdf = _block2df(block,obstypes,sats[i],len(sats[i]))
         blocks[:,np.asarray(sats[i],int),i,:] = bdf
         
