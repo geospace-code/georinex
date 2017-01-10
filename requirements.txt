@@ -6,8 +6,6 @@ pytz
 numpy
 xarray
 pandas
-pytables
 h5py
-pytables
 matplotlib
 seaborn
