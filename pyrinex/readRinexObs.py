@@ -142,7 +142,7 @@ def _obstime(fol):
     return datetime(year=year, month=int(fol[1]), day= int(fol[2]),
                     hour= int(fol[3]), minute=int(fol[4]),
                     second=int(float(fol[5])),
-                    microsecond=int(float(fol[5]) % 1) *100000
+                    microsecond=int(float(fol[5]) % 1 * 100000)
                     )
 
 def _block2df(block,obstypes,svnames,svnum):
