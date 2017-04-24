@@ -1,4 +1,13 @@
-language: generic
+language: python
+
+python:
+  - 2.7
+  - 3.4
+  - 3.5
+  - 3.6
+
+os:
+  - linux
 
 notifications:
     email: false
@@ -6,32 +15,29 @@ notifications:
 git:
     depth: 3
 
-matrix:
-  include:
-    - os: osx
-      env: pyv=3.5
 
-    - os: linux
-      env: pyv=3.5
 
-install:
+
+before_install:
     - if [[ $TRAVIS_OS_NAME == osx ]]; then
         wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -O miniconda.sh;
       else 
         wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
       
+install:
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH=$HOME/miniconda/bin:$PATH
     - hash -r
     
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
-    - conda create -n test python=$pyv
+    - conda create -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
     - pip -q install coveralls
+
     - python setup.py develop
 
-script: coverage run tests/test.py
+script: coverage run tests/test.py -v
 
 after_success: coveralls

@@ -1,8 +1,8 @@
-.. image:: https://travis-ci.org/scienceopen/pyrinex.svg?branch=master
-  :target: https://travis-ci.org/scienceopen/pyrinex
+.. image:: https://travis-ci.org/scivision/pyrinex.svg?branch=master
+  :target: https://travis-ci.org/scivision/pyrinex
 
-.. image:: https://coveralls.io/repos/scienceopen/pyrinex/badge.svg?branch=master&service=github
-  :target: https://coveralls.io/github/scienceopen/pyrinex?branch=master
+.. image:: https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github
+  :target: https://coveralls.io/github/scivision/pyrinex?branch=master
 
 =======
 PyRinex

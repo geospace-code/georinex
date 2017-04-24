@@ -1,17 +1,20 @@
 #!/usr/bin/env python
-from setuptools import setup
-import subprocess
-
+req = ['nose','numpy','pandas','xarray','matplotlib','seaborn','pathlib2']
+# %%
+import pip
 try:
-    subprocess.call(['conda','install','--file','requirements.txt'])
+    import conda.cli
+    conda.cli.main('install',*req)
 except Exception as e:
-    pass
+    pip.main(['install'] +req)
+# %%
+from setuptools import setup
 
 #%% install
 setup(name='pyrinex',
       packages=['pyrinex'],
 	  description='Python RINEX reader that is very fast',
-      install_requires=['pathlib2'],
-	  author='Michael Hirsch',
-	  url='https://github.com/scienceopen/pyrinex',
+	  author='Michael Hirsch, Ph.D.',
+      version='1.0.0',
+	  url='https://github.com/scivision/pyrinex',
 	  )
