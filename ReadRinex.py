@@ -24,10 +24,10 @@ if __name__ == '__main__':
             cProfile.run('rinexobs(rinexfn)',profFN)
             Stats(profFN).sort_stats('time','cumulative').print_stats(20)
         else:
-            data = rinexobs(rinexfn)
+            data,_ = rinexobs(rinexfn)
 
             ax = figure().gca()
-            ax.plot(data.items, data.ix[:,0,'P1'])
+            data.loc['P1',:,:,'data'].plot(ax=ax)
             ax.set_xlabel('time [UTC]')
             ax.set_ylabel('P1')
     #%% TEC can be made another column (on the minor_axis) of the blocks Panel.
