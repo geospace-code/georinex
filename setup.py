@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-req = ['nose','python-dateutil','pytz','numpy','pytables','pandas','numpy','pandas','h5py','xarray','matplotlib','seaborn','pathlib2']
+req = ['nose','python-dateutil','pytz','numpy','pandas','numpy','pandas','h5py','xarray','matplotlib','seaborn','pathlib2']
 pipreq=['tables']
 # %%
 import pip
