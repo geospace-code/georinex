@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 from matplotlib.pyplot import figure,show
 #
-from pyrinex.readRinexNav import readRinexNav
-from pyrinex.readRinexObs import rinexobs
+from pyrinex import readRinexNav,rinexobs
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -26,13 +25,13 @@ if __name__ == '__main__':
             Stats(profFN).sort_stats('time','cumulative').print_stats(20)
         else:
             data = rinexobs(rinexfn)
-               
+
             ax = figure().gca()
-            ax.plot(blocks.items,blocks.ix[:,0,'P1'])
+            ax.plot(data.items, data.ix[:,0,'P1'])
             ax.set_xlabel('time [UTC]')
             ax.set_ylabel('P1')
     #%% TEC can be made another column (on the minor_axis) of the blocks Panel.
     else:
-        raise ValueError('I dont know what type of file youre trying to read')
+        raise ValueError("I dont know what type of file you're trying to read")
 
     show()

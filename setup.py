@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-req = ['nose','numpy','pandas','xarray','matplotlib','seaborn','pathlib2']
+req = ['nose','python-dateutil','pytz','numpy','pytables','pandas','numpy','pandas','h5py','xarray','matplotlib','seaborn','pathlib2']
+pipreq=['tables']
 # %%
 import pip
 try:
@@ -7,6 +8,7 @@ try:
     conda.cli.main('install',*req)
 except Exception as e:
     pip.main(['install'] +req)
+pip.main(['install']+pipreq)
 # %%
 from setuptools import setup
 
