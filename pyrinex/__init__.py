@@ -23,7 +23,6 @@ def readRinexNav(fn,odir=None):
         odir = Path(odir).expanduser()
 
     startcol = 3 #column where numerical data starts
-    nfloat=19 #number of text elements per float data number
     N = 7 #number of lines per record
 
     sv = []; epoch=[]; raws=''
@@ -83,7 +82,7 @@ def readRinexNav(fn,odir=None):
     return nav
 # %% ====================================================================
 
-def rinexobs(fn, h5file=None, returnHead=False, writeh5=False):
+def rinexobs(fn, h5file=None, ofn=None):
     """
     Program overviw:
     1) scan the whole file for the header and other information using scan(lines)
@@ -99,81 +98,76 @@ def rinexobs(fn, h5file=None, returnHead=False, writeh5=False):
     with fn.open('r') as f:
         tic = time()
         lines = f.read().splitlines(True)
-        lines.append('')
         header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
         print('{} is a RINEX {} file, {} kB.'.format(fn,version, fn.stat().st_size//1000))
-        if h5file==None:
-            data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
-        else:
+        if h5file:
             data = read_hdf(h5file, key='data')
+        else:
+            data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
+
         print("finished in {0:.2f} seconds".format(time()-tic))
 
     #write an h5 file if specified
-    if writeh5:
-        h5fn = fn.with_suffix('.h5')
-        print('saving OBS data to',str(h5fn))
-        data.to_hdf(h5fn, key='data',mode='w', format='table')
+    if ofn:
+        print('saving OBS data to',str(ofn))
+        data.to_hdf(ofn, key='data',mode='w', format='table')
 
-    #return info including header if desired
-    if returnHead:
-        return header,data
-    else:
-        return data
+    return data,header
+
 
 
 # this will scan the document for the header info and for the line on
 # which each block starts
-def scan(lines):
+def scan(L):
     header={}
-    eoh=0
-    for i,line in enumerate(lines):
-        if "END OF HEADER" in line:
-            eoh=i
+    for i,l in enumerate(L):
+        if "END OF HEADER" in l:
+            i+=1 # skip to data
             break
-        if line[60:].strip() not in header:
-            header[line[60:].strip()] = line[:60].strip()
+        if l[60:80].strip() not in header:
+            header[l[60:80].strip()] = l[:60]  # don't strip for fixed-width parsers
         else:
-            header[line[60:].strip()] += " "+line[:60].strip()
-    verRinex = float(header['RINEX VERSION / TYPE'].split()[0])
+            header[l[60:80].strip()] += " "+l[:60]
+    verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     header['APPROX POSITION XYZ'] = [float(i) for i in header['APPROX POSITION XYZ'].split()]
     header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
     header['# / TYPES OF OBSERV'][0] = int(header['# / TYPES OF OBSERV'][0])
-    header['INTERVAL'] = float(header['INTERVAL'])
+    header['INTERVAL'] = float(header['INTERVAL'][:10])
 
     headlines=[]
     headlength = []
     obstimes=[]
     sats=[]
     svset=set()
-    i=eoh+1
-    while True:
-        if not lines[i]: break
-        if not int(lines[i][28]):
-            #no flag or flag=0
+# %%
+    while i < len(L):
+        if int(L[i][28]) in (0,1,5,6): # EPOCH FLAG
             headlines.append(i)
-            obstimes.append(_obstime([lines[i][1:3],lines[i][4:6],
-                                   lines[i][7:9],lines[i][10:12],
-                                   lines[i][13:15],lines[i][16:26]]))
-            numsvs = int(lines[i][30:32])  # Number of visible satellites
-            headlength.append(1 + numsvs//12)
-            if(numsvs>12):
-                sp=[]
+            obstimes.append(_obstime([L[i][1:3],  L[i][4:6],
+                                      L[i][7:9],  L[i][10:12],
+                                      L[i][13:15],L[i][16:26]]))
+            numsvs = int(L[i][29:32])  # Number of visible satellites %i3
+            headlength.append(1 + numsvs//12)  # number of lines in header
+            if numsvs > 12:
+                sv=[]
                 for s in range(numsvs):
-                    sp.append(int(lines[i][33+(s%12)*3:35+(s%12)*3]))
+                    # TODO this discards G R
                     if s>0 and s%12 == 0:
-                        i+= 1  # For every 12th satellite there will be a new row with satellite names
-                sats.append(sp)
+                        i += 1  # For every 12th satellite there will be a new row with satellite names
+                    sv.append(int(L[i][33+(s%12)*3:35+(s%12)*3]))
+                sats.append(sv)
             else:
-                sats.append([int(lines[i][33+s*3:35+s*3]) for s in range(numsvs)])
+                sats.append([int(L[i][33+s*3:35+s*3]) for s in range(numsvs)])
 
-            i+=numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))+1
+            i += numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))+1
         else:
             #there was a comment or some header info
-            flag=int(lines[i][28])
+            flag=int(L[i][28])
             if(flag!=4):
                 print(flag)
-            skip=int(lines[i][30:32])
+            skip=int(L[i][30:32])
             i+=skip+1
+# %% get every SV that appears at any time in the file, for master index
     for sv in sats:
         svset = svset.union(set(sv))
 
@@ -181,30 +175,34 @@ def scan(lines):
 
 
 
-def processBlocks(lines,header,obstimes,svset,headlines, headlength,sats):
+def processBlocks(lines,header,obstimes,svset,ihead, headlength,sats):
 
     obstypes = header['# / TYPES OF OBSERV'][1:]
-    blocks = np.nan*np.ones((len(obstypes),max(svset)+1,len(obstimes),3))
+    blocks = np.nan*np.ones((len(obstypes),
+                             max(svset)+1,
+                             len(obstimes),
+                             3))
 
-    for i in range(len(headlines)):
+    for i in range(len(ihead)):
         linesinblock = len(sats[i])*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))
-        block = ''.join(lines[headlines[i]+headlength[i]:headlines[i]+linesinblock+headlength[i]])
+        block = ''.join(lines[ihead[i]+headlength[i]:ihead[i]+linesinblock+headlength[i]])
         bdf = _block2df(block,obstypes,sats[i],len(sats[i]))
-        blocks[:,np.asarray(sats[i],int),i,:] = bdf
+        blocks[:, sats[i], i, :] = bdf
 
     blocks = Panel4D(blocks,
                      labels=obstypes,
                      items=np.arange(max(svset)+1),
                      major_axis=obstimes,
                      minor_axis=['data','lli','ssi'])
-    blocks = blocks[:,list(svset),:,:]
+
+    blocks = blocks[:,list(svset),:,:]  # remove unused SV numbers
 
     return blocks
 
 
 def _obstime(fol):
     year = int(fol[0])
-    if 80<= year <=99:
+    if 80 <= year <=99:
         year+=1900
     elif year<80: #because we might pass in four-digit year
         year+=2000
@@ -214,22 +212,25 @@ def _obstime(fol):
                     microsecond=int(float(fol[5]) % 1 * 100000)
                     )
 
-def _block2df(block,obstypes,svnames,svnum):
+def _block2df(block, obstypes, svnames, svnum):
     """
     input: block of text corresponding to one time increment INTERVAL of RINEX file
     output: 2-D array of float64 data from block. Future: consider whether best to use Numpy, Pandas, or Xray.
     """
-    nobs = len(obstypes)
-    stride=3
+    assert isinstance(svnum,int)
+    N = len(obstypes)
+    S = 3  # stride
 
-    strio = BytesIO(block.encode())
-    barr = np.genfromtxt(strio, delimiter=(14,1,1)*5).reshape((svnum,-1), order='C')
+    sio = BytesIO(block.encode('ascii'))
+    barr = np.genfromtxt(sio, delimiter=(svnum,1,1)*5).reshape((svnum,-1), order='C')
 
-    data = barr[:,0:nobs*stride:stride]
-    lli  = barr[:,1:nobs*stride:stride]
-    ssi  = barr[:,2:nobs*stride:stride]
+    #iLLI = [obstypes.index(l) for l in ('L1','L2')]
 
-    data = np.vstack(([data],[lli],[ssi])).T
+    data = barr[:,0:N*S:S].T
+    lli  = barr[:,1:N*S:S].T #[:,iLLI]
+    ssi  = barr[:,2:N*S:S].T
+
+    data = np.stack((data,lli,ssi),2) # Nobs x Nsat x 3
 
     return data
 
