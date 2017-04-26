@@ -10,7 +10,7 @@ from pandas import DataFrame,Panel4D,read_hdf
 from io import BytesIO
 from time import time
 
-def readRinexNav(fn,odir=None):
+def rinexnav(fn, ofn=None):
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch
@@ -19,8 +19,6 @@ def readRinexNav(fn,odir=None):
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     """
     fn = Path(fn).expanduser()
-    if odir:
-        odir = Path(odir).expanduser()
 
     startcol = 3 #column where numerical data starts
     N = 7 #number of lines per record
@@ -74,15 +72,19 @@ def readRinexNav(fn,odir=None):
                 'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
                 'TransTime','FitIntvl'])
 
-    if odir:
-        h5fn = odir/fn.name.with_suffix('.h5')
-        print('saving NAV data to',str(h5fn))
-        nav.to_hdf(h5fn,key='NAV',mode='a',complevel=6,append=False)
+    if ofn:
+        ofn = Path(ofn).expanduser()
+        print('saving NAV data to',str(ofn))
+        if ofn.is_file():
+            wmode='a'
+        else:
+            wmode='w'
+        nav.to_hdf(ofn, key='NAV',mode=wmode, complevel=6)
 
     return nav
 # %% ====================================================================
 
-def rinexobs(fn, h5file=None, ofn=None):
+def rinexobs(fn, ofn=None):
     """
     Program overviw:
     1) scan the whole file for the header and other information using scan(lines)
@@ -100,8 +102,8 @@ def rinexobs(fn, h5file=None, ofn=None):
         lines = f.read().splitlines(True)
         header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
         print('{} is a RINEX {} file, {} kB.'.format(fn,version, fn.stat().st_size//1000))
-        if h5file:
-            data = read_hdf(h5file, key='data')
+        if fn.suffix=='.h5':
+            data = read_hdf(fn, key='data')
         else:
             data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
 
@@ -109,8 +111,14 @@ def rinexobs(fn, h5file=None, ofn=None):
 
     #write an h5 file if specified
     if ofn:
+        ofn = Path(ofn).expanduser()
         print('saving OBS data to',str(ofn))
-        data.to_hdf(ofn, key='data',mode='w', format='table')
+        if ofn.is_file():
+            wmode='a'
+        else:
+            wmode='w'
+            # https://github.com/pandas-dev/pandas/issues/5444
+        data.to_hdf(ofn, key='OBS', mode=wmode, complevel=6,format='table')
 
     return data,header
 
