@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 from matplotlib.pyplot import figure,show
 #
-from pyrinex import readRinexNav,rinexobs
+from pyrinex import rinexnav,rinexobs
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='example of reading a RINEX 2 Navigation file')
     p.add_argument('rinexfn',help='path to RINEX file')
-    p.add_argument('-o','--odir',help='directory in which to write data as HDF5')
+    p.add_argument('-o','--outfn',help='write data as HDF5 file')
     p.add_argument('--maxtimes',help='Choose to read only the first N INTERVALs of OBS file',type=int)
     p.add_argument('--profile',help='profile code for debugging',action='store_true')
     p = p.parse_args()
 
     rinexfn = p.rinexfn
     if rinexfn.lower().endswith('n'):
-        nav = readRinexNav(rinexfn,p.odir)
+        nav = rinexnav(rinexfn, p.outfn)
         print(nav.head())
     elif rinexfn.lower().endswith('o'):
         if p.profile:
@@ -24,7 +24,7 @@ if __name__ == '__main__':
             cProfile.run('rinexobs(rinexfn)',profFN)
             Stats(profFN).sort_stats('time','cumulative').print_stats(20)
         else:
-            data,_ = rinexobs(rinexfn)
+            data,_ = rinexobs(rinexfn, p.outfn)
 
             ax = figure().gca()
             data.loc['P1',:,:,'data'].plot(ax=ax)
