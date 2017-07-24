@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Read navigation and observation rinex files
+@author: pyrinex (modified)
+"""
 try:
     from pathlib import Path
     Path().expanduser()
@@ -10,6 +15,7 @@ from pandas import read_hdf
 import xarray
 from io import BytesIO
 from time import time
+import re
 
 #%% Navigation file
 
@@ -18,9 +24,7 @@ def rinexnav(fn, ofn=None):
     Reads RINEX 2.11 NAV files
     Michael Hirsch
     It may actually be faster to read the entire file via f.read() and then .split()
-    and asarray().reshape() to the final result, but I did it frame by frame since RINEX files
-    may be enormous.
-
+    and asarray().reshape() to the final result, but I did it frame by frame.
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     """
     fn = Path(fn).expanduser()
@@ -63,13 +67,19 @@ def rinexnav(fn, ofn=None):
             for _ in range(N):
                 raw += f.readline()[startcol:80]
             # one line per SV
-            raws += raw + '\n'
+            #raws += raw + '\n'
+            raws += raw + ' '
+            
 
     raws = raws.replace('D','E')
-# %% parse
-    darr = np.genfromtxt(BytesIO(raws.encode('ascii')))
-
-    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
+    raws = re.sub(r'(\d-)', r' -', raws)
+    raws = re.sub(r'\n', r' ', raws)
+    
+    lista = [float(i) for i in raws.split(' ') if len(i) != 0 ]
+    sat_info = np.array(lista)
+    sat_info = sat_info.reshape(len(lista)/29, 29)
+    
+    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,sat_info), axis=1),
                                       coords={'t':epoch,
                                                   'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
                 'Crs','DeltaN','M0','Cuc','Eccentricity','Cus','sqrtA','TimeEph',
@@ -161,31 +171,37 @@ def scan(L):
     svset=set()
 # %%
     while i < len(L):
-        if int(L[i][28]) in (0,1,5,6): # EPOCH FLAG
-            headlines.append(i)
-            obstimes.append(_obstime([L[i][1:3],  L[i][4:6],
-                                      L[i][7:9],  L[i][10:12],
-                                      L[i][13:15],L[i][16:26]]))
-            numsvs = int(L[i][29:32])  # Number of visible satellites %i3
-            headlength.append(1 + numsvs//12)  # number of lines in header
-            if numsvs > 12:
-                sv=[]
-                for s in range(numsvs):
-                    # TODO this discards G R
-                    if s>0 and s%12 == 0:
-                        i += 1  # every 12th satellite will add new row with satellite names
-                    sv.append(int(L[i][33+(s%12)*3:35+(s%12)*3]))
-                sats.append(sv)
-            else:
-                sats.append([int(L[i][33+s*3:35+s*3]) for s in range(numsvs)])
-
-            i += numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))+1
-        else: #there was a comment or some header info
-            flag=int(L[i][28])
-            if(flag!=4):
-                print(flag)
-            skip=int(L[i][30:32])
-            i+=skip+1
+        if len(L[i].split()) >  header['# / TYPES OF OBSERV'][0]: #then its headerline 
+            if int(L[i][28]) in (0,1,5,6): # CHECK EPOCH FLAG  STATUS
+                headlines.append(i)
+                year, month, day, hour = L[i][1:3], L[i][4:6], L[i][7:9], L[i][10:12]
+                minute, second = L[i][13:15], L[i][16:26]
+                obstimes.append(_obstime([year,  month,
+                                      day,  hour,
+                                      minute,second]))
+                #ONLY GPS SATELLITES
+                numsvs = int(L[i][29:32])  # Number of visible satellites %i3
+                headlength.append(1 + (numsvs-1)//12)  # number of lines in header, depends on how many svs on view
+                if numsvs > 12:
+                    sv=[]
+                    for s in range(numsvs):
+                        if s>0 and s%12 == 0:
+                            i += 1  #every 12th sat  will add new headline row ex >12 2 rows
+                        if L[i][33+(s%12)*3-1] == 'G':
+                            sv.append(int(L[i][33+(s%12)*3:35+(s%12)*3])) 
+                    sats.append(sv)
+                    i += numsvs+1
+                    
+                else:
+                    sats.append([int(L[i][33+s*3:35+s*3]) for s in range(numsvs) if L[i][33+s*3-1]=='G']) #lista de satelites (numeros prn)
+                    i += numsvs + 1
+            
+            else: #there was a comment or some header info
+                flag=int(L[i][28])
+                if(flag!=4):
+                    print(flag)
+                skip=int(L[i][30:32])
+                i+=skip+1
 # %% get every SV that appears at any time in the file, for master index
     for sv in sats:
         svset = svset.union(set(sv))
@@ -199,7 +215,7 @@ def processBlocks(lines,header,obstimes,svset,ihead, headlength,sats):
     blocks = np.nan*np.ones((len(obstypes),
                              max(svset)+1,
                              len(obstimes),
-                             3))
+                             3)) #por que max
 
     for i in range(len(ihead)):
         linesinblock = len(sats[i])*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5.)) #nsats x observations
