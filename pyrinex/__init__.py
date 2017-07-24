@@ -6,7 +6,8 @@ except (ImportError,AttributeError):
 #
 import numpy as np
 from datetime import datetime
-from pandas import DataFrame,Panel4D,read_hdf
+from pandas import read_hdf
+import xarray
 from io import BytesIO
 from time import time
 
@@ -64,13 +65,14 @@ def rinexnav(fn, ofn=None):
 # %% parse
     darr = np.genfromtxt(BytesIO(raws.encode('ascii')))
 
-    nav= DataFrame(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
-                   index=epoch,
-           columns=['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
+    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
+                                      coords={'t':epoch,
+                                                  'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
                 'Crs','DeltaN','M0','Cuc','Eccentricity','Cus','sqrtA','TimeEph',
                 'Cic','OMEGA','CIS','Io','Crc','omega','OMEGA DOT','IDOT',
                 'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
-                'TransTime','FitIntvl'])
+                'TransTime','FitIntvl']},
+                                     dims=['t','data'])
 
     if ofn:
         ofn = Path(ofn).expanduser()
@@ -197,11 +199,12 @@ def processBlocks(lines,header,obstimes,svset,ihead, headlength,sats):
         bdf = _block2df(block,obstypes,sats[i],len(sats[i]))
         blocks[:, sats[i], i, :] = bdf
 
-    blocks = Panel4D(blocks,
-                     labels=obstypes,
-                     items=np.arange(max(svset)+1),
-                     major_axis=obstimes,
-                     minor_axis=['data','lli','ssi'])
+    blocks = xarray.DataArray(data=blocks,
+                                          coords={'obs':obstypes,
+                                                       'sv':np.arange(max(svset)+1),
+                                                       't':obstimes,
+                                                       'type':['data','lli','ssi']},
+                                          dims=['obs','sv','t','type'])
 
     blocks = blocks[:,list(svset),:,:]  # remove unused SV numbers
 

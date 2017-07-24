@@ -30,7 +30,7 @@ if __name__ == '__main__':
             data.loc['P1',:,:,'data'].plot(ax=ax)
             ax.set_xlabel('time [UTC]')
             ax.set_ylabel('P1')
-    #%% TEC can be made another column (on the minor_axis) of the blocks Panel.
+    #%% TEC can be made another column (on the last axis) of the blocks array.
     else:
         raise ValueError("I dont know what type of file you're trying to read")
 
