@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 try:
     from pathlib import Path
     Path().expanduser()
@@ -106,7 +107,7 @@ def rinexobs(fn, ofn=None):
         tic = time()
         lines = f.read().splitlines(True)
         header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
-        print('{} is a RINEX {} file, {} kB.'.format(fn,version, fn.stat().st_size//1000))
+        print(f'{fn} RINEX {version} file, {fn.stat().st_size//1000} kB.')
         if fn.suffix=='.h5':
             data = read_hdf(fn, key='data')
         else:

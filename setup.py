@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 req = ['nose','python-dateutil','pytz','numpy','pandas','numpy','pandas','h5py','xarray','matplotlib','seaborn','pathlib2']
-pipreq=['tables']
+pipreq=['tables','future-fstrings']
 # %%
 import pip
 try:
@@ -19,4 +19,5 @@ setup(name='pyrinex',
 	  author='Michael Hirsch, Ph.D.',
       version='1.0.0',
 	  url='https://github.com/scivision/pyrinex',
+	  install_requires=req+pipreq,
 	  )

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: future_fstrings -*-
 """
 Read navigation and observation rinex files
 @author: pyrinex (modified)
