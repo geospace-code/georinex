@@ -4,6 +4,10 @@
 .. image:: https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github
   :target: https://coveralls.io/github/scivision/pyrinex?branch=master
 
+.. image:: https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability
+   :target: https://codeclimate.com/github/scivision/pyrinex/maintainability
+   :alt: Maintainability
+
 =======
 PyRinex
 =======
