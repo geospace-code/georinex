@@ -16,14 +16,14 @@ RINEX 3 is in work, and NOT working yet.
 
 .. contents::
 
-Installation
-=============
+Install
+=======
 ::
 
-  python setup.py develop
+  pip install -e .
 
-Demo
-======
+Run
+===
 ::
 
   python ReadRinex.py myrinex.XXx

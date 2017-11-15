@@ -1,13 +1,12 @@
-# -*- coding: future_fstrings -*-
 try:
     from pathlib import Path
     Path().expanduser()
 except (ImportError,AttributeError):
     from pathlib2 import Path
 #
+import logging
 import numpy as np
 from datetime import datetime
-from pandas import read_hdf
 import xarray
 from io import BytesIO
 from time import time
@@ -72,7 +71,7 @@ def rinexnav(fn, ofn=None):
 
     nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
                                       coords={'t':epoch,
-                                                  'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
+                                              'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
                 'Crs','DeltaN','M0','Cuc','Eccentricity','Cus','sqrtA','TimeEph',
                 'Cic','OMEGA','CIS','Io','Crc','omega','OMEGA DOT','IDOT',
                 'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
@@ -86,7 +85,7 @@ def rinexnav(fn, ofn=None):
             wmode='a'
         else:
             wmode='w'
-        nav.to_hdf(ofn, key='NAV',mode=wmode, complevel=6)
+        nav.to_netcdf(ofn, group='NAV', mode=wmode)
 
     return nav
 # %% Observation File
@@ -107,9 +106,13 @@ def rinexobs(fn, ofn=None):
         tic = time()
         lines = f.read().splitlines(True)
         header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
-        print(f'{fn} RINEX {version} file, {fn.stat().st_size//1000} kB.')
-        if fn.suffix=='.h5':
-            data = read_hdf(fn, key='data')
+        print(fn,'RINEX',version,'file',fn.stat().st_size//1000,'kB.')
+        if fn.suffix=='.nc':
+            data = xarray.open_dataarray(str(fn), group='OBS')
+        elif fn.suffix=='.h5':
+            logging.warning('HDF5 is deprecated in this program, please use NetCDF format')
+            import pandas
+            data = pandas.read_hdf(fn, key='OBS')
         else:
             data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
 
@@ -118,13 +121,12 @@ def rinexobs(fn, ofn=None):
     #write an h5 file if specified
     if ofn:
         ofn = Path(ofn).expanduser()
-        print('saving OBS data to',str(ofn))
+        print('saving OBS data to',ofn)
         if ofn.is_file():
             wmode='a'
         else:
             wmode='w'
-            # https://github.com/pandas-dev/pandas/issues/5444
-        data.to_hdf(ofn, key='OBS', mode=wmode, complevel=6,format='table')
+        data.to_netcdf(ofn, group='OBS', mode=wmode)
 
     return data,header
 
@@ -145,13 +147,13 @@ def scan(L):
         else:
             header[l[60:80].strip()] += " "+l[:60]
             #concatenate to the existing string
-           
+
     verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     # list with x,y,z cartesian
     header['APPROX POSITION XYZ'] = [float(i) for i in header['APPROX POSITION XYZ'].split()]
     #observation types
     header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
-    #turn into int number of observations 
+    #turn into int number of observations
     header['# / TYPES OF OBSERV'][0] = int(header['# / TYPES OF OBSERV'][0])
     header['INTERVAL'] = float(header['INTERVAL'][:10])
 
@@ -237,7 +239,7 @@ def _obstime(fol):
 def _block2df(block, obstypes, svnames, svnum):
     """
     input: block of text corresponding to one time increment INTERVAL of RINEX file
-    output: 2-D array of float64 data from block. Future: consider whether best to use Numpy, Pandas, or Xray.
+    output: 2-D array of float64 data from block.
     """
     assert isinstance(svnum,int)
     N = len(obstypes)

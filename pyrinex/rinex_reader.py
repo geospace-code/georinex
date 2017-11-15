@@ -1,28 +1,19 @@
-# -*- coding: future_fstrings -*-
 """
 Read navigation and observation rinex files
-@author: pyrinex (modified)
 """
-try:
-    from pathlib import Path
-    Path().expanduser()
-except (ImportError,AttributeError):
-    from pathlib2 import Path
-#
+from . import Path
+import logging
 import numpy as np
 from datetime import datetime
-from pandas import read_hdf
 import xarray
 from io import BytesIO
 from time import time
 import re
-
 #%% Navigation file
-
 def rinexnav(fn, ofn=None):
     """
     Reads RINEX 2.11 NAV files
-    Michael Hirsch
+    Michael Hirsch, Ph.D.
     It may actually be faster to read the entire file via f.read() and then .split()
     and asarray().reshape() to the final result, but I did it frame by frame.
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
@@ -69,16 +60,16 @@ def rinexnav(fn, ofn=None):
             # one line per SV
             #raws += raw + '\n'
             raws += raw + ' '
-            
+
 
     raws = raws.replace('D','E')
     raws = re.sub(r'(\d-)', r' -', raws)
     raws = re.sub(r'\n', r' ', raws)
-    
+
     lista = [float(i) for i in raws.split(' ') if len(i) != 0 ]
     sat_info = np.array(lista)
     sat_info = sat_info.reshape(len(lista)/29, 29)
-    
+
     nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,sat_info), axis=1),
                                       coords={'t':epoch,
                                                   'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
@@ -95,9 +86,10 @@ def rinexnav(fn, ofn=None):
             wmode='a'
         else:
             wmode='w'
-        nav.to_hdf(ofn, key='NAV',mode=wmode, complevel=6)
+        nav.to_netcdf(ofn, group='NAV', mode=wmode)
 
     return nav
+
 # %% Observation File
 def rinexobs(fn, ofn=None):
     """
@@ -116,9 +108,13 @@ def rinexobs(fn, ofn=None):
         tic = time()
         lines = f.read().splitlines(True)
         header,version,headlines,headlength,obstimes,sats,svset = scan(lines)
-        print('{} is a RINEX {} file, {} kB.'.format(fn,version, fn.stat().st_size//1000))
-        if fn.suffix=='.h5':
-            data = read_hdf(fn, key='data')
+        print(fn,'is a RINEX',version,'file.',fn.stat().st_size//1000,'kB.')
+        if fn.suffix=='.nc':
+            data = xarray.open_dataarray(str(fn), group='OBS')
+        elif fn.suffix=='.h5':
+            logging.warning('HDF5 is deprecated in this program, please use NetCDF format')
+            import pandas
+            data = pandas.read_hdf(fn, key='OBS')
         else:
             data = processBlocks(lines,header,obstimes,svset,headlines, headlength,sats)
 
@@ -127,16 +123,14 @@ def rinexobs(fn, ofn=None):
     #write an h5 file if specified
     if ofn:
         ofn = Path(ofn).expanduser()
-        print('saving OBS data to',str(ofn))
+        print('saving OBS data to',ofn)
         if ofn.is_file():
             wmode='a'
         else:
             wmode='w'
-            # https://github.com/pandas-dev/pandas/issues/5444
-        data.to_hdf(ofn, key='OBS', mode=wmode, complevel=6,format='table')
+        data.to_netcdf(ofn, group='OBS', mode=wmode)
 
     return data,header
-
 
 
 # this will scan the document for the header info and for the line on
@@ -154,13 +148,13 @@ def scan(L):
         else:
             header[l[60:80].strip()] += " "+l[:60]
             #concatenate to the existing string
-           
+
     verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     # list with x,y,z cartesian
     header['APPROX POSITION XYZ'] = [float(i) for i in header['APPROX POSITION XYZ'].split()]
     #observation types
     header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
-    #turn into int number of observations 
+    #turn into int number of observations
     header['# / TYPES OF OBSERV'][0] = int(header['# / TYPES OF OBSERV'][0])
     header['INTERVAL'] = float(header['INTERVAL'][:10])
 
@@ -171,7 +165,7 @@ def scan(L):
     svset=set()
 # %%
     while i < len(L):
-        if len(L[i].split()) >  header['# / TYPES OF OBSERV'][0]: #then its headerline 
+        if len(L[i].split()) >  header['# / TYPES OF OBSERV'][0]: #then its headerline
             if int(L[i][28]) in (0,1,5,6): # CHECK EPOCH FLAG  STATUS
                 headlines.append(i)
                 year, month, day, hour = L[i][1:3], L[i][4:6], L[i][7:9], L[i][10:12]
@@ -188,14 +182,14 @@ def scan(L):
                         if s>0 and s%12 == 0:
                             i += 1  #every 12th sat  will add new headline row ex >12 2 rows
                         if L[i][33+(s%12)*3-1] == 'G':
-                            sv.append(int(L[i][33+(s%12)*3:35+(s%12)*3])) 
+                            sv.append(int(L[i][33+(s%12)*3:35+(s%12)*3]))
                     sats.append(sv)
                     i += numsvs+1
-                    
+
                 else:
                     sats.append([int(L[i][33+s*3:35+s*3]) for s in range(numsvs) if L[i][33+s*3-1]=='G']) #lista de satelites (numeros prn)
                     i += numsvs + 1
-            
+
             else: #there was a comment or some header info
                 flag=int(L[i][28])
                 if(flag!=4):
@@ -243,16 +237,18 @@ def _obstime(fol):
         year+=1900
     elif year<80: #because we might pass in four-digit year
         year+=2000
+
     return datetime(year=year, month=int(fol[1]), day= int(fol[2]),
                     hour= int(fol[3]), minute=int(fol[4]),
                     second=int(float(fol[5])),
                     microsecond=int(float(fol[5]) % 1 * 100000)
                     )
 
+
 def _block2df(block, obstypes, svnames, svnum):
     """
     input: block of text corresponding to one time increment INTERVAL of RINEX file
-    output: 2-D array of float64 data from block. Future: consider whether best to use Numpy, Pandas, or Xray.
+    output: 2-D array of float64 data from block.
     """
     assert isinstance(svnum,int)
     N = len(obstypes)
@@ -270,4 +266,3 @@ def _block2df(block, obstypes, svnames, svnum):
     data = np.stack((data,lli,ssi),2) # Nobs x Nsat x 3
 
     return data
-

@@ -32,6 +32,6 @@ if __name__ == '__main__':
             ax.set_ylabel('P1')
     #%% TEC can be made another column (on the last axis) of the blocks array.
     else:
-        raise ValueError("I dont know what type of file you're trying to read")
+        raise ValueError("I dont know what type of file you're trying to read: {}".format(p.rinexfn))
 
     show()
