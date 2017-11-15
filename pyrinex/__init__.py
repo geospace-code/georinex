@@ -1,3 +1,4 @@
+from __future__ import division  # absolutely needed for Py27 or strange behavior
 try:
     from pathlib import Path
     Path().expanduser()
@@ -150,7 +151,7 @@ def scan(L):
 
     verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     # list with x,y,z cartesian
-    header['APPROX POSITION XYZ'] = [float(i) for i in header['APPROX POSITION XYZ'].split()]
+    header['APPROX POSITION XYZ'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
     #observation types
     header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
     #turn into int number of observations
@@ -182,9 +183,11 @@ def scan(L):
             else:
                 sats.append([int(L[i][33+s*3:35+s*3]) for s in range(numsvs)])
 
-            i += numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))+1
+            skip = numsvs*int(np.ceil(header['# / TYPES OF OBSERV'][0]/5))
+            i += skip + 1
         else: #there was a comment or some header info
             flag=int(L[i][28])
+
             if(flag!=4):
                 print(flag)
             skip=int(L[i][30:32])
