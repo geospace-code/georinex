@@ -39,7 +39,9 @@ def rinexnav(fn, ofn=None):
 def _newnav(l):
     sv = l[:3]
 
-    if sv[0] == 'G':
+    svtype = sv[0]
+
+    if svtype == 'G':
         sv = int(sv[1:]) + 0
         fields = ['sv','aGf0','aGf1','SVclockDriftRate',
                   'IODE','Crs','DeltaN','M0',
@@ -49,19 +51,19 @@ def _newnav(l):
                   'IDOT','CodesL2','GPSWeek','L2Pflag',
                   'SVacc','SVhealth','TGD','IODC',
                   'TransTime','FitIntvl']
-    elif sv[0] == 'C':
+    elif svtype == 'C':
         sv = int(sv[1:]) + BEIDOU
-    elif sv[0] == 'R':
+    elif svtype == 'R':
         sv = int(sv[1:]) + GLONASS
-    elif sv[0] == 'S':
+    elif svtype == 'S':
         sv = int(sv[1:]) + SBAS
         fields=['sv','aGf0','aGf1','MsgTxTime',
                 'X','dX','dX2','SVhealth',
                 'Y','dY','dY2','URA',
                 'Z','dZ','dZ2','IODN']
-    elif sv[0] == 'J':
+    elif svtype == 'J':
         sv = int(sv[1:]) + QZSS
-    elif sv[0] == 'E':
+    elif svtype == 'E':
         raise NotImplementedError('Galileo PRN not yet known')
     else:
         raise ValueError('Unknown SV type {}'.format(sv[0]))
@@ -76,7 +78,7 @@ def _newnav(l):
                   minute  =int(l[18:20]),
                   second  =int(l[21:23]))
 
-    return sv, t, fields
+    return sv, t, fields,svtype
 
 
 def rinexnav3(fn, ofn=None):
@@ -106,7 +108,7 @@ def rinexnav3(fn, ofn=None):
         """
         line = f.readline()
         while True:
-            sv,t,fields = _newnav(line)
+            sv,t,fields,svtype = _newnav(line)
             svs.append(sv)
             epoch.append(t)
 # %% get the data as one big long string per SV, unknown # of lines per SV
@@ -132,7 +134,8 @@ def rinexnav3(fn, ofn=None):
     nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(svs).T, darr), axis=1),
                 coords={'t':epoch,
                 'data':fields},
-                dims=['t','data'])
+                dims=['t','data'],
+                name=svtype)
 
     if ofn:
         ofn = Path(ofn).expanduser()

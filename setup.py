@@ -10,6 +10,6 @@ setup(name='pyrinex',
 	  url='https://github.com/scivision/pyrinex',
 	  install_requires=req,
       python_requires='>=2.7',
-      extras_requires={'plot':['matplotlib','seaborn'],
+      extras_requires={'plot':['matplotlib','seaborn','pymap3d'],
                        'deprecated':['pandas'],},
 	  )

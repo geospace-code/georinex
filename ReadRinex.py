@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-from matplotlib.pyplot import figure,show
+from matplotlib.pyplot import show
 #
 from pyrinex import rinexnav,rinexobs
+from pyrinex.plots import plotnav, plotobs
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -15,7 +16,8 @@ if __name__ == '__main__':
     rinexfn = p.rinexfn
     if rinexfn.lower().endswith('n'):
         nav = rinexnav(rinexfn, p.outfn)
-        print(nav)
+
+        plotnav(nav)
     elif rinexfn.lower().endswith('o'):
         if p.profile:
             import cProfile
@@ -24,12 +26,9 @@ if __name__ == '__main__':
             cProfile.run('rinexobs(rinexfn)',profFN)
             Stats(profFN).sort_stats('time','cumulative').print_stats(20)
         else:
-            data,_ = rinexobs(rinexfn, p.outfn)
+            obs,_ = rinexobs(rinexfn, p.outfn)
 
-            ax = figure().gca()
-            data.loc['P1',:,:,'data'].plot(ax=ax)
-            ax.set_xlabel('time [UTC]')
-            ax.set_ylabel('P1')
+            plotobs(obs)
     #%% TEC can be made another column (on the last axis) of the blocks array.
     else:
         raise ValueError("I dont know what type of file you're trying to read: {}".format(p.rinexfn))
