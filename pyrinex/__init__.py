@@ -13,8 +13,10 @@ from io import BytesIO
 from time import time
 
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
-SBAS=87 # offset for ID
+SBAS=100 # offset for ID
 GLONASS=37
+QZSS=192
+BEIDOU=0
 #%% Navigation file
 def rinexnav(fn, ofn=None):
     fn = Path(fn).expanduser()
@@ -31,6 +33,36 @@ def rinexnav(fn, ofn=None):
     else:
         raise ValueError('unknown RINEX verion {}  {}'.format(vermajor,fn))
 
+def _newnav(l):
+    sv = l[:3]
+
+    if sv[0] == 'G':
+        sv = int(sv[1:]) + 0
+    elif sv[0] == 'C':
+        sv = int(sv[1:]) + BEIDOU
+    elif sv[0] == 'R':
+        sv = int(sv[1:]) + GLONASS
+    elif sv[0] == 'S':
+        sv = int(sv[1:]) + SBAS
+    elif sv[0] == 'J':
+        sv = int(sv[1:]) + QZSS
+    elif sv[0] == 'E':
+        raise NotImplementedError('Galileo PRN not yet known')
+    else:
+        raise ValueError('Unknown SV type {}'.format(sv[0]))
+
+
+    year = int(l[4:8]) # I4
+
+    t = datetime(year = year,
+                  month   =int(l[9:11]),
+                  day     =int(l[12:14]),
+                  hour    =int(l[15:17]),
+                  minute  =int(l[18:20]),
+                  second  =int(l[21:23]))
+
+    return sv, t
+
 
 def rinexnav3(fn, ofn=None):
     """
@@ -41,7 +73,6 @@ def rinexnav3(fn, ofn=None):
     fn = Path(fn).expanduser()
 
     startcol = 4 #column where numerical data starts
-    N = 3 #number of additional lines per record
 
     svs = []; epoch=[]; raws=''
 
@@ -60,37 +91,25 @@ def rinexnav3(fn, ofn=None):
         """
         now read data
         """
-        for l in f:
-            sv = l[:3]
-            if sv[0] == 'G':
-                sv = int(sv[1:])
-            elif sv[0] == 'R':
-                sv = int(sv[1:]) + GLONASS
-            elif sv[0] == 'S':
-                sv = int(sv[1:]) + SBAS
-            elif sv[0] == 'E':
-                raise NotImplementedError('Galileo PRN not yet known')
-            else:
-                raise ValueError('Unknown SV type {}'.format(sv[0]))
+        line = f.readline()
+        while True:
+            sv,t = _newnav(line)
+            svs.append(sv)
+            epoch.append(t)
+# %% get the data as one big long string per SV, unknown # of lines per SV
+            raw = line[23:80]
 
-            svs.append(sv)  # A1,I2.2
+            while True:
+                line = f.readline()
+                if not line or line[0] != ' ': # new SV
+                    break
 
-            year = int(l[4:8]) # I4
-
-            epoch.append(datetime(year =year,
-                                  month   =int(l[9:11]),
-                                  day     =int(l[12:14]),
-                                  hour    =int(l[15:17]),
-                                  minute  =int(l[18:20]),
-                                  second  =int(l[21:23])))
-            """
-            now get the data as one big long string per SV
-            """
-            raw = l[23:80]
-            for _ in range(N):
-                raw += f.readline()[startcol:80]
+                raw += line[startcol:80].strip()
             # one line per SV
             raws += raw + '\n'
+
+            if not line: # EOF
+                break
 
     raws = raws.replace('D','E')
 # %% parse
@@ -112,7 +131,7 @@ def rinexnav3(fn, ofn=None):
             wmode='a'
         else:
             wmode='w'
-        nav.to_netcdf(ofn, group='NAV', mode=wmode)
+        nav.to_netcdf(str(ofn), group='NAV', mode=wmode)
 
     return nav
 
@@ -194,7 +213,7 @@ def rinexnav2(fn, ofn=None):
             wmode='a'
         else:
             wmode='w'
-        nav.to_netcdf(ofn, group='NAV', mode=wmode)
+        nav.to_netcdf(str(ofn), group='NAV', mode=wmode)
 
     return nav
 # %% Observation File
@@ -235,7 +254,7 @@ def rinexobs(fn, ofn=None):
             wmode='a'
         else:
             wmode='w'
-        data.to_netcdf(ofn, group='OBS', mode=wmode)
+        data.to_netcdf(str(ofn), group='OBS', mode=wmode)
 
     return data,header
 
