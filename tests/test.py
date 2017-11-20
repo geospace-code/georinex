@@ -11,7 +11,8 @@ from pyrinex import rinexobs, rinexnav
 
 rdir=Path(__file__).parents[1]
 ofn = rdir/'tests/test.nc'
-ofn3 = rdir/'tests/test3.nc'
+ofn3sbas = rdir/'tests/test3sbas.nc'
+ofn3gps = rdir/'tests/test3gps.nc'
 
 def test_obs():
 
@@ -30,10 +31,17 @@ def test_nav2():
     assert_allclose(testnav,truth)
 
 
-def test_nav3():
+def test_nav3sbas():
 
-    truth = xarray.open_dataarray(str(ofn3), group='NAV')
+    truth = xarray.open_dataarray(str(ofn3sbas), group='NAV')
     testnav = rinexnav(rdir/'tests/demo3.10n')
+
+    assert_allclose(testnav,truth)
+
+def test_nav3gps():
+
+    truth = xarray.open_dataarray(str(ofn3gps), group='NAV')
+    testnav = rinexnav(rdir/'tests/demo.17n')
 
     assert_allclose(testnav,truth)
 

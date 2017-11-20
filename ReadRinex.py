@@ -15,7 +15,7 @@ if __name__ == '__main__':
     rinexfn = p.rinexfn
     if rinexfn.lower().endswith('n'):
         nav = rinexnav(rinexfn, p.outfn)
-        print(nav.head())
+        print(nav)
     elif rinexfn.lower().endswith('o'):
         if p.profile:
             import cProfile

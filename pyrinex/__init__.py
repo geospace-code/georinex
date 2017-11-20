@@ -17,6 +17,9 @@ SBAS=100 # offset for ID
 GLONASS=37
 QZSS=192
 BEIDOU=0
+
+STARTCOL2 = 3 #column where numerical data starts
+STARTCOL3 = 4 #column where numerical data starts
 #%% Navigation file
 def rinexnav(fn, ofn=None):
     fn = Path(fn).expanduser()
@@ -38,12 +41,24 @@ def _newnav(l):
 
     if sv[0] == 'G':
         sv = int(sv[1:]) + 0
+        fields = ['sv','aGf0','aGf1','SVclockDriftRate',
+                  'IODE','Crs','DeltaN','M0',
+                  'Cuc','Eccentricity','Cus','sqrtA',
+                  'Toe','Cic','OMEGA0','Cis',
+                  'Io','Crc','omega','OMEGA DOT',
+                  'IDOT','CodesL2','GPSWeek','L2Pflag',
+                  'SVacc','SVhealth','TGD','IODC',
+                  'TransTime','FitIntvl']
     elif sv[0] == 'C':
         sv = int(sv[1:]) + BEIDOU
     elif sv[0] == 'R':
         sv = int(sv[1:]) + GLONASS
     elif sv[0] == 'S':
         sv = int(sv[1:]) + SBAS
+        fields=['sv','aGf0','aGf1','MsgTxTime',
+                'X','dX','dX2','SVhealth',
+                'Y','dY','dY2','URA',
+                'Z','dZ','dZ2','IODN']
     elif sv[0] == 'J':
         sv = int(sv[1:]) + QZSS
     elif sv[0] == 'E':
@@ -61,7 +76,7 @@ def _newnav(l):
                   minute  =int(l[18:20]),
                   second  =int(l[21:23]))
 
-    return sv, t
+    return sv, t, fields
 
 
 def rinexnav3(fn, ofn=None):
@@ -71,8 +86,6 @@ def rinexnav3(fn, ofn=None):
     http://www.gage.es/sites/default/files/gLAB/HTML/SBAS_Navigation_Rinex_v3.01.html
     """
     fn = Path(fn).expanduser()
-
-    startcol = 4 #column where numerical data starts
 
     svs = []; epoch=[]; raws=''
 
@@ -93,7 +106,7 @@ def rinexnav3(fn, ofn=None):
         """
         line = f.readline()
         while True:
-            sv,t = _newnav(line)
+            sv,t,fields = _newnav(line)
             svs.append(sv)
             epoch.append(t)
 # %% get the data as one big long string per SV, unknown # of lines per SV
@@ -104,7 +117,7 @@ def rinexnav3(fn, ofn=None):
                 if not line or line[0] != ' ': # new SV
                     break
 
-                raw += line[startcol:80].strip()
+                raw += line[STARTCOL3:80]
             # one line per SV
             raws += raw + '\n'
 
@@ -116,12 +129,9 @@ def rinexnav3(fn, ofn=None):
     darr = np.genfromtxt(BytesIO(raws.encode('ascii')),
                          delimiter=19)
 
-    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(svs).T,darr), axis=1),
+    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(svs).T, darr), axis=1),
                 coords={'t':epoch,
-                'data':['sv','aGf0','aGf1','MsgTxTime',
-                'X','dX','dX2','SVhealth',
-                'Y','dY','dY2','URA',
-                'Z','dZ','dZ2','IODN']},
+                'data':fields},
                 dims=['t','data'])
 
     if ofn:
@@ -148,7 +158,6 @@ def rinexnav2(fn, ofn=None):
     """
     fn = Path(fn).expanduser()
 
-    startcol = 3 #column where numerical data starts
     N = 7 #number of additional lines per record
 
     sv = []; epoch=[]; raws=''
@@ -188,7 +197,7 @@ def rinexnav2(fn, ofn=None):
             """
             raw = l[22:80]
             for _ in range(N):
-                raw += f.readline()[startcol:80]
+                raw += f.readline()[STARTCOL2:80]
             # one line per SV
             raws += raw + '\n'
 
@@ -199,11 +208,14 @@ def rinexnav2(fn, ofn=None):
 
     nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
                   coords={'t':epoch,
-                'data':['sv','aGf0','aGf1','SVclockDriftRate','IODE',
-                'Crs','DeltaN','M0','Cuc','Eccentricity','Cus','sqrtA','TimeEph',
-                'Cic','OMEGA','CIS','Io','Crc','omega','OMEGA DOT','IDOT',
-                'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
-                'TransTime','FitIntvl']},
+                'data':['sv','aGf0','aGf1','SVclockDriftRate',
+                  'IODE','Crs','DeltaN','M0',
+                  'Cuc','Eccentricity','Cus','sqrtA',
+                  'Toe','Cic','OMEGA0','Cis',
+                  'Io','Crc','omega','OMEGA DOT',
+                  'IDOT','CodesL2','GPSWeek','L2Pflag',
+                  'SVacc','SVhealth','TGD','IODC',
+                  'TransTime','FitIntvl']},
                     dims=['t','data'])
 
     if ofn:
