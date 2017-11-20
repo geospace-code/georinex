@@ -12,9 +12,112 @@ import xarray
 from io import BytesIO
 from time import time
 
+"""https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
+SBAS=87 # offset for ID
+GLONASS=37
 #%% Navigation file
-
 def rinexnav(fn, ofn=None):
+    fn = Path(fn).expanduser()
+
+    with fn.open('r') as f:
+        """verify RINEX version, and that it's NAV"""
+        line = f.readline()
+        vermajor = int(float(line[:9]))
+
+    if vermajor==2:
+        return rinexnav2(fn,ofn)
+    elif vermajor==3:
+        return rinexnav3(fn,ofn)
+    else:
+        raise ValueError('unknown RINEX verion {}  {}'.format(vermajor,fn))
+
+
+def rinexnav3(fn, ofn=None):
+    """
+    Reads RINEX 3.0 NAV files
+
+    http://www.gage.es/sites/default/files/gLAB/HTML/SBAS_Navigation_Rinex_v3.01.html
+    """
+    fn = Path(fn).expanduser()
+
+    startcol = 4 #column where numerical data starts
+    N = 3 #number of additional lines per record
+
+    svs = []; epoch=[]; raws=''
+
+    with fn.open('r') as f:
+        """verify RINEX version, and that it's NAV"""
+        line = f.readline()
+        assert int(float(line[:9]))==3,'see rinexnav2() for RINEX 3.0 files'
+        assert line[20] == 'N', 'Did not detect Nav file'
+
+        """
+        skip header, which has non-constant number of rows
+        """
+        while True:
+            if 'END OF HEADER' in f.readline():
+                break
+        """
+        now read data
+        """
+        for l in f:
+            sv = l[:3]
+            if sv[0] == 'G':
+                sv = int(sv[1:])
+            elif sv[0] == 'R':
+                sv = int(sv[1:]) + GLONASS
+            elif sv[0] == 'S':
+                sv = int(sv[1:]) + SBAS
+            elif sv[0] == 'E':
+                raise NotImplementedError('Galileo PRN not yet known')
+            else:
+                raise ValueError('Unknown SV type {}'.format(sv[0]))
+
+            svs.append(sv)  # A1,I2.2
+
+            year = int(l[4:8]) # I4
+
+            epoch.append(datetime(year =year,
+                                  month   =int(l[9:11]),
+                                  day     =int(l[12:14]),
+                                  hour    =int(l[15:17]),
+                                  minute  =int(l[18:20]),
+                                  second  =int(l[21:23])))
+            """
+            now get the data as one big long string per SV
+            """
+            raw = l[23:80]
+            for _ in range(N):
+                raw += f.readline()[startcol:80]
+            # one line per SV
+            raws += raw + '\n'
+
+    raws = raws.replace('D','E')
+# %% parse
+    darr = np.genfromtxt(BytesIO(raws.encode('ascii')),
+                         delimiter=19)
+
+    nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(svs).T,darr), axis=1),
+                coords={'t':epoch,
+                'data':['sv','aGf0','aGf1','MsgTxTime',
+                'X','dX','dX2','SVhealth',
+                'Y','dY','dY2','URA',
+                'Z','dZ','dZ2','IODN']},
+                dims=['t','data'])
+
+    if ofn:
+        ofn = Path(ofn).expanduser()
+        print('saving NAV data to',ofn)
+        if ofn.is_file():
+            wmode='a'
+        else:
+            wmode='w'
+        nav.to_netcdf(ofn, group='NAV', mode=wmode)
+
+    return nav
+
+
+def rinexnav2(fn, ofn=None):
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch
@@ -27,11 +130,15 @@ def rinexnav(fn, ofn=None):
     fn = Path(fn).expanduser()
 
     startcol = 3 #column where numerical data starts
-    N = 7 #number of lines per record
+    N = 7 #number of additional lines per record
 
     sv = []; epoch=[]; raws=''
 
     with fn.open('r') as f:
+        """verify RINEX version, and that it's NAV"""
+        line = f.readline()
+        assert int(float(line[:9]))==2,'see rinexnav3() for RINEX 3.0 files'
+        assert line[20] == 'N', 'Did not detect Nav file'
         """
         skip header, which has non-constant number of rows
         """
@@ -68,16 +175,17 @@ def rinexnav(fn, ofn=None):
 
     raws = raws.replace('D','E')
 # %% parse
+    # for RINEX 2, don't use delimiter
     darr = np.genfromtxt(BytesIO(raws.encode('ascii')))
 
     nav= xarray.DataArray(data=np.concatenate((np.atleast_2d(sv).T,darr), axis=1),
-                                      coords={'t':epoch,
-                                              'data':['sv','SVclockBias','SVclockDrift','SVclockDriftRate','IODE',
+                  coords={'t':epoch,
+                'data':['sv','aGf0','aGf1','SVclockDriftRate','IODE',
                 'Crs','DeltaN','M0','Cuc','Eccentricity','Cus','sqrtA','TimeEph',
                 'Cic','OMEGA','CIS','Io','Crc','omega','OMEGA DOT','IDOT',
                 'CodesL2','GPSWeek','L2Pflag','SVacc','SVhealth','TGD','IODC',
                 'TransTime','FitIntvl']},
-                                     dims=['t','data'])
+                    dims=['t','data'])
 
     if ofn:
         ofn = Path(ofn).expanduser()
