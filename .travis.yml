@@ -8,20 +8,16 @@ python:
   - 3.6
   - 2.7
 
-notifications:
-  email: false
+group: travis_latest
 
 git:
   depth: 3
 
 
-before_install:
-    - pip -q install coveralls
-
 install:
-    - pip -q install -e .
+    - pip -q install -e .[tests]
 
-script: coverage run tests/test.py -v
+script: coverage run tests/Test.py -v
 
 after_success: coveralls
 

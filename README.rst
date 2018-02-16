@@ -24,10 +24,10 @@ Install
 =======
 ::
 
-  pip install -e .
+  python -m pip install -e .
 
-Run
-===
+Usage
+===--
 ::
 
   python ReadRinex.py myrinex.XXx
@@ -39,7 +39,8 @@ or .XXn navigation file.
 
 Read Observation file example
 -----------------------------
-::
+
+.. code:: python
 
     from pyrinex import rinexobs
 
@@ -50,7 +51,8 @@ Indexed by time x SV x measurement
 
 Read Navigation file example
 ----------------------------
-::
+
+.. code:: python
 
     from pyrinex import readRinexNav
 
