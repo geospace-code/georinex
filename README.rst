@@ -12,11 +12,11 @@
 PyRinex
 =======
 
-RINEX 2.1 reader in Python -- reads NAV and OBS files into xarray.DataArray for easy use in analysis and plotting.
+RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS files into xarray.DataArray for easy use in analysis and plotting.
 
-Writes to HDF5 (for couple order of magnitude speedup in reading and allows filtering/processing of gigantic files too large to fit into RAM).
+Writes to NetCDF4 (subset of HDF5).
+This is couple order of magnitude speedup in reading and allows filtering/processing of gigantic files too large to fit into RAM.
 
-RINEX 3 is in work, and NOT working yet.
 
 .. contents::
 
@@ -32,44 +32,35 @@ Usage
 
   python ReadRinex.py myrinex.XXx
 
-Calling from other Programs
-===========================
-Here are a couple Minimal Working Examples, assuming you have a .XXo observation file
-or .XXn navigation file.
 
-Read Observation file example
------------------------------
+read Obs
+--------
 
 .. code:: python
 
-    from pyrinex import rinexobs
+    import pyrinex
 
-    obsdata = rinexobs(rinexObsfilename)
+    obsdata,header = pyrinex.rinexobs('tests/demo.10o')
 
-This returns a 3-D array of the data in your .XXo observation file.
-Indexed by time x SV x measurement
+This returns a 4-D xarray DataArray of data within the .XXo observation file.
+Indexed by measurement x SV x time x signal
 
-Read Navigation file example
-----------------------------
+read Nav
+--------
 
 .. code:: python
 
-    from pyrinex import readRinexNav
+    import pyrinex
 
-    navdata = readRinexNav(rinexNavfilename)
+    navdata = pyrinex.rinexnav('tests/demo.10n')
 
-This returns a 2-D array of the data in your .XXn navigation file.
+This returns a 2-D array of the data within the .XXn navigation file.
 Indexed by time x quantity
-one row per SV.
 
-Self-Test
-=========
-::
 
-  python tests/test.py
 
 RINEX OBS reader algorithm
 ==========================
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
-2. preallocate 3-D arrayto fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending.  The xarray.DataArray is a self-describing variable, each axis has text indices.
-3. fill the 3-D array with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
+2. preallocate 4-D arrayto fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending.  The xarray.DataArray is a self-describing variable, each axis has text indices.
+3. fill the 4-D array with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.

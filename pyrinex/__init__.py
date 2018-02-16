@@ -30,9 +30,9 @@ def rinexnav(fn, ofn=None):
         vermajor = int(float(line[:9]))
 
     if vermajor==2:
-        return rinexnav2(fn,ofn)
+        return _rinexnav2(fn,ofn)
     elif vermajor==3:
-        return rinexnav3(fn,ofn)
+        return _rinexnav3(fn,ofn)
     else:
         raise ValueError('unknown RINEX verion {}  {}'.format(vermajor,fn))
 
@@ -81,7 +81,7 @@ def _newnav(l):
     return sv, t, fields,svtype
 
 
-def rinexnav3(fn, ofn=None):
+def _rinexnav3(fn, ofn=None):
     """
     Reads RINEX 3.0 NAV files
 
@@ -149,7 +149,7 @@ def rinexnav3(fn, ofn=None):
     return nav
 
 
-def rinexnav2(fn, ofn=None):
+def _rinexnav2(fn, ofn=None):
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch
