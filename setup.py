@@ -12,6 +12,6 @@ setup(name='pyrinex',
 	  install_requires=install_requires,
 	  tests_require=tests_require,
       python_requires='>=2.7',
-      extras_requires={'plot':['matplotlib','seaborn','pymap3d'],
+      extras_require={'plot':['matplotlib','seaborn','pymap3d'],
                        'tests':tests_require,},
 	  )
