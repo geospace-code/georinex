@@ -1,3 +1,5 @@
+data/
+*.nc
 *.h5
 *.15*
 # Byte-compiled / optimized / DLL files

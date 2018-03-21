@@ -12,7 +12,7 @@
 PyRinex
 =======
 
-RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS files into xarray.DataArray for easy use in analysis and plotting.
+RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS files into ``xarray.Dataset`` for easy use in analysis and plotting.
 
 Writes to NetCDF4 (subset of HDF5).
 This is couple order of magnitude speedup in reading and allows filtering/processing of gigantic files too large to fit into RAM.
@@ -27,8 +27,8 @@ Install
   python -m pip install -e .
 
 Usage
-===--
-::
+=====
+Read RINEX3 or RINEX 2  Obs or Nav file::
 
   python ReadRinex.py myrinex.XXx
 
