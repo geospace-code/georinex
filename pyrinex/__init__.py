@@ -173,7 +173,8 @@ def _rinexnav2(fn, ofn=None):
     with fn.open('r') as f:
         """verify RINEX version, and that it's NAV"""
         line = f.readline()
-        assert int(float(line[:9]))==2,'see rinexnav3() for RINEX 3.0 files'
+        ver = float(line[:9])
+        assert int(ver)==2,'see rinexnav3() for RINEX 3.0 files'
         assert line[20] == 'N', 'Did not detect Nav file'
         """
         skip header, which has non-constant number of rows
@@ -248,7 +249,9 @@ def _rinexnav2(fn, ofn=None):
                           'TransTime':       ('time',darr[:,27]),
                           'FitIntvl':        ('time',darr[:,28]),
                           },
-                          coords={'time':epoch}
+                          coords={'time':epoch},
+                          attrs={'RINEX version':ver,
+                                 'RINEX filename':fn.name}
                           )
 
 
