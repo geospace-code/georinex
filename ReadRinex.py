@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
         plotnav(nav)
     elif rinexfn.lower().endswith('o'):
-        obs,_ = rinexobs(rinexfn, p.outfn)
+        obs = rinexobs(rinexfn, p.outfn)
 
         plotobs(obs)
     #%% TEC can be made another column (on the last axis) of the blocks array.

@@ -20,11 +20,15 @@ def plotnav(nav:xarray.Dataset):
     print('altitude [km]',alt/1e3)
 
 
-def plotobs(obs:xarray.DataArray):
+def plotobs(obs:xarray.Dataset):
 
     ax = figure().gca()
 
-    obs.loc['P1',:,:,'data'].plot(ax=ax)
+    ax.plot(obs['P1'].time, obs['P1'])
 
+    ax.set_title(obs.filename)
     ax.set_xlabel('time [UTC]')
     ax.set_ylabel('P1')
+    ax.grid(True)
+
+    ax.legend(obs['P1'].sv.values.astype(str), loc='best')
