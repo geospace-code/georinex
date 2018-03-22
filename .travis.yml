@@ -6,6 +6,7 @@ os:
 
 python: 
   - 3.6
+  - 3.5
   - 2.7
 
 group: travis_latest
@@ -20,6 +21,8 @@ install:
 script: pytest -v
 
 after_success: 
-  - coverage run tests/test_all.py
-  - coveralls
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then 
+    coverage run tests/test_all.py;
+    coveralls;
+    fi
 
