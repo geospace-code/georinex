@@ -8,10 +8,9 @@ from pyrinex import Path
 from numpy.testing import assert_allclose, run_module_suite
 #
 from pyrinex import rinexobs, rinexnav
-
+#
 rdir=Path(__file__).parent
-ofn3sbas = rdir/'test3sbas.nc'
-ofn3gps = rdir/'test3gps.nc'
+
 
 def test_obs2():
     """./ReadRinex.py tests/demo.10o -o tests/test.nc"""
@@ -33,18 +32,18 @@ def test_nav2():
 
 
 def test_nav3sbas():
-
-    truth = xarray.open_dataarray(str(ofn3sbas), group='NAV')
+    """./ReadRinex.py tests/demo3.10n -o tests/test3sbas.nc"""
+    truth = xarray.open_dataset(rdir/'test3sbas.nc', group='NAV')
     testnav = rinexnav(rdir/'demo3.10n')
 
-    assert_allclose(testnav,truth)
+    assert testnav.equals(truth)
 
 def test_nav3gps():
-
-    truth = xarray.open_dataarray(str(ofn3gps), group='NAV')
+    """./ReadRinex.py tests/demo.17n -o tests/test3gps.nc"""
+    truth = xarray.open_dataset(rdir/'test3gps.nc', group='NAV')
     testnav = rinexnav(rdir/'demo.17n')
 
-    assert_allclose(testnav,truth)
+    assert testnav.equals(truth)
 
 
 if __name__ == '__main__':
