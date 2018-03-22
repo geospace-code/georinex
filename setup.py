@@ -3,12 +3,13 @@ install_requires = ['numpy','xarray','netcdf4','pathlib2']
 tests_require=['pytest','nose','coveralls']
 # %%
 from setuptools import setup,find_packages
+
 setup(name='pyrinex',
       packages=find_packages(),
-	  description='Python RINEX reader that is very fast',
+	  description='Python RINEX 2/3 NAV/OBS reader that is very fast',
 	  long_description=open('README.rst').read(),
 	  author='Michael Hirsch, Ph.D.',
-      version='1.2.2',
+      version='1.2.4',
 	  url='https://github.com/scivision/pyrinex',
 	  install_requires=install_requires,
 	  tests_require=tests_require,
@@ -23,5 +24,6 @@ setup(name='pyrinex',
       'Programming Language :: Python :: 3',
       'Topic :: Scientific/Engineering :: Atmospheric Science',
       ],
+      script=['ReadRinex.py'],
       include_package_data=True,
 	  )

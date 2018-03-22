@@ -5,7 +5,7 @@ for OBS RINEX reader
 """
 import xarray
 from pyrinex import Path
-from numpy.testing import assert_allclose, run_module_suite
+from numpy.testing import  run_module_suite
 #
 from pyrinex import rinexobs, rinexnav
 #
@@ -16,7 +16,6 @@ def test_obs2():
     """./ReadRinex.py tests/demo.10o -o tests/test.nc"""
 
     truth = xarray.open_dataset(rdir/'test.nc', group='OBS')
-
     obs = rinexobs(rdir/'demo.10o')
 
     assert obs.equals(truth)
@@ -29,6 +28,15 @@ def test_nav2():
     nav = rinexnav(rdir/'demo.10n')
 
     assert nav.equals(truth)
+
+
+def test_obs3():
+    """./ReadRinex.py tests/demo3.10o -o tests/test3.nc"""
+
+    truth = xarray.open_dataset(rdir/'test3.nc', group='OBS')
+    obs = rinexobs(rdir/'demo3.10o', use='G')
+
+    assert obs.equals(truth)
 
 
 def test_nav3sbas():

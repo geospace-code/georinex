@@ -10,19 +10,30 @@ if __name__ == '__main__':
     p.add_argument('rinexfn',help='path to RINEX 2 or RINEX 3 file')
     p.add_argument('-o','--outfn',help='write data as NetCDF4 file')
     p.add_argument('-v','--verbose',action='store_true')
+    p.add_argument('-use',help='select which GNSS systems to use (for now, GPS only)',nargs='+',default='G')
     p = p.parse_args()
 
     rinexfn = p.rinexfn
-    if rinexfn.lower().endswith('n'):
+    if rinexfn.lower().endswith('n') or rinexfn.lower().endswith('n.rnx'):
         nav = rinexnav(rinexfn, p.outfn)
-
-        plotnav(nav)
-    elif rinexfn.lower().endswith('o'):
-        obs = rinexobs(rinexfn, p.outfn, p.verbose)
-
-        plotobs(obs)
-    #%% TEC can be made another column (on the last axis) of the blocks array.
+    elif rinexfn.lower().endswith('o') or rinexfn.lower().endswith('o.rnx'):
+        obs = rinexobs(rinexfn, p.outfn, use=p.use, verbose=p.verbose)
+    elif rinexfn.lower().endswith('.nc'):
+        nav = rinexnav(rinexfn)
+        obs = rinexobs(rinexfn)
     else:
         raise ValueError("I dont know what type of file you're trying to read: {}".format(p.rinexfn))
+
+# %% plots
+
+    try:
+        plotnav(nav)
+    except NameError:
+        pass
+
+    try:
+        plotobs(obs)
+    except NameError:
+        pass
 
     show()

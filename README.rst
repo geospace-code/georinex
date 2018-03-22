@@ -12,7 +12,8 @@
 PyRinex
 =======
 
-RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS files into ``xarray.Dataset`` for easy use in analysis and plotting.
+RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data into `xarray.Dataset <http://xarray.pydata.org/en/stable/api.html#dataset>`_ for easy use in analysis and plotting.
+This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
 
 Writes to NetCDF4 (subset of HDF5).
 This is couple order of magnitude speedup in reading and allows filtering/processing of gigantic files too large to fit into RAM.
@@ -42,8 +43,10 @@ read Obs
 
     obsdata,header = pyrinex.rinexobs('tests/demo.10o')
 
-This returns a 4-D xarray DataArray of data within the .XXo observation file.
-Indexed by measurement x SV x time x signal
+This returns an 
+`xarray.Dataset <http://xarray.pydata.org/en/stable/api.html#dataset>`_
+of data within the .XXo observation file.
+
 
 read Nav
 --------
@@ -54,7 +57,9 @@ read Nav
 
     navdata = pyrinex.rinexnav('tests/demo.10n')
 
-This returns a 2-D array of the data within the .XXn navigation file.
+    navdata = pyrinex.rinexnav('tests/demo_MN.rnx')
+
+This returns a 2-D array of the data within the RINEX 3 or RINEX 2 Navigation file.
 Indexed by time x quantity
 
 
@@ -62,5 +67,4 @@ Indexed by time x quantity
 RINEX OBS reader algorithm
 ==========================
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
-2. preallocate 4-D arrayto fit all data -- this is a key difference from other software out there, that repetitively reallocates memory via appending.  The xarray.DataArray is a self-describing variable, each axis has text indices.
-3. fill the 4-D array with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
+2. fill the xarray.Dataset with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.

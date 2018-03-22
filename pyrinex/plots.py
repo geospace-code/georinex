@@ -4,6 +4,8 @@ from matplotlib.pyplot import figure
 from pymap3d import eci2geodetic
 
 def plotnav(nav:xarray.Dataset):
+    if nav is None:
+        return
 
     if not 'X' in nav:
         return
@@ -22,13 +24,19 @@ def plotnav(nav:xarray.Dataset):
 
 def plotobs(obs:xarray.Dataset):
 
-    ax = figure().gca()
+    for p in ('P1','L1C'):
+        if not p in obs:
+            continue
 
-    ax.plot(obs['P1'].time, obs['P1'])
+        ax = figure().gca()
 
-    ax.set_title(obs.filename)
-    ax.set_xlabel('time [UTC]')
-    ax.set_ylabel('P1')
-    ax.grid(True)
 
-    ax.legend(obs['P1'].sv.values.astype(str), loc='best')
+
+        ax.plot(obs[p].time, obs[p])
+
+        ax.set_title(obs.filename)
+        ax.set_xlabel('time [UTC]')
+        ax.set_ylabel(p)
+        ax.grid(True)
+
+        ax.legend(obs[p].sv.values.astype(str), loc='best')

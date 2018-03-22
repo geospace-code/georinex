@@ -20,8 +20,8 @@ G C1C    0.9030         0.0000         0.0000               ANTENNA: PHASECENTER
          0.0000         0.0000         0.0000               ANTENNA: ZERODIR XYZ
          0.0000         0.0000         0.0000               CENTER OF MASS: XYZ 
 G   12 L1C S1C L2P S2D C1P S1P C2P S2P C1C S1C D1C D2P      SYS / # / OBS TYPES 
-R    4 L1C S1C C1C                                          SYS / # / OBS TYPES 
-S    4 L1C S1C C1C                                          SYS / # / OBS TYPES 
+R    3 L1C S1C C1C                                          SYS / # / OBS TYPES 
+S    3 L1C S1C C1C                                          SYS / # / OBS TYPES 
 DBHZ                                                        SIGNAL STRENGTH UNIT
     30.000                                                  INTERVAL            
   2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS   
