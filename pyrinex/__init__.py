@@ -127,7 +127,7 @@ def _scan(f):
                 sv.append(l[32+i*3:35+i*3])
 # %% data processing
         darr = np.empty((Nsv,Nobs*3))
-        Nl_sv = ceil(Nobs/5)
+        Nl_sv = int(ceil(Nobs/5))  # CEIL needed for Py27 only.
 
         for i,s in enumerate(sv):
             raw = ''
