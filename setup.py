@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-install_requires = ['numpy','numpy','xarray','netcdf4','pathlib2']
+install_requires = ['numpy','xarray','netcdf4','pathlib2']
 tests_require=['pytest','nose','coveralls']
 # %%
 from setuptools import setup,find_packages
