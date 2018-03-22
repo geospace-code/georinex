@@ -5,7 +5,7 @@ try:
 except (ImportError,AttributeError):
     from pathlib2 import Path
 #
-import logging
+
 from math import ceil
 import numpy as np
 from datetime import datetime
@@ -35,7 +35,7 @@ def rinexnav(fn, ofn=None):
 
 
 # %% Observation File
-def rinexobs(fn, ofn=None):
+def rinexobs(fn, ofn=None, verbose=False):
     """
     Program overviw:
     1) scan the whole file for the header and other information using scan(lines)
@@ -46,11 +46,11 @@ def rinexobs(fn, ofn=None):
     #open file, get header info, possibly speed up reading data with a premade h5 file
     fn = Path(fn).expanduser()
     if fn.suffix=='.nc':
-        return xarray.open_dataarray(fn, group='OBS')
+        return xarray.open_dataset(fn, group='OBS')
 
     with fn.open('r') as f:
         tic = time()
-        data = _scan(f)
+        data = _scan(f, verbose)
         print("finished in {:.2f} seconds".format(time()-tic))
 
 
@@ -64,7 +64,7 @@ def rinexobs(fn, ofn=None):
     return data
 
 
-def _scan(f):
+def _scan(f, verbose=False):
     """ scan the document for the header info and for the line on
         which each block starts
     """
@@ -109,7 +109,13 @@ def _scan(f):
              continue
 
         time =  _obstime([l[1:3],  l[4:6], l[7:9],  l[10:12], l[13:15], l[16:26]])
-        toffset = float(l[68:80])
+        if verbose:
+            print(time)
+
+        try:
+            toffset = l[68:80]
+        except ValueError:
+            toffset = None
 
         Nsv = int(l[29:32])  # Number of visible satellites this time %i3
         # get first 12 SV ID's
@@ -133,6 +139,7 @@ def _scan(f):
             raw = ''
             for _ in range(Nl_sv):
                 raw += f.readline()[:80]
+            raw = raw.replace('\n',' ')  # some files truncate and put \n in data space.
 
             darr[i,:] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Nsv,1,1]*Nobs)
 

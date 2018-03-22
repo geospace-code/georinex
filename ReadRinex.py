@@ -9,7 +9,7 @@ if __name__ == '__main__':
     p = ArgumentParser(description='example of reading RINEX 2/3 Navigation/Observation file')
     p.add_argument('rinexfn',help='path to RINEX 2 or RINEX 3 file')
     p.add_argument('-o','--outfn',help='write data as NetCDF4 file')
-    p.add_argument('--maxtimes',help='Choose to read only the first N INTERVALs of OBS file',type=int)
+    p.add_argument('-v','--verbose',action='store_true')
     p = p.parse_args()
 
     rinexfn = p.rinexfn
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
         plotnav(nav)
     elif rinexfn.lower().endswith('o'):
-        obs = rinexobs(rinexfn, p.outfn)
+        obs = rinexobs(rinexfn, p.outfn, p.verbose)
 
         plotobs(obs)
     #%% TEC can be made another column (on the last axis) of the blocks array.
