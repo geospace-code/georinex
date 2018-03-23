@@ -8,6 +8,7 @@ except (ImportError,AttributeError):
 import logging
 import xarray
 from time import time
+import numpy as np
 #
 from .rinex2 import _rinexnav2, _scan2
 from .rinex3 import _rinexnav3, _scan3
@@ -50,7 +51,7 @@ def rinexnav(fn, ofn=None, group='NAV'):
     return nav
 
 # %% Observation File
-def rinexobs(fn, ofn=None, use=None, group='OBS',verbose=False):
+def rinexobs(fn, ofn=None, use='G', group='OBS',verbose=False):
     """
     Program overviw:
     1) scan the whole file for the header and other information using scan(lines)
@@ -72,9 +73,17 @@ def rinexobs(fn, ofn=None, use=None, group='OBS',verbose=False):
     tic = time()
     ver = getRinexVersion(fn)
     if int(ver) == 2:
-        obs = _scan2(fn, verbose)
+        obs = _scan2(fn, use, verbose)
     elif int(ver) == 3:
-        obs = _scan3(fn, use, verbose)
+        if use is None or isinstance(use,str):
+            obs = _scan3(fn, use, verbose)
+        elif isinstance(use,(tuple,list,np.ndarray)):
+            if len(use) == 1:
+                obs = _scan3(fn, use[0], verbose)
+            else:
+                obs = {}
+                for u in use:
+                    obs[u] = _scan3(fn, u, verbose)
     else:
         raise ValueError('unknown RINEX verion {}  {}'.format(ver,fn))
         print("finished in {:.2f} seconds".format(time()-tic))
@@ -85,8 +94,15 @@ def rinexobs(fn, ofn=None, use=None, group='OBS',verbose=False):
         print('saving OBS data to',ofn)
         wmode='a' if ofn.is_file() else 'w'
 
-        enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in obs.data_vars}
-        obs.to_netcdf(ofn, group=group, mode=wmode,encoding=enc)
+
+        if isinstance(obs,xarray.Dataset):
+            enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in obs.data_vars}
+            obs.to_netcdf(ofn, group=group, mode=wmode,encoding=enc)
+        elif isinstance(obs,dict):
+            for k,v in obs.items():
+                enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in v.data_vars}
+                name = k+'-'+ofn.name
+                obs[k].to_netcdf(ofn.parent/name,group=group,mode=wmode,encoding=enc)
 
     return obs
 

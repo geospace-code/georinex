@@ -1,9 +1,9 @@
 .. image:: https://travis-ci.org/scivision/pyrinex.svg?branch=master
-   :target: https://travis-ci.org/scivision/pyrinex
+  :target: https://travis-ci.org/scivision/pyrinex
 
 .. image:: https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github
-   :target: https://coveralls.io/github/scivision/pyrinex?branch=master
-  
+  :target: https://coveralls.io/github/scivision/pyrinex?branch=master
+
 .. image:: https://ci.appveyor.com/api/projects/status/sxxqc77q7l3669dd?svg=true
    :target: https://ci.appveyor.com/project/scivision/pyrinex
 
@@ -51,7 +51,7 @@ read Obs
     import pyrinex as pr
 
     obs = pr.rinexobs('tests/demo.10o')
-    
+
     obs = pr.rinexobs('tests/demo_MO.rnx')
 
 This returns an 
@@ -78,4 +78,4 @@ Indexed by time x quantity
 RINEX OBS reader algorithm
 ==========================
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
-2. fill the xarray.Dataset with the data by reading in blocks -- another key difference from other programs out there,    instead of reading character by character, I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
+2. fill the xarray.Dataset with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character, I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.

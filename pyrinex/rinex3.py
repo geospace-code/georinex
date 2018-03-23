@@ -1,4 +1,4 @@
-from __future__ import print_function # needed for py27s
+from __future__ import division, print_function # needed for py27s
 from . import Path
 import numpy as np
 from datetime import datetime
@@ -144,7 +144,7 @@ def _scan3(fn, use, verbose=False):
                             hour=int(l[13:15]), minute=int(l[16:18]), second=int(l[19:21]),
                             microsecond=int(l[22:29])*1000000)
             if verbose:
-                print(time)
+                print(time,'\r',end="")
 # %% get SV indices
             Nsv = int(l[33:35])  # Number of visible satellites this time %i3  pg. A13
 
@@ -157,8 +157,8 @@ def _scan3(fn, use, verbose=False):
                 raw += l[3:]
 
             darr = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=(14,1,1)*Fmax)
-# %% TODO make for all systems, not just GNSS
-            i = [i for i,s in enumerate(sv) if s[0]==use]
+# %% Tselect one, few, or all satellites
+            i = [i for i,s in enumerate(sv) if s[0] in use]
             garr = darr[i,:]
             gsv = np.array(sv)[i]
 # %% assign data for each time step
