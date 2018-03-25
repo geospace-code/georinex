@@ -5,7 +5,8 @@ os:
   - linux
 
 python:
-  - 3.6
+# temporary travis-ci bug
+#  - 3.6
   - 3.5
 
 group: travis_latest
@@ -20,7 +21,7 @@ install:
 script: pytest -v
 
 after_success:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then
     coverage run tests/test_all.py;
     coveralls;
     fi
