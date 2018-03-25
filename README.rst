@@ -30,7 +30,7 @@ Writes to NetCDF4 (subset of HDF5), with ``zlib`` compression.
 This is a couple order of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
 
 
-This module works in Python 3.5+ and 2.7.
+PyRinex works in Python >= 3.5.
 
 .. contents::
 
@@ -46,35 +46,44 @@ Usage
 The simplest command-line use is through the top-level ``ReadRinex.py`` script.
 
 * Read RINEX3 or RINEX 2  Obs or Nav file: ``python ReadRinex.py myrinex.XXx``
-* Read NetCDF converted RINEX data: ``python ReadRinex.py myrinex.nc`` 
+* Read NetCDF converted RINEX data: ``python ReadRinex.py myrinex.nc``
 
 
 You can also of course use the package as a python imported module as in the following examples.
-
-read Obs
---------
+Each example assumes you have first done:
 
 .. code:: python
 
     import pyrinex as pr
 
-    obs = pr.rinexobs('tests/demo.10o')
+read Rinex
+------------
+This convenience function reads any possible Rinex 2/3 OBS/NAV or .nc file:
+
+
+.. code:: python
+
+    obs,nav = pr.readrinex('tests/demo.10o')
+
+
+read Obs
+--------
+If you desire to specifically read a RINEX 2 or 3 OBS file:
+
+.. code:: python
 
     obs = pr.rinexobs('tests/demo_MO.rnx')
 
-This returns an 
+This returns an
 `xarray.Dataset <http://xarray.pydata.org/en/stable/api.html#dataset>`_
 of data within the .XXo observation file.
 
 
 read Nav
 --------
+If you desire to specifically read a RINEX 2 or 3 NAV file:
 
 .. code:: python
-
-    import pyrinex as pr
-
-    nav = pr.rinexnav('tests/demo.10n')
 
     nav = pr.rinexnav('tests/demo_MN.rnx')
 

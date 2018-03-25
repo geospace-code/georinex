@@ -7,12 +7,26 @@ import xarray
 import tempfile
 from numpy.testing import  run_module_suite
 #
-from pyrinex import Path
-from pyrinex import rinexobs, rinexnav
+from pathlib import Path
+from pyrinex import readrinex, rinexobs, rinexnav
 #
 rdir=Path(__file__).parent
 
 # %% RINEX 2
+def test_convenience():
+    truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
+
+    obs,nav = readrinex(rdir/'demo.10o')
+    assert obs.equals(truth)
+
+# %%
+    truth = xarray.open_dataset(rdir/'test2all.nc', group='NAV')
+    obs,nav = readrinex(rdir/'demo.10n')
+
+    assert nav.equals(truth)
+
+
+
 def test_obs2_allsat():
     """./ReadRinex.py tests/demo.10o -u all -o tests/test2all.nc"""
 

@@ -1,10 +1,10 @@
-from __future__ import division, print_function # NEED for Py27
-from . import Path
+from pathlib import Path
 import numpy as np
 from math import ceil
 from datetime import datetime
 from io import BytesIO
 import xarray
+from typing import Union
 #
 STARTCOL2 = 3 #column where numerical data starts for RINEX 2
 
@@ -13,7 +13,7 @@ F = ('SVclockBias','SVclockDrift','SVclockDriftRate','IODE','Crs','DeltaN',
      'Crc','omega','OmegaDot','IDOT','CodesL2','GPSWeek','L2Pflag','SVacc',
      'SVhealth','TGD','IODC','TransTime','FitIntvl')
 
-def _rinexnav2(fn):
+def _rinexnav2(fn:Path) -> xarray.Dataset:
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch, Ph.D.
@@ -91,7 +91,7 @@ def _rinexnav2(fn):
     return nav
 
 
-def _scan2(fn, use, verbose=False):
+def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dataset:
   """
    procss RINEX OBS data
   """
@@ -212,7 +212,7 @@ def _scan2(fn, use, verbose=False):
     return data
 
 
-def _getSVlist(l, N, sv):
+def _getSVlist(l:str, N:int, sv:list):
     """ parse a line of text from RINEX2 SV list"""
     for i in range(N):
         s = l[32+i*3:35+i*3].strip()
@@ -223,7 +223,7 @@ def _getSVlist(l, N, sv):
     return sv
 
 
-def _obstime(fol):
+def _obstime(fol:str) -> datetime:
     year = int(fol[0])
     if 80 <= year <=99:
         year+=1900

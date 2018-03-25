@@ -1,9 +1,10 @@
-from __future__ import division, print_function # needed for py27s
-from . import Path
+from pathlib import Path
 import numpy as np
 from datetime import datetime
 from io import BytesIO
 import xarray
+from typing import Union
+from typing.io import TextIO
 #
 STARTCOL3 = 4 #column where numerical data starts for RINEX 3
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
@@ -12,7 +13,7 @@ GLONASS=37
 QZSS=192
 BEIDOU=0
 
-def _rinexnav3(fn):
+def _rinexnav3(fn:Path) -> xarray.Dataset:
     """
     Reads RINEX 3.0 NAV files
     Michael Hirsch, Ph.D.
@@ -78,7 +79,7 @@ def _rinexnav3(fn):
     return nav
 
 
-def _newnav(l):
+def _newnav(l:str) -> tuple:
     sv = l[:3]
 
     svtype = sv[0]
@@ -122,7 +123,7 @@ def _newnav(l):
     return sv, time, fields
 
 
-def _scan3(fn, use, verbose=False):
+def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dataset:
     """
     procss RINEX OBS data
     """
@@ -184,7 +185,7 @@ def _scan3(fn, use, verbose=False):
     return data
 
 
-def _getObsTypes(f, use):
+def _getObsTypes(f:TextIO, use:Union[str,list,tuple]) -> tuple:
     """ get RINEX 3 OBS types, for each system type"""
     header={}
     fields={}

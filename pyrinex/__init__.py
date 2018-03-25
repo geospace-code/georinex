@@ -1,21 +1,35 @@
-from __future__ import division  # absolutely needed for Py27 strange behavior
-try:
-    from pathlib import Path
-    Path().expanduser()
-except (ImportError,AttributeError):
-    from pathlib2 import Path
-#
+from pathlib import Path
 import logging
 import xarray
 from time import time
 import numpy as np
+from typing import Union
 #
 from .rinex2 import _rinexnav2, _scan2
 from .rinex3 import _rinexnav3, _scan3
 
 COMPLVL = 1  # for NetCDF compression. too high slows down with little space savings.
 
-def getRinexVersion(fn):
+def readrinex(rinexfn:Path, outfn:Path=None, use:Union[str,list,tuple]=None, verbose:bool=True) -> xarray.Dataset:
+    nav = None
+    obs = None
+    rinexfn = Path(rinexfn).expanduser()
+
+    fnl = rinexfn.name.lower()
+    if fnl.endswith('n') or fnl.endswith('n.rnx'):
+        nav = rinexnav(rinexfn, outfn)
+    elif fnl.endswith('o') or fnl.endswith('o.rnx'):
+        obs = rinexobs(rinexfn, outfn, use=use, verbose=verbose)
+    elif rinexfn.suffix.endswith('.nc'):
+        nav = rinexnav(rinexfn)
+        obs = rinexobs(rinexfn)
+    else:
+        raise ValueError("I dont know what type of file you're trying to read: {}".format(rinexfn))
+
+    return obs,nav
+
+
+def getRinexVersion(fn:Path) -> float:
     fn = Path(fn).expanduser()
 
     with fn.open('r') as f:
@@ -24,7 +38,7 @@ def getRinexVersion(fn):
         return float(line[:9])
 
 #%% Navigation file
-def rinexnav(fn, ofn=None, group='NAV'):
+def rinexnav(fn:Path, ofn:Path=None, group:str='NAV') -> xarray.Dataset:
 
     fn = Path(fn).expanduser()
     if fn.suffix=='.nc':
@@ -51,7 +65,8 @@ def rinexnav(fn, ofn=None, group='NAV'):
     return nav
 
 # %% Observation File
-def rinexobs(fn, ofn=None, use='G', group='OBS',verbose=False):
+def rinexobs(fn:Path, ofn:Path=None, use:Union[str,list,tuple]=None,
+             group:str='OBS',verbose:bool=False) -> xarray.Dataset:
     """
     Program overviw:
     1) scan the whole file for the header and other information using scan(lines)
