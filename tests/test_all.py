@@ -4,9 +4,10 @@ Self-test file, registration case
 for OBS RINEX reader
 """
 import xarray
-from pyrinex import Path
+import tempfile
 from numpy.testing import  run_module_suite
 #
+from pyrinex import Path
 from pyrinex import rinexobs, rinexnav
 #
 rdir=Path(__file__).parent
@@ -21,6 +22,15 @@ def test_obs2_allsat():
     for u in (None,'m','all',' ','',['G','R','S']):
         obs = rinexobs(rdir/'demo.10o', use=u)
         assert obs.equals(truth)
+
+# %% test read .nc
+    obs = rinexobs(rdir/'test2all.nc')
+    assert obs.equals(truth)
+
+# %% test write .nc
+    with tempfile.TemporaryDirectory() as d:
+        obs = rinexobs(rdir/'demo.10o', ofn=Path(d)/'testout.nc')
+
 
 def test_obs2_onesat():
     """./ReadRinex.py tests/demo.10o -u G -o tests/test2G.nc"""
