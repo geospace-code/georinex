@@ -212,7 +212,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
     return data
 
 
-def _getSVlist(l:str, N:int, sv:list):
+def _getSVlist(l:str, N:int, sv:list) -> list:
     """ parse a line of text from RINEX2 SV list"""
     for i in range(N):
         s = l[32+i*3:35+i*3].strip()
