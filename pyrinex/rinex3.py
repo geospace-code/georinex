@@ -201,18 +201,14 @@ def _getObsTypes(f, use):
             fields[k] = c[6:60].split()
             N = int(c[3:6])
             Fmax = max(N,Fmax)
-            if N > 13: # Rinex 3.03, pg. A6, A7
+
+            n = N-13
+            while n > 0: # Rinex 3.03, pg. A6, A7
                 l = f.readline()
                 assert 'SYS / # / OBS TYPES' in l[60:]
                 fields[k] += l[6:60].split()
-            if N > 26:
-                l = f.readline()
-                assert 'SYS / # / OBS TYPES' in l[60:]
-                fields[k] += l[6:60].split()
-            if N > 39:
-                l = f.readline()
-                assert 'SYS / # / OBS TYPES' in l[60:]
-                fields[k] += l[6:60].split()
+                n -= 13
+
             assert len(fields[k]) == N
 
             continue
