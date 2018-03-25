@@ -7,6 +7,14 @@
 .. image:: https://ci.appveyor.com/api/projects/status/sxxqc77q7l3669dd?svg=true
    :target: https://ci.appveyor.com/project/scivision/pyrinex
 
+.. image:: https://img.shields.io/pypi/pyversions/pyrinex.svg
+  :target: https://pypi.python.org/pypi/pyrinex
+  :alt: Python versions (PyPI)
+
+.. image::  https://img.shields.io/pypi/format/pyrinex.svg
+  :target: https://pypi.python.org/pypi/pyrinex
+  :alt: Distribution format (PyPI)
+
 .. image:: https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability
    :target: https://codeclimate.com/github/scivision/pyrinex/maintainability
    :alt: Maintainability
