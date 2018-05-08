@@ -23,6 +23,8 @@ def plotnav(nav:xarray.Dataset):
 
 
 def plotobs(obs:xarray.Dataset):
+    if obs is None:
+        return
 
     for p in ('P1','L1C'):
         if not p in obs:
