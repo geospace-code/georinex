@@ -219,6 +219,10 @@ def _getObsTypes(f:TextIO, use:Union[str,list,tuple]) -> tuple:
             # string with info
         else: # concatenate to the existing string
             header[h.strip()] += " " + c
+# %% sanity check for Mandatory RINEX 3 headers
+    for h in ('APPROX POSITION XYZ',):
+        if not h in header:
+            raise IOError('Mandatory RINEX 3 headers are missing from file, is it a valid RINEX 3 file?')
 
     # list with x,y,z cartesian
     header['APPROX POSITION XYZ'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]

@@ -124,8 +124,11 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
         else:
             header[h.strip()] += " " + c
             #concatenate to the existing string
-
-
+# %% sanity check that MANDATORY RINEX 2 headers exist
+    for h in ('RINEX VERSION / TYPE', 'APPROX POSITION XYZ', 'INTERVAL'):
+        if not h in header:
+            raise IOError('Mandatory RINEX 2 headers are missing from {fn}, is it a valid RINEX 2 file?')
+# %% file seems OK, keep processing
     verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     # list with x,y,z cartesian
     header['APPROX POSITION XYZ'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
