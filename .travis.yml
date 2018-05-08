@@ -5,7 +5,8 @@ os:
   - linux
 
 python:
-  - 3.6
+# still travis bug
+#  - 3.6
   - 3.5
 
 group: travis_latest
