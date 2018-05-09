@@ -102,14 +102,9 @@ def rinexobs(fn:Path, ofn:Path=None, use:Union[str,list,tuple]=None,
         wmode='a' if ofn.is_file() else 'w'
 
 
-        if isinstance(obs,xarray.Dataset):
-            enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in obs.data_vars}
-            obs.to_netcdf(ofn, group=group, mode=wmode,encoding=enc)
-        elif isinstance(obs,dict):
-            for k,v in obs.items():
-                enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in v.data_vars}
-                name = k+'-'+ofn.name
-                obs[k].to_netcdf(ofn.parent/name,group=group,mode=wmode,encoding=enc)
+        enc = {k:{'zlib':True,'complevel':COMPLVL,'fletcher32':True} for k in obs.data_vars}
+        obs.to_netcdf(ofn, group=group, mode=wmode,encoding=enc)
+
 
     return obs
 
