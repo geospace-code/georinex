@@ -2,7 +2,6 @@ from pathlib import Path
 import logging
 import xarray
 from time import time
-import numpy as np
 from typing import Union
 #
 from .rinex2 import _rinexnav2, _scan2

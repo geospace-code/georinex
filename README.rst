@@ -92,7 +92,35 @@ Indexed by time x quantity
 
 
 
+
+
+Notes
+=====
+
+RINEX 3.03 `specification <ftp://igs.org/pub/data/format/rinex303.pdf>`_
+
+* GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be `converted to ECEF <https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03>`_.  
+* https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+* http://www.gage.es/gFD
+
+
 RINEX OBS reader algorithm
-==========================
+--------------------------
 1. read overall OBS header (so we know what to expect in the rest of the OBS file)
 2. fill the xarray.Dataset with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character, I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
+
+
+
+Data
+----
+
+For `capable Android devices <https://developer.android.com/guide/topics/sensors/gnss.html>`_, 
+you can 
+`log RINEX 3 <https://play.google.com/store/apps/details?id=de.geopp.rinexlogger>`_ 
+using the built-in GPS receiver. 
+
+
+Here is a lot of RINEX 3 data to work with:
+
+* OBS `data <ftp://data-out.unavco.org/pub/rinex3/obs/>`_
+* NAV `data <ftp://data-out.unavco.org/pub/rinex3/nav>`_

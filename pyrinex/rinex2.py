@@ -9,7 +9,7 @@ from typing import Union
 STARTCOL2 = 3 #column where numerical data starts for RINEX 2
 
 F = ('SVclockBias','SVclockDrift','SVclockDriftRate','IODE','Crs','DeltaN',
-     'M0','Cuc','Eccentricity','Cus','sqrtA','Toe','Cic','omega0','Cis','Io',
+     'M0','Cuc','Eccentricity','Cus','sqrtA','Toe','Cic','Omega0','Cis','Io',
      'Crc','omega','OmegaDot','IDOT','CodesL2','GPSWeek','L2Pflag','SVacc',
      'SVhealth','TGD','IODC','TransTime','FitIntvl')
 

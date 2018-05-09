@@ -85,11 +85,12 @@ def _newnav(l:str) -> tuple:
     svtype = sv[0]
 
     if svtype == 'G':
-        """ftp://igs.org/pub/data/format/rinex302.pdf page A-16, A-18"""
+        """ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
+        """
         fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
                   'IODE','Crs','DeltaN','M0',
                   'Cuc','Eccentricity','Cus','sqrtA',
-                  'Toe','Cic','omega0','Cis',
+                  'Toe','Cic','Omega0','Cis',
                   'Io','Crc','omega','OmegaDot',
                   'IDOT','CodesL2','GPSWeek','L2Pflag',
                   'SVacc','SVhealth','TGD','IODC',

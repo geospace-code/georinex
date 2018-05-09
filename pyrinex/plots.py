@@ -1,7 +1,7 @@
 import xarray
 from matplotlib.pyplot import figure
 #
-from pymap3d import eci2geodetic
+from pymap3d import eci2geodetic, ecef2geodetic
 
 def plotnav(nav:xarray.Dataset):
     if nav is None:
@@ -42,3 +42,10 @@ def plotobs(obs:xarray.Dataset):
         ax.grid(True)
 
         ax.legend(obs[p].sv.values.astype(str), loc='best')
+
+
+def plotsat(ecef):
+    lla = ecef2geodetic(**ecef)
+
+    ax = figure().gca()
+    ax.plot(lla[:,1],lla[:,0])
