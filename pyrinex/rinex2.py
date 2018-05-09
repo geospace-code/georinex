@@ -175,6 +175,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
             iuse = [i for i,s in enumerate(sv) if s[0] in use]
         else:
             iuse = slice(None)
+
         gsv = np.array(sv)[iuse]
         Ngsv = len(gsv)
 # %% assign data for each time step

@@ -90,15 +90,7 @@ def rinexobs(fn:Path, ofn:Path=None, use:Union[str,list,tuple]=None,
     if int(ver) == 2:
         obs = _scan2(fn, use, verbose)
     elif int(ver) == 3:
-        if use is None or isinstance(use,str):
-            obs = _scan3(fn, use, verbose)
-        elif isinstance(use,(tuple,list,np.ndarray)):
-            if len(use) == 1:
-                obs = _scan3(fn, use[0], verbose)
-            else:
-                obs = {}
-                for u in use:
-                    obs[u] = _scan3(fn, u, verbose)
+        obs = _scan3(fn, use, verbose)
     else:
         raise ValueError('unknown RINEX verion {}  {}'.format(ver,fn))
         print("finished in {:.2f} seconds".format(time()-tic))

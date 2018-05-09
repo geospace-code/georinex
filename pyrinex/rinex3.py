@@ -128,6 +128,12 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
     procss RINEX OBS data
     """
 
+    if (not use or not use[0].strip() or
+      isinstance(use,str) and use.lower() in ('m','all') or
+      isinstance(use,(tuple,list,np.ndarray)) and use[0].lower() in ('m','all')):
+
+      use = None
+
     with fn.open('r') as f:
         fields, header, Fmax = _getObsTypes(f, use)
 
@@ -158,29 +164,34 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
                 raw += l[3:]
 
             darr = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=(14,1,1)*Fmax)
-# %% Tselect one, few, or all satellites
-            i = [i for i,s in enumerate(sv) if s[0] in use]
-            garr = darr[i,:]
-            gsv = np.array(sv)[i]
 # %% assign data for each time step
-            dsf = {}
-            for i,k in enumerate(fields):
-                dsf[k] = (('time','sv'), np.atleast_2d(garr[:,i*3]))
-                if k.startswith('L1') or k.startswith('L2'):
-                   dsf[k+'lli'] = (('time','sv'), np.atleast_2d(garr[:,i*3+1]))
-                dsf[k+'ssi'] = (('time','sv'), np.atleast_2d(garr[:,i*3+2]))
+            for sk in fields: # for each satellite system type (G,R,S, etc.)
+                i = [i for i,s in enumerate(sv) if s[0] in sk]
 
-            if verbose:
-                print(time,'\r',end='')
+                garr = darr[i,:]
+                gsv = np.array(sv)[i]
 
-            if data is None:
-                data = xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})#, attrs={'toffset':toffset})
-            else:
-                data = xarray.concat((data,
-                                      xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),#, attrs={'toffset':toffset})),
-                                    dim='time')
+                dsf = {}
+                for i,k in enumerate(fields[sk]):
+                    dsf[k] = (('time','sv'), np.atleast_2d(garr[:,i*3]))
+                    if k.startswith('L1') or k.startswith('L2'):
+                       dsf[k+'lli'] = (('time','sv'), np.atleast_2d(garr[:,i*3+1]))
+                    dsf[k+'ssi'] = (('time','sv'), np.atleast_2d(garr[:,i*3+2]))
+
+                if verbose:
+                    print(time,'\r',end='')
+
+                if data is None:
+                    data = xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})#, attrs={'toffset':toffset})
+                else:
+                    #data = xarray.concat((data,
+                    #                      xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),#, attrs={'toffset':toffset})),
+                    #                    dim='time')\
+                    data = xarray.merge((data,
+                                         xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})))
 
     data.attrs['filename'] = f.name
+    #data.attrs['toffset'] = toffset
 
     return data
 
@@ -227,9 +238,7 @@ def _getObsTypes(f:TextIO, use:Union[str,list,tuple]) -> tuple:
     # list with x,y,z cartesian
     header['APPROX POSITION XYZ'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
 # %% select specific satellite systems only (optional)
-    if isinstance(use,str):
-        fields = fields[use]
-    elif isinstance(use,(tuple,list,np.ndarray)):
-        fields = [fields[u] for u in use]
+    if use is not None:
+        fields = {k: fields[k] for k in use}
 
     return fields, header, Fmax
