@@ -149,7 +149,7 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
 
             time = datetime(int(l[2:6]), int(l[7:9]), int(l[10:12]),
                             hour=int(l[13:15]), minute=int(l[16:18]), second=int(l[19:21]),
-                            microsecond=int(l[22:29])*1000000)
+                            microsecond=int(float(l[21:29])*1000000))
             if verbose:
                 print(time,'\r',end="")
 # %% get SV indices
@@ -184,10 +184,12 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
                 if data is None:
                     data = xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})#, attrs={'toffset':toffset})
                 else:
-                    #data = xarray.concat((data,
-                    #                      xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),#, attrs={'toffset':toffset})),
-                    #                    dim='time')\
-                    data = xarray.merge((data,
+                    if len(fields)==1:
+                        data = xarray.concat((data,
+                                              xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),#, attrs={'toffset':toffset})),
+                                            dim='time')
+                    else: # general case, slower for different satellite systems all together
+                        data = xarray.merge((data,
                                          xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})))
 
     data.attrs['filename'] = f.name
