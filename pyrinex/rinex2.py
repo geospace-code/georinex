@@ -63,7 +63,7 @@ def _rinexnav2(fn:Path) -> xarray.Dataset:
                                   hour    =int(l[12:14]),
                                   minute  =int(l[15:17]),
                                   second  =int(l[17:20]),  # python reads second and fraction in parts
-                                  microsecond=int(l[21])*100000))
+                                  microsecond=int(float(l[17:22]) % 1 * 1000000)))
             """
             now get the data as one big long string per SV
             """
@@ -228,13 +228,18 @@ def _getSVlist(l:str, N:int, sv:list) -> list:
 
 
 def _obstime(fol:str) -> datetime:
+    """
+    Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
+    Python < 3.7 supports microseconds.
+    """
     year = int(fol[0])
     if 80 <= year <=99:
         year+=1900
     elif year<80: #because we might pass in four-digit year
         year+=2000
+
     return datetime(year=year, month=int(fol[1]), day= int(fol[2]),
                     hour= int(fol[3]), minute=int(fol[4]),
                     second=int(float(fol[5])),
-                    microsecond=int(float(fol[5]) % 1 * 100000)
+                    microsecond=int(float(fol[5]) % 1 * 1000000)
                     )
