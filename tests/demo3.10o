@@ -8,7 +8,7 @@ GEODETIC                                                    MARKER TYPE
 gAGE                UPC: Technical University of Catalonia  OBSERVER / AGENCY   
 THIS FILE IS PART OF THE gLAB TOOL SUITE                    COMMENT             
 FILE PREPARED BY: ADRIA ROVIRA GARCIA                       COMMENT             
-PLEASE EMAIL ANY COMMENT OR REQUEST TO:   glab @ gage.es    COMMENT             
+PLEASE EMAIL ANY COMMENT OR REQUEST TO: glab.gage @ upc.edu COMMENT             
 IR2200716006        ASHTECH UZ-12       CQ00                REC # / TYPE / VERS 
 482                 AOAD/M_T        NONE                    ANT # / TYPE        
    4789028.4701    176610.0133   4195017.0310               APPROX POSITION XYZ 
@@ -19,9 +19,9 @@ G C1C    0.9030         0.0000         0.0000               ANTENNA: PHASECENTER
          0.0000                                             ANTENNA: ZERODIR AZI
          0.0000         0.0000         0.0000               ANTENNA: ZERODIR XYZ
          0.0000         0.0000         0.0000               CENTER OF MASS: XYZ 
-G   12 L1C S1C L2P S2D C1P S1P C2P S2P C1C S1C D1C D2P      SYS / # / OBS TYPES 
-R    3 L1C S1C C1C                                          SYS / # / OBS TYPES 
-S    3 L1C S1C C1C                                          SYS / # / OBS TYPES 
+G    7 L1C L2P C1P C2P C1C S1P S2P                          SYS / # / OBS TYPES 
+R    3 L1C C1C S1C                                          SYS / # / OBS TYPES 
+S    3 L1C C1C S1C                                          SYS / # / OBS TYPES 
 DBHZ                                                        SIGNAL STRENGTH UNIT
     30.000                                                  INTERVAL            
   2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS   
@@ -88,3 +88,4 @@ R23 119323293.47908  22706470.024 7        79.000
 G31 114311363.56508  92979182.85108  21752728.352 9  21752728.204 9  21752729.338 7        72.000          63.000  
 G20 135891004.29908 105889081.83208  25859215.981 9  25859207.736 9  25859205.875 7        44.000          46.000  
 R11 131986783.86108  25116253.066 7        38.000                                                                  
+

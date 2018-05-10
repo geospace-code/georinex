@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import pyrinex as pr
-import pyrinex.keplerian as kpr
-from pyrinex.plots import plotnav, plotobs, plotsat
+from pyrinex.plots import plotnav, plotobs
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -29,12 +28,4 @@ if __name__ == '__main__':
         except NameError:
             pass
 
-# %% get satellites ECEF position vs. time
-        # this has not been verified!
-        try:
-            ecef = kpr.keplerian2ecef(nav)
-            plotsat(ecef)
-        except Exception:
-            pass
-
-        show()
+    show()

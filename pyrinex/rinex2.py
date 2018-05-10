@@ -5,13 +5,10 @@ from datetime import datetime
 from io import BytesIO
 import xarray
 from typing import Union
+import logging
 #
 STARTCOL2 = 3 #column where numerical data starts for RINEX 2
 
-F = ('SVclockBias','SVclockDrift','SVclockDriftRate','IODE','Crs','DeltaN',
-     'M0','Cuc','Eccentricity','Cus','sqrtA','Toe','Cic','Omega0','Cis','Io',
-     'Crc','omega','OmegaDot','IDOT','CodesL2','GPSWeek','L2Pflag','SVacc',
-     'SVhealth','TGD','IODC','TransTime','FitIntvl')
 
 def _rinexnav2(fn:Path) -> xarray.Dataset:
     """
@@ -25,45 +22,41 @@ def _rinexnav2(fn:Path) -> xarray.Dataset:
     fn = Path(fn).expanduser()
 
     Nl = 7 #number of additional lines per record, for RINEX 2 NAV
-    Nf = 29 # number of fields per record, for RINEX 2 NAV
-    assert len(F) == 29
     Lf = 19 # string length per field
 
-    sv = []; epoch=[]; raws=[]
+    svs = []; t=[]; raws=[]
 
     with fn.open('r') as f:
         """verify RINEX version, and that it's NAV"""
         line = f.readline()
-        ver = float(line[:9])
+        ver = float(line[:9])  # yes :9
         assert int(ver)==2,'see _rinexnav3() for RINEX 3.0 files'
-        assert line[20] == 'N', 'Did not detect Nav file'
 
-        """
-        skip header, which has non-constant number of rows
-        """
+        if line[20] == 'N':
+            svtype='G'
+            fields = ['SVclockBias','SVclockDrift','SVclockDriftRate','IODE','Crs','DeltaN',
+                 'M0','Cuc','Eccentricity','Cus','sqrtA','Toe','Cic','Omega0','Cis','Io',
+                 'Crc','omega','OmegaDot','IDOT','CodesL2','GPSWeek','L2Pflag','SVacc',
+                 'health','TGD','IODC','TransTime','FitIntvl']
+        elif line[20] == 'G':
+            svtype='R'  # GLONASS
+            fields = ['SVclockBias','SVrelFreqBias','MessageFrameTime',
+                      'X','dX','dX2','health',
+                      'Y','dY','dY2','FreqNum',
+                      'Z','dZ','dZ2','AgeOpInfo']
+        else:
+            raise NotImplementedError('I do not yet handle Rinex 2 NAV {}'.format(line[20]))
+
+# %% skip header, which has non-constant number of rows
         while True:
             if 'END OF HEADER' in f.readline():
                 break
-        """
-        now read data
-        """
+# %% read data
         for l in f:
             # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
-            sv.append(int(l[:2]))
+            svs.append('{}{:02d}'.format(svtype,int(l[:2])))
             # format I2
-            year = int(l[3:5])  # yes, skipping one unused columsn
-            if 80 <= year <=99:
-                year += 1900
-            elif year<80: #good till year 2180
-                year += 2000
-
-            epoch.append(datetime(year =year,
-                                  month   =int(l[6:8]),
-                                  day     =int(l[9:11]),
-                                  hour    =int(l[12:14]),
-                                  minute  =int(l[15:17]),
-                                  second  =int(l[17:20]),  # python reads second and fraction in parts
-                                  microsecond=int(float(l[17:22]) % 1 * 1000000)))
+            t.append(_obstime([l[3:5], l[6:8], l[9:11], l[12:14], l[15:17], l[17:20], l[17:22]]))
             """
             now get the data as one big long string per SV
             """
@@ -73,20 +66,33 @@ def _rinexnav2(fn:Path) -> xarray.Dataset:
             # one line per SV
             raws.append(raw.replace('D','E'))
 # %% parse
-    # for RINEX 2, don't use delimiter
-    darr = np.empty((len(raws), Nf))
+    t = np.array([np.datetime64(T,'ns') for T in t])
+    nav = None
+    svu = list(set(svs))
 
-    for i,r in enumerate(raws):
-        darr[i,:] = np.genfromtxt(BytesIO(r.encode('ascii')), delimiter=[Lf]*Nf)  # must have *Nf to avoid false nan on trailing spaces
+    for sv in svu:
+        svi = [i for i,s in enumerate(svs) if s==sv]
 
-    dsf = {f: ('time',d) for (f,d) in zip(F,darr.T)}
-    dsf.update({'sv':('time',sv)})
+        tu = list(set(t[svi]))
+        if len(tu) != len(t[svi]):
+            logging.warning('duplicate times detected, skipping SV {}'.format(sv))
+            continue
 
-    nav = xarray.Dataset(dsf,
-                          coords={'time':epoch},
-                          attrs={'RINEX version':ver,
-                                 'RINEX filename':fn.name}
-                          )
+        darr = np.empty((len(svi), len(fields)))
+
+        for j,i in enumerate(svi):
+            darr[j,:] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=[Lf]*len(fields))
+
+        dsf = {f: (('time','sv'),d[:,None]) for (f,d) in zip(fields,darr.T)}
+
+        if nav is None:
+            nav = xarray.Dataset(dsf, coords={'time':t[svi],'sv':[sv]})
+        else:
+            nav = xarray.merge((nav,
+                                xarray.Dataset(dsf, coords={'time':t[svi],'sv':[sv]})))
+
+    nav.attrs['version'] = ver
+    nav.attrs['filename'] = fn.name
 
     return nav
 
@@ -95,6 +101,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
   """
    procss RINEX OBS data
   """
+  Lf = 14
 
   if (not use or not use[0].strip() or
       isinstance(use,str) and use.lower() in ('m','all') or
@@ -127,7 +134,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
 # %% sanity check that MANDATORY RINEX 2 headers exist
     for h in ('RINEX VERSION / TYPE', 'APPROX POSITION XYZ', 'INTERVAL'):
         if not h in header:
-            raise IOError('Mandatory RINEX 2 headers are missing from {fn}, is it a valid RINEX 2 file?')
+            raise IOError('Mandatory RINEX 2 headers are missing from {}, is it a valid RINEX 2 file?'.format(fn))
 # %% file seems OK, keep processing
     verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     # list with x,y,z cartesian
@@ -177,7 +184,6 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
             iuse = slice(None)
 
         gsv = np.array(sv)[iuse]
-        Ngsv = len(gsv)
 # %% assign data for each time step
         darr = np.empty((Nsv,Nobs*3))
         Nl_sv = int(ceil(Nobs/5))  # CEIL needed for Py27 only.
@@ -192,7 +198,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
 
             raw = raw.replace('\n',' ')  # some files truncate and put \n in data space.
 
-            darr[i,:] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Ngsv,1,1]*Nobs)
+            darr[i,:] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf,1,1]*Nobs)
 # % select only "used" satellites
         garr = darr[iuse,:]
         dsf = {}
@@ -211,7 +217,7 @@ def _scan2(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
                                   dim='time')
 
     data.attrs['filename'] = f.name
-    data.attrs['RINEX version'] = verRinex
+    data.attrs['version'] = verRinex
 
     return data
 

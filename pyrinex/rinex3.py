@@ -3,6 +3,7 @@ import numpy as np
 from datetime import datetime
 from io import BytesIO
 import xarray
+import logging
 from typing import Union
 from typing.io import TextIO
 #
@@ -24,7 +25,7 @@ def _rinexnav3(fn:Path) -> xarray.Dataset:
 
     fn = Path(fn).expanduser()
 
-    svs = []; epoch=[]; raws=[]
+    svs = []; raws=[]; fields = {}; t = []
 
     with fn.open('r') as f:
         """verify RINEX version, and that it's NAV"""
@@ -32,26 +33,30 @@ def _rinexnav3(fn:Path) -> xarray.Dataset:
         ver = float(line[:9])
         assert int(ver)==3,'see _rinexnav2() for RINEX 3.0 files'
         assert line[20] == 'N', 'Did not detect Nav file'
-
-        """
-        skip header, which has non-constant number of rows
-        """
-        while True:
-            if 'END OF HEADER' in f.readline():
+#        svtype=line[40]
+# %% skip header, which has non-constant number of rows
+        for line in f:
+            if 'END OF HEADER' in line:
                 break
-        """
-        now read data
-        """
+# %% read data
+        # these while True are necessary to make EOF work right. not for line in f!
         line = f.readline()
+        svtypes=[line[0]]
         while True:
-            sv,time,fields = _newnav(line)
+            sv,time,field = _newnav(line)
+            t.append(time)
+
+            if sv[0] != svtypes[-1]:
+                svtypes.append(sv[0])
+            else:
+                fields[svtypes[-1]] = field
+
             svs.append(sv)
-            epoch.append(time)
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
             while True:
-                line = f.readline()
+                line = f.readline().rstrip()
                 if not line or line[0] != ' ': # new SV
                     break
 
@@ -62,19 +67,44 @@ def _rinexnav3(fn:Path) -> xarray.Dataset:
             if not line: # EOF
                 break
 # %% parse
-    darr = np.empty((len(raws), len(fields)))
+    t = np.array([np.datetime64(T,'ns') for T in t])
+    nav = None
+    svu = sorted(set(svs))
 
-    for i,r in enumerate(raws):
-        darr[i,:] = np.genfromtxt(BytesIO(r.encode('ascii')), delimiter=Lf)
+    for sv in svu:
+        svi = [i for i,s in enumerate(svs) if s==sv]
 
-    dsf = {f: ('time',d) for (f,d) in zip(fields,darr.T)}
-    dsf.update({'sv':('time',svs)})
+        tu = list(set(t[svi]))
+        if len(tu) != len(t[svi]):
+            logging.warning('duplicate times detected, skipping SV {}'.format(sv))
+            continue
 
-    nav = xarray.Dataset(dsf,
-                          coords={'time':epoch},
-                          attrs={'RINEX version':ver,
-                                 'RINEX filename':fn.name}
-                          )
+        darr = np.empty((len(svi), len(fields[sv[0]])))
+
+        for j,i in enumerate(svi):
+            darr[j,:] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+
+        dsf = {}
+        for (f,d) in zip(fields[sv[0]], darr.T):
+            if sv[0] in ('R','S') and f in ('X','dX','dX2',
+                                            'Y','dY','dY2',
+                                            'Z','dZ','dZ2'):
+                d *= 1000 # km => m
+
+            dsf[f] = (('time','sv'), d[:,None])
+
+
+
+        if nav is None:
+            nav = xarray.Dataset(dsf, coords={'time':t[svi],'sv':[sv]})
+        else:
+            nav = xarray.merge((nav,
+                                xarray.Dataset(dsf, coords={'time':t[svi],'sv':[sv]})))
+
+
+    nav.attrs['version'] = ver
+    nav.attrs['filename'] = fn.name
+    nav.attrs['svtype'] = svtypes
 
     return nav
 
@@ -85,7 +115,8 @@ def _newnav(l:str) -> tuple:
     svtype = sv[0]
 
     if svtype == 'G':
-        """ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
+        """
+        ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
         """
         fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
                   'IODE','Crs','DeltaN','M0',
@@ -93,21 +124,45 @@ def _newnav(l:str) -> tuple:
                   'Toe','Cic','Omega0','Cis',
                   'Io','Crc','omega','OmegaDot',
                   'IDOT','CodesL2','GPSWeek','L2Pflag',
-                  'SVacc','SVhealth','TGD','IODC',
+                  'SVacc','health','TGD','IODC',
                   'TransTime','FitIntvl']
-    elif svtype == 'C':
-        raise NotImplementedError('Beidou Compass not yet done')
-    elif svtype == 'R':
-        raise NotImplementedError('GLONASS Not yet done')
-    elif svtype == 'S':
-        fields=['SVclockBias','SVRelFreqBias','MsgTxTime',
-                'X','dX','dX2','SVhealth',
+    elif svtype == 'C': # pg A-33  Beidou Compass BDT
+        fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
+                  'AODE','Crs','DeltaN','M0',
+                  'Cuc','Eccentricity','Cus','sqrtA',
+                  'Toe','Cic','Omega0','Cis',
+                  'Io','Crc','omega','OmegaDot',
+                  'IDOT','BDTWeek',
+                  'SVacc','SatH1','TGD1','TGD2',
+                  'TransTime','AODC']
+    elif svtype == 'R': # pg. A-29   GLONASS
+        fields = ['SVclockBias','SVrelFreqBias','MessageFrameTime',
+                  'X','dX','dX2','health',
+                  'Y','dY','dY2','FreqNum',
+                  'Z','dZ','dZ2','AgeOpInfo']
+    elif svtype == 'S': # pg. A-35 SBAS
+        fields=['SVclockBias','SVrelFreqBias','MessageFrameTime',
+                'X','dX','dX2','health',
                 'Y','dY','dY2','URA',
                 'Z','dZ','dZ2','IODN']
-    elif svtype == 'J':
-        raise NotImplementedError('QZSS not yet done')
+    elif svtype == 'J':  # pg. A-31  QZSS
+        fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
+                  'IODE','Crs','DeltaN','M0',
+                  'Cuc','Eccentricity','Cus','sqrtA',
+                  'Toe','Cic','Omega0','Cis',
+                  'Io','Crc','omega','OmegaDot',
+                  'IDOT','CodesL2','GPSWeek','L2Pflag',
+                  'SVacc','health','TGD','IODC',
+                  'TransTime','FitIntvl']
     elif svtype == 'E':
-        raise NotImplementedError('Galileo not yet done')
+        fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
+                  'IODnav','Crs','DeltaN','M0',
+                  'Cuc','Eccentricity','Cus','sqrtA',
+                  'Toe','Cic','Omega0','Cis',
+                  'Io','Crc','omega','OmegaDot',
+                  'IDOT','DataSrc','GALWeek',
+                  'SISA','health','BGDe5a','BGDe5b',
+                  'TransTime']
     else:
         raise ValueError('Unknown SV type {}'.format(sv[0]))
 
@@ -123,6 +178,7 @@ def _newnav(l:str) -> tuple:
 
     return sv, time, fields
 
+# %% OBS
 
 def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dataset:
     """
@@ -136,19 +192,21 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
       use = None
 
     with fn.open('r') as f:
+        l = f.readline()
+        version = float(l[:9]) # yes :9
         fields, header, Fmax = _getObsTypes(f, use)
 
 
         data = None
     # %% process rest of file
         while True:
-            l = f.readline()
+            l = f.readline().rstrip()
             if not l:
                 break
 
             assert l[0] == '>'  # pg. A13
             """
-            Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
+            Python >=merge 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
             Python < 3.7 supports microseconds.
             """
             time = datetime(int(l[2:6]), int(l[7:9]), int(l[10:12]),
@@ -178,8 +236,10 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
                 dsf = {}
                 for i,k in enumerate(fields[sk]):
                     dsf[k] = (('time','sv'), np.atleast_2d(garr[:,i*3]))
+
                     if k.startswith('L1') or k.startswith('L2'):
                        dsf[k+'lli'] = (('time','sv'), np.atleast_2d(garr[:,i*3+1]))
+
                     dsf[k+'ssi'] = (('time','sv'), np.atleast_2d(garr[:,i*3+2]))
 
                 if verbose:
@@ -190,13 +250,14 @@ def _scan3(fn:Path, use:Union[str,list,tuple], verbose:bool=False) -> xarray.Dat
                 else:
                     if len(fields)==1:
                         data = xarray.concat((data,
-                                              xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),#, attrs={'toffset':toffset})),
-                                            dim='time')
+                                              xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})),
+                                              dim='time')
                     else: # general case, slower for different satellite systems all together
                         data = xarray.merge((data,
                                          xarray.Dataset(dsf,coords={'time':[time],'sv':gsv})))
 
     data.attrs['filename'] = f.name
+    data.attrs['version'] = version
     #data.attrs['toffset'] = toffset
 
     return data

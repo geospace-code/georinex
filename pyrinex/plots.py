@@ -1,25 +1,47 @@
 import xarray
 from matplotlib.pyplot import figure
+import cartopy
+import cartopy.feature as cpf
 #
-from pymap3d import eci2geodetic, ecef2geodetic
+from pymap3d import ecef2geodetic
+from .keplerian import keplerian2ecef
 
 def plotnav(nav:xarray.Dataset):
     if nav is None:
         return
 
-    if not 'X' in nav:
-        return
+    svs = nav.sv.values
 
-    ax = figure().gca()
-    # WARNING: This conversion isn't verified.
-    lat,lon,alt = eci2geodetic(nav[['X','Y','Z']]*1e3,
-                               nav.time)
-    ax.plot(lon,lat)
-    ax.set_xlabel('glon [deg]')
-    ax.set_ylabel('glat [deg]')
+    ax = figure().gca(projection=cartopy.crs.PlateCarree())
 
-    print('lat lon',lat,lon)
-    print('altitude [km]',alt/1e3)
+    ax.add_feature(cpf.LAND)
+    ax.add_feature(cpf.OCEAN)
+    ax.add_feature(cpf.COASTLINE)
+    ax.add_feature(cpf.BORDERS, linestyle=':')
+
+    for sv in svs:
+        if sv[0] == 'S':
+            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time'),
+                                        nav.sel(sv=sv)['Y'].dropna(dim='time'),
+                                        nav.sel(sv=sv)['Z'].dropna(dim='time'))
+            assert ((35.7e6 < alt) & (alt < 35.9e6)).all(), 'unrealistic geostationary satellite altitudes'
+            assert ((-1 < lat) & (lat < 1)).all(), 'unrealistic geostationary satellite latitudes'
+        elif sv[0] == 'R':
+            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time'),
+                                        nav.sel(sv=sv)['Y'].dropna(dim='time'),
+                                        nav.sel(sv=sv)['Z'].dropna(dim='time'))
+            assert ((19.0e6 < alt) & (alt < 19.4e6)).all(), 'unrealistic GLONASS satellite altitudes'
+            assert ((-67 < lat) & (lat < 67)).all(),'GPS inclination ~ 65 degrees'
+        elif sv[0] == 'G':
+            ecef = keplerian2ecef(nav.sel(sv=sv))
+            lat,lon,alt =  ecef2geodetic(*ecef)
+            assert ((19.4e6 < alt) & (alt < 21.0e6)).all(), 'unrealistic GPS satellite altitudes'
+            assert ((-57 < lat) & (lat < 57)).all(),'GPS inclination ~ 55 degrees'
+        else:
+            continue
+
+
+        ax.plot(lon,lat,label=sv)
 
 
 def plotobs(obs:xarray.Dataset):
@@ -42,10 +64,3 @@ def plotobs(obs:xarray.Dataset):
         ax.grid(True)
 
         ax.legend(obs[p].sv.values.astype(str), loc='best')
-
-
-def plotsat(ecef):
-    lla = ecef2geodetic(**ecef)
-
-    ax = figure().gca()
-    ax.plot(lla[:,1],lla[:,0])

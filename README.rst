@@ -79,6 +79,24 @@ This returns an
 of data within the .XXo observation file.
 
 
+Index OBS data
+~~~~~~~~~~~~~~
+assume the OBS data from a file is loaded in variable ``obs``.
+
+Select satellite(s) (here, ``G06``) by
+
+.. code:: python
+
+    obs.sel(sv='G13')
+
+Pick any parameter (say, ``L1``) across all satellites and time (or index via ``.sel()`` by time and/or satellite too) by:
+
+
+.. code:: python
+
+    obs['L1C']
+
+
 read Nav
 --------
 If you desire to specifically read a RINEX 2 or 3 NAV file:
@@ -91,7 +109,22 @@ This returns an ``xarray.Dataset`` of the data within the RINEX 3 or RINEX 2 Nav
 Indexed by time x quantity
 
 
+Index NAV data
+~~~~~~~~~~~~~~
+ assume the NAV data from a file is loaded in variable ``nav``.
 
+Select satellite(s) (here, ``G06``) by
+
+.. code:: python
+
+    nav.sel(sv='G13')
+
+Pick any parameter (say, ``M0``) across all satellites and time (or index by that first) by:
+
+
+.. code:: python
+
+    nav['M0']
 
 
 Notes
@@ -99,7 +132,7 @@ Notes
 
 RINEX 3.03 `specification <ftp://igs.org/pub/data/format/rinex303.pdf>`_
 
-* GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be `converted to ECEF <https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03>`_.  
+* GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be `converted to ECEF <https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03>`_.
 * https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 * http://www.gage.es/gFD
 
@@ -114,10 +147,10 @@ RINEX OBS reader algorithm
 Data
 ----
 
-For `capable Android devices <https://developer.android.com/guide/topics/sensors/gnss.html>`_, 
-you can 
-`log RINEX 3 <https://play.google.com/store/apps/details?id=de.geopp.rinexlogger>`_ 
-using the built-in GPS receiver. 
+For `capable Android devices <https://developer.android.com/guide/topics/sensors/gnss.html>`_,
+you can
+`log RINEX 3 <https://play.google.com/store/apps/details?id=de.geopp.rinexlogger>`_
+using the built-in GPS receiver.
 
 
 Here is a lot of RINEX 3 data to work with:

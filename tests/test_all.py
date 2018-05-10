@@ -28,7 +28,10 @@ def test_convenience():
 
 
 def test_obs2_allsat():
-    """./ReadRinex.py tests/demo.10o -o tests/test2all.nc"""
+    """
+    ./ReadRinex.py tests/demo.10o -o tests/test2all.nc
+    ./ReadRinex.py tests/demo.10n -o tests/test2all.nc
+    """
 
     truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
 
@@ -65,14 +68,11 @@ def test_obs2_multisat():
 
 
 def test_nav2():
-    """./ReadRinex.py tests/demo.10n -o tests/test2all.nc"""
-
     truth = xarray.open_dataset(rdir/'test2all.nc', group='NAV')
     nav = rinexnav(rdir/'demo.10n')
 
     assert nav.equals(truth)
-# %% RINEX 3
-
+# %% RINEX 3 OBS
 def test_obs3_onesat():
     """
     ./ReadRinex.py tests/demo3.10o  -u G -o tests/test3G.nc
@@ -104,8 +104,7 @@ def test_obs3_allsat():
     truth = rinexobs(rdir/'test3all.nc')
 
     assert obs.equals(truth)
-
-
+# %% RINEX 3 NAV
 def test_nav3sbas():
     """./ReadRinex.py tests/demo3.10n -o tests/test3sbas.nc"""
     truth = xarray.open_dataset(rdir/'test3sbas.nc', group='NAV')

@@ -13,6 +13,11 @@ def keplerian2ecef(sv:Union[dict,xarray.DataArray]):
     https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03
     """
 
+    if 'sv' in sv and sv['sv'] in ('R','S'):
+        return sv['X'], sv['Y'], sv['Z']
+
+    sv = sv.dropna(dim='time',how='all')
+
     GM = 3.986005e14  # [m^3 s^-2]
     omega_e = 7.292115e-5  # [rad s^-1]
     pi = 3.1415926535898 # definition
@@ -34,12 +39,12 @@ def keplerian2ecef(sv:Union[dict,xarray.DataArray]):
     Mk = sv['M0'] + n*tk  # Mean Anomaly
     Ek = Mk + sv['Eccentricity'] * np.sin(Mk)  # FIXME: ok?
 
-    nuK = np.arccos( (np.cos(Ek) - sv['Eccentricity']) / (1-sv['Eccentricity']*np.cos(Ek)))
+    nuK = 2 * np.arctan2(np.sqrt(1 + sv['Eccentricity']) * np.sin(Ek/2), np.sqrt(1-sv['Eccentricity']) * np.cos(Ek/2))
 
     PhiK = nuK + sv['omega']
     dik = sv['Cic']*np.cos(2*PhiK) + sv['Cis']*np.sin(2*PhiK)
 
-    ik = sv['Io'] + sv['IDOT']*tk + dik
+    ik = sv['Io'] + sv['IDOT']*tk + dik  # corrected inclination
 
     duk = sv['Cuc'] * np.cos(2*PhiK) + sv['Cus']*np.sin(2*PhiK)
     uk = PhiK + duk

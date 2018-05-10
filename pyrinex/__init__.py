@@ -34,7 +34,7 @@ def getRinexVersion(fn:Path) -> float:
     with fn.open('r') as f:
         """verify RINEX version"""
         line = f.readline()
-        return float(line[:9])
+        return float(line[:9])  # yes :9
 
 #%% Navigation file
 def rinexnav(fn:Path, ofn:Path=None, group:str='NAV') -> xarray.Dataset:
