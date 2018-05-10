@@ -101,7 +101,7 @@ def test_obs3_allsat():
     """
 
     obs = rinexobs(rdir/'demo3.10o')
-    truth = rinexobs(rdir/'test3all.nc')
+    truth = rinexobs(rdir/'test3all.nc', group='OBS')
 
     assert obs.equals(truth)
 # %% RINEX 3 NAV

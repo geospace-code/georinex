@@ -125,7 +125,7 @@ def _newnav(l:str) -> tuple:
                   'Io','Crc','omega','OmegaDot',
                   'IDOT','CodesL2','GPSWeek','L2Pflag',
                   'SVacc','health','TGD','IODC',
-                  'TransTime','FitIntvl']
+                  'TransTime']#,'FitIntvl']
     elif svtype == 'C': # pg A-33  Beidou Compass BDT
         fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
                   'AODE','Crs','DeltaN','M0',
