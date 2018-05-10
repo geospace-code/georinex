@@ -111,9 +111,9 @@ Indexed by time x quantity
 
 Index NAV data
 ~~~~~~~~~~~~~~
- assume the NAV data from a file is loaded in variable ``nav``.
+assume the NAV data from a file is loaded in variable ``nav``.
 
-Select satellite(s) (here, ``G06``) by
+Select satellite(s) (here, ``G13``) by
 
 .. code:: python
 
