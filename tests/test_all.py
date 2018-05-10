@@ -84,6 +84,7 @@ def test_obs3_onesat():
         obs = rinexobs(rdir/'demo3.10o', use=u)
         assert obs.equals(truth)
 
+
 def test_obs3_multisat():
     """
     ./ReadRinex.py tests/demo3.10o  -u G R -o tests/test3GR.nc
@@ -94,6 +95,7 @@ def test_obs3_multisat():
     truth = xarray.open_dataset(rdir/'test3GR.nc', group='OBS')
 
     assert obs.equals(truth)
+
 
 def test_obs3_allsat():
     """
@@ -116,6 +118,16 @@ def test_nav3gps():
     """./ReadRinex.py tests/demo.17n -o tests/test3gps.nc"""
     truth = xarray.open_dataset(rdir/'test3gps.nc', group='NAV')
     nav = rinexnav(rdir/'demo.17n')
+
+    assert nav.equals(truth)
+
+
+def test_nav3galileo():
+    """
+    ./ReadRinex.py tests/galileo3.15n -o tests/test3galileo.nc
+    """
+    truth = xarray.open_dataset(rdir/'test3galileo.nc', group='NAV')
+    nav = rinexnav(rdir/'galileo3.15n')
 
     assert nav.equals(truth)
 
