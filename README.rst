@@ -83,7 +83,7 @@ Index OBS data
 ~~~~~~~~~~~~~~
 assume the OBS data from a file is loaded in variable ``obs``.
 
-Select satellite(s) (here, ``G06``) by
+Select satellite(s) (here, ``G13``) by
 
 .. code:: python
 
@@ -94,7 +94,7 @@ Pick any parameter (say, ``L1``) across all satellites and time (or index via ``
 
 .. code:: python
 
-    obs['L1C']
+    obs['L1']
 
 
 read Nav
