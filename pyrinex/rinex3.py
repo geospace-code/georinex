@@ -78,14 +78,19 @@ def _rinexnav3(fn:Path) -> xarray.Dataset:
         if len(tu) != len(t[svi]):
             logging.warning('duplicate times detected, skipping SV {}'.format(sv))
             continue
+# %% check for optional GPS "fit interval" presence
+        cf = fields[sv[0]]
+        testread = np.genfromtxt(BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
+        if sv[0] == 'G' and len(cf)==len(testread)+1:
+            cf = cf[:-1]
 
-        darr = np.empty((len(svi), len(fields[sv[0]])))
+        darr = np.empty((len(svi), len(cf)))
 
         for j,i in enumerate(svi):
             darr[j,:] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
 
         dsf = {}
-        for (f,d) in zip(fields[sv[0]], darr.T):
+        for (f,d) in zip(cf, darr.T):
             if sv[0] in ('R','S') and f in ('X','dX','dX2',
                                             'Y','dY','dY2',
                                             'Z','dZ','dZ2'):
@@ -125,7 +130,7 @@ def _newnav(l:str) -> tuple:
                   'Io','Crc','omega','OmegaDot',
                   'IDOT','CodesL2','GPSWeek','L2Pflag',
                   'SVacc','health','TGD','IODC',
-                  'TransTime']#,'FitIntvl']
+                  'TransTime','FitIntvl']
     elif svtype == 'C': # pg A-33  Beidou Compass BDT
         fields = ['SVclockBias','SVclockDrift','SVclockDriftRate',
                   'AODE','Crs','DeltaN','M0',

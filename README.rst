@@ -78,6 +78,11 @@ This returns an
 `xarray.Dataset <http://xarray.pydata.org/en/stable/api.html#dataset>`_
 of data within the .XXo observation file.
 
+`NaN` is used as a filler value, so the commands typically end with `.dropna(dim='time',how='all')` to eliminate the non-observable data vs time.
+As per pg. 15-20 of RINEX 3.03 `specification <ftp://igs.org/pub/data/format/rinex303.pdf>`_, only certain fields are valid for particular satellite systems.
+Not every receiver receives every type of GNSS system. 
+Most Android devices in the Americas receive at least GPS and GLONASS.
+
 
 Index OBS data
 ~~~~~~~~~~~~~~
@@ -87,14 +92,23 @@ Select satellite(s) (here, ``G13``) by
 
 .. code:: python
 
-    obs.sel(sv='G13')
+    obs.sel(sv='G13').dropna(dim='time',how='all')
 
 Pick any parameter (say, ``L1``) across all satellites and time (or index via ``.sel()`` by time and/or satellite too) by:
 
 
 .. code:: python
 
-    obs['L1']
+    obs['L1'].dropna(dim='time',how='all')
+    
+    
+Plot OBS data
+~~~~~~~~~~~~~
+Suppose L1C psuedorange plot is desired:
+
+.. code:: python
+
+    obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 
 
 read Nav
@@ -157,3 +171,4 @@ Here is a lot of RINEX 3 data to work with:
 
 * OBS `data <ftp://data-out.unavco.org/pub/rinex3/obs/>`_
 * NAV `data <ftp://data-out.unavco.org/pub/rinex3/nav>`_
+
