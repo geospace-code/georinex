@@ -104,7 +104,20 @@ Pick any parameter (say, ``L1``) across all satellites and time (or index via ``
     
 Plot OBS data
 ~~~~~~~~~~~~~
-Suppose L1C psuedorange plot is desired:
+Plot for all satellites L1C:
+
+.. code:: python
+
+    from matplotlib.pyplot import figure, show
+
+    ax = figure().gca()
+    ax.plot(obs.time, obs['L1C'])
+
+    show()
+
+
+
+Suppose L1C psuedorange plot is desired for `G13`:
 
 .. code:: python
 
