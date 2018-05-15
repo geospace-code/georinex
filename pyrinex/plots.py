@@ -21,15 +21,15 @@ def plotnav(nav:xarray.Dataset):
 
     for sv in svs:
         if sv[0] == 'S':
-            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time'),
-                                        nav.sel(sv=sv)['Y'].dropna(dim='time'),
-                                        nav.sel(sv=sv)['Z'].dropna(dim='time'))
+            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time',how='all'),
+                                        nav.sel(sv=sv)['Y'].dropna(dim='time',how='all'),
+                                        nav.sel(sv=sv)['Z'].dropna(dim='time',how='all'))
             assert ((35.7e6 < alt) & (alt < 35.9e6)).all(), 'unrealistic geostationary satellite altitudes'
             assert ((-1 < lat) & (lat < 1)).all(), 'unrealistic geostationary satellite latitudes'
         elif sv[0] == 'R':
-            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time'),
-                                        nav.sel(sv=sv)['Y'].dropna(dim='time'),
-                                        nav.sel(sv=sv)['Z'].dropna(dim='time'))
+            lat,lon,alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time',how='all'),
+                                        nav.sel(sv=sv)['Y'].dropna(dim='time',how='all'),
+                                        nav.sel(sv=sv)['Z'].dropna(dim='time',how='all'))
             assert ((19.0e6 < alt) & (alt < 19.4e6)).all(), 'unrealistic GLONASS satellite altitudes'
             assert ((-67 < lat) & (lat < 67)).all(),'GPS inclination ~ 65 degrees'
         elif sv[0] == 'G':
@@ -48,7 +48,7 @@ def plotobs(obs:xarray.Dataset):
     if obs is None:
         return
 
-    for p in ('P1','L1C'):
+    for p in ('L1','L1C'):
         if not p in obs:
             continue
 
@@ -56,7 +56,7 @@ def plotobs(obs:xarray.Dataset):
 
 
 
-        ax.plot(obs[p].time, obs[p])
+        ax.plot(obs.time, obs[p])
 
         ax.set_title(obs.filename)
         ax.set_xlabel('time [UTC]')
