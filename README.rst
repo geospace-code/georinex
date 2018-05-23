@@ -29,6 +29,8 @@ This gives remarkable speed vs. legacy iterative methods, and allows for HPC / o
 Writes to NetCDF4 (subset of HDF5), with ``zlib`` compression.
 This is a couple order of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
 
+Another key advantage of PyRinex is the Xarray base class, that allows all the database-like indexing power of Pandas to be unleashed. 
+
 
 PyRinex works in Python >= 3.5.
 
@@ -88,11 +90,17 @@ Index OBS data
 ~~~~~~~~~~~~~~
 assume the OBS data from a file is loaded in variable ``obs``.
 
+---
+
 Select satellite(s) (here, ``G13``) by
 
 .. code:: python
 
     obs.sel(sv='G13').dropna(dim='time',how='all')
+
+
+---
+
 
 Pick any parameter (say, ``L1``) across all satellites and time (or index via ``.sel()`` by time and/or satellite too) by:
 
@@ -102,6 +110,26 @@ Pick any parameter (say, ``L1``) across all satellites and time (or index via ``
     obs['L1'].dropna(dim='time',how='all')
     
     
+---
+
+Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
+
+.. code:: python
+
+    import pyrinex as pr
+    obs = pr.rinexobs('myfile.o', use='E')
+
+would load only Galileo data by the parameter E.
+ReadRinex.py allow this to be specified as the -use command line parameter.
+
+If however you want to do this after loading all the data anyway, you can make a Boolean indexer
+
+.. code:: python
+
+    Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy boolean 1-D array
+
+    Edata = obs.isel(sv=Eind)  # any combination of other indices at same time or before/after also possible
+
 Plot OBS data
 ~~~~~~~~~~~~~
 Plot for all satellites L1C:
