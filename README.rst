@@ -18,6 +18,10 @@
 .. image:: https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability
    :target: https://codeclimate.com/github/scivision/pyrinex/maintainability
    :alt: Maintainability
+   
+.. image:: http://pepy.tech/badge/pyrinex
+   :target: http://pepy.tech/project/pyrinex
+   :alt: PyPi Download stats
 
 =======
 PyRinex
