@@ -36,7 +36,7 @@ This is a couple order of magnitude speedup in reading/converting RINEX data and
 Another key advantage of PyRinex is the Xarray base class, that allows all the database-like indexing power of Pandas to be unleashed. 
 
 
-PyRinex works in Python >= 3.5.
+PyRinex works in Python >= 3.6.
 
 .. contents::
 

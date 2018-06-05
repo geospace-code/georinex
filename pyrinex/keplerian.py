@@ -5,41 +5,49 @@ Michael Hirsch, Ph.D.
 from datetime import datetime, timedelta
 import xarray
 import numpy as np
-from typing import Union
 
-def keplerian2ecef(sv:Union[dict,xarray.DataArray]):
+
+def keplerian2ecef(sv: xarray.DataArray) -> tuple:
     """
     based on:
     https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03
     """
 
-    if 'sv' in sv and sv['sv'] in ('R','S'):
+    if 'sv' in sv and sv['sv'] in ('R', 'S'):
         return sv['X'], sv['Y'], sv['Z']
 
-    sv = sv.dropna(dim='time',how='all')
+    sv = sv.dropna(dim='time', how='all')
 
     GM = 3.986005e14  # [m^3 s^-2]
     omega_e = 7.292115e-5  # [rad s^-1]
-    pi = 3.1415926535898 # definition
+#    pi = 3.1415926535898  # definition
 
     A = sv['sqrtA']**2
 
     n0 = np.sqrt(GM/A**3)  # computed mean motion
-    T = 2*pi / n0  # Satellite orbital period
+#    T = 2*pi / n0  # Satellite orbital period
 
-    n = n0 + sv['DeltaN'] # corrected mean motion
+    n = n0 + sv['DeltaN']  # corrected mean motion
 
-    t0 = datetime(1980,1,6) + timedelta(weeks=sv['GPSWeek'][0].astype(int).item())  # from GPS Week 0
+    # from GPS Week 0
+    t0 = datetime(1980, 1, 6) + timedelta(weeks=sv['GPSWeek'][0].astype(int).item())
 
-    tk = np.empty(sv['time'].size,dtype=float)
+    tk = np.empty(sv['time'].size, dtype=float)
+
     # FIXME: so ugly...
-    for i,(t1,t2) in enumerate(zip(sv['time'],sv['Toe'])):
-        tk[i] = (datetime.utcfromtimestamp(t1.item()/1e9) - (timedelta(seconds=t2.values.astype(int).item()) + t0)).total_seconds()    # time elapsed since reference epoch
+    # time elapsed since reference epoch
+    # seems to be a bug in MyPy, this line computes "correctly"
+
+    for i, (t1, t2) in enumerate(zip(sv['time'], sv['Toe'])):
+        tsv = datetime.utcfromtimestamp(t1.item()/1e9)
+        toe = timedelta(seconds=t2.values.astype(int).item()) + t0 # type: ignore  # noqa
+        tk[i] = (tsv - toe).total_seconds()  # type: ignore  # noqa
 
     Mk = sv['M0'] + n*tk  # Mean Anomaly
     Ek = Mk + sv['Eccentricity'] * np.sin(Mk)  # FIXME: ok?
 
-    nuK = 2 * np.arctan2(np.sqrt(1 + sv['Eccentricity']) * np.sin(Ek/2), np.sqrt(1-sv['Eccentricity']) * np.cos(Ek/2))
+    nuK = 2 * np.arctan2(np.sqrt(1 + sv['Eccentricity']) *
+                         np.sin(Ek/2), np.sqrt(1-sv['Eccentricity']) * np.cos(Ek/2))
 
     PhiK = nuK + sv['omega']
     dik = sv['Cic']*np.cos(2*PhiK) + sv['Cis']*np.sin(2*PhiK)
