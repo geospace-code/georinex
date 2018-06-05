@@ -6,3 +6,4 @@ exclude_patterns:
   - "docs/"
   - "paper/"
   - "archive/"
+  - "tests/"
