@@ -214,6 +214,6 @@ using the built-in GPS receiver.
 
 Here is a lot of RINEX 3 data to work with:
 
-* OBS `data <ftp://data-out.unavco.org/pub/rinex3/obs/>`_
-* NAV `data <ftp://data-out.unavco.org/pub/rinex3/nav>`_
+* `OBS data <ftp://data-out.unavco.org/pub/rinex3/obs/>`_
+* `NAV data <ftp://data-out.unavco.org/pub/rinex3/nav>`_
 
