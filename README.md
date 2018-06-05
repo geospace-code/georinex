@@ -1,5 +1,5 @@
 [![image](https://travis-ci.org/scivision/pyrinex.svg?branch=master)](https://travis-ci.org/scivision/pyrinex)
-[![image](https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github](https://coveralls.io/github/scivision/pyrinex?branch=master)
+[![image](https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github)](https://coveralls.io/github/scivision/pyrinex?branch=master)
 [![image](https://ci.appveyor.com/api/projects/status/sxxqc77q7l3669dd?svg=true)](https://ci.appveyor.com/project/scivision/pyrinex)
 [![image](https://img.shields.io/pypi/pyversions/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex>)
 [![image](https://img.shields.io/pypi/format/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex)
@@ -82,7 +82,7 @@ obs.sel(sv='G13').dropna(dim='time',how='all')
 
 Pick any parameter (say, `L1`) across all satellites and time (or index via `.sel()` by time and/or satellite too) by:
 ```python
-obs\['L1'\].dropna(dim='time',how='all')
+obs['L1'].dropna(dim='time',how='all')
 ```
 
 Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
@@ -105,19 +105,19 @@ Plot for all satellites L1C:
 ```python
 from matplotlib.pyplot import figure, show
 ax = figure().gca()
-ax.plot(obs.time, obs\['L1C'\])
+ax.plot(obs.time, obs['L1C'])
 show()
 ```
 
 Suppose L1C psuedorange plot is desired for `G13`:
 ```python
-obs\['L1C'\].sel(sv='G13').dropna(dim='time',how='all').plot()
+obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 read Nav
 ```
 
 If you desire to specifically read a RINEX 2 or 3 NAV file:
 ```python
-nav = pr.rinexnav('tests/demo\_MN.rnx')
+nav = pr.rinexnav('tests/demo_MN.rnx')
 ```
 
 This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.
