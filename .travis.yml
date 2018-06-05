@@ -5,9 +5,7 @@ os:
   - linux
 
 python:
-# still travis bug
-#  - 3.6
-  - 3.5
+  - 3.6
 
 group: travis_latest
 
@@ -16,9 +14,12 @@ git:
 
 
 install:
-    - pip -q install -e .[tests]
+  - pip -q install -e .[tests]
 
-script: pytest -v
+script: 
+  - pytest -v
+  - flake8
+  - mypy . --ignore-missing-imports
 
 after_success:
   - if [[ $TRAVIS_PYTHON_VERSION == 3.5* ]]; then
