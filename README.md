@@ -112,8 +112,10 @@ show()
 Suppose L1C psuedorange plot is desired for `G13`:
 ```python
 obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
-read Nav
 ```
+
+### read Nav
+
 
 If you desire to specifically read a RINEX 2 or 3 NAV file:
 ```python
@@ -124,7 +126,7 @@ This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navig
 Indexed by time x quantity
 
 
-### Index NAV data
+#### Index NAV data
 
 assume the NAV data from a file is loaded in variable `nav`.
 Select satellite(s) (here, `G13`) by
