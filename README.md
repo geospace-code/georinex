@@ -24,6 +24,8 @@ all the database-like indexing power of Pandas to be unleashed.
 
 PyRinex works in Python &gt;= 3.6.
 
+![RINEX plot](tests/example_plot.png)
+
 ## Install
 
     python -m pip install -e .
