@@ -26,6 +26,6 @@ setup(name='pyrinex',
           'Programming Language :: Python :: 3.7',
           'Topic :: Scientific/Engineering :: Atmospheric Science',
       ],
-      scripts=['ReadRinex.py'],
+      scripts=['ReadRinex.py', 'PlotExample.py'],
       include_package_data=True,
       )
