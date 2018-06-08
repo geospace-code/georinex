@@ -16,7 +16,8 @@ fn = Path('~/data/GEOP107Q.18o')
 obs, nav = pr.readrinex(fn, use='G')
 
 # %% optional time indexing demo
-tlim = (datetime(2018, 4, 17, 16, 25),
+# can use datetime or string
+tlim = ('2018-04-17T16:25',
         datetime(2018, 4, 17, 16, 30))
 
 # boolean indexing  -- set "i=slice(None)" to disable time indexing.
