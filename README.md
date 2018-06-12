@@ -37,6 +37,9 @@ The simplest command-line use is through the top-level `ReadRinex.py` script.
 -   Read RINEX3 or RINEX 2 Obs or Nav file: `python ReadRinex.py myrinex.XXx`
 -   Read NetCDF converted RINEX data: `python ReadRinex.py myrinex.nc`
 
+It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
+as NetCDF4 is also human-readable, yet say 1000x faster to load than RINEX.
+
 You can also of course use the package as a python imported module as in
 the following examples. Each example assumes you have first done:
 
@@ -139,6 +142,28 @@ nav.sel(sv='G13')
 Pick any parameter (say, `M0`) across all satellites and time (or index by that first) by:
 ```python
 nav['M0']
+```
+
+## Analysis 
+A significant reason for using `xarray` as the base class of PyRinex is that big data operations are fast, easy and efficient. 
+It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly
+
+A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
+```python
+obs.to_netcdf('process.nc', group='OBS')
+```
+`pyrinex.__init.py__` shows examples of using compression and other options if desired.
+
+### Join data from multiple files
+Please see documentation for `xarray.concat` and `xarray.merge` for more details.
+Assuming you loaded OBS data from one file into `obs1` and data from another file into `obs2`, and the data needs to be concatenated in time:
+```python
+obs = xarray.concat((obs1, obs2), dim='time')
+```
+The `xarray.concat`operation may fail if there are different SV observation types in the files. 
+you can try the more general:
+```python
+obs = xarray.merge((obs1, obs2))
 ```
 
 ## Notes
