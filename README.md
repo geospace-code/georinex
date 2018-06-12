@@ -1,7 +1,7 @@
 [![image](https://travis-ci.org/scivision/pyrinex.svg?branch=master)](https://travis-ci.org/scivision/pyrinex)
 [![image](https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github)](https://coveralls.io/github/scivision/pyrinex?branch=master)
 [![image](https://ci.appveyor.com/api/projects/status/sxxqc77q7l3669dd?svg=true)](https://ci.appveyor.com/project/scivision/pyrinex)
-[![image](https://img.shields.io/pypi/pyversions/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex>)
+[![image](https://img.shields.io/pypi/pyversions/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex)
 [![image](https://img.shields.io/pypi/format/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex)
 [![Maintainability](https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability)](https://codeclimate.com/github/scivision/pyrinex/maintainability)
 [![PyPi Download stats](http://pepy.tech/badge/pyrinex)](http://pepy.tech/project/pyrinex)
