@@ -146,7 +146,7 @@ nav['M0']
 
 ## Analysis 
 A significant reason for using `xarray` as the base class of PyRinex is that big data operations are fast, easy and efficient. 
-It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly
+It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and convserve memory.
 
 A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
 ```python
