@@ -167,6 +167,11 @@ you can try the more general:
 obs = xarray.merge((obs1, obs2))
 ```
 
+## Converting to Pandas Dataframes
+Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
+Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual 
+[Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).
+
 ## Notes
  
 RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
