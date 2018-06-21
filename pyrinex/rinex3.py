@@ -81,12 +81,12 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
     svu = sorted(set(svs))
 
     for sv in svu:
-        svi = [i for i, s in enumerate(svs) if s == sv]
+        svi = np.array([i for i, s in enumerate(svs) if s == sv])
 
-        tu = np.unique(t[svi])
+        tu, iu = np.unique(t[svi], return_index=True)
         if tu.size != t[svi].size:
-            logging.warning(f'duplicate times detected, skipping SV {sv}')
-            continue
+            logging.warning(f'duplicate times detected on SV {sv}, using first of duplicated time(s)')
+            """ I have seen that the data rows match identically when times are duplicated"""
 # %% check for optional GPS "fit interval" presence
         cf = fields[sv[0]]
         testread = np.genfromtxt(BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
@@ -99,12 +99,16 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
             cf.insert(22, 'spare')
 
         if testread.size != len(cf):
-            raise ValueError(f'The data at {t[svi]} is not the same length as the number of fields.')
+            raise ValueError(f'The data at {tu} is not the same length as the number of fields.')
 
-        darr = np.empty((len(svi), len(cf)))
+        darr = np.empty((svi.size, len(cf)))
 
         for j, i in enumerate(svi):
             darr[j, :] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+
+# %% discard duplicated times
+
+        darr = darr[iu, :]
 
         dsf = {}
         for (f, d) in zip(cf, darr.T):
@@ -116,10 +120,10 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
             dsf[f] = (('time', 'sv'), d[:, None])
 
         if nav is None:
-            nav = xarray.Dataset(dsf, coords={'time': t[svi], 'sv': [sv]})
+            nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
         else:
             nav = xarray.merge((nav,
-                                xarray.Dataset(dsf, coords={'time': t[svi], 'sv': [sv]})))
+                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
 
     nav.attrs['version'] = ver
     nav.attrs['filename'] = fn.name

@@ -1,10 +1,10 @@
 from pathlib import Path
 import logging
 import xarray
-import gzip
 from time import time
 from typing import Union
 #
+from .io import opener
 from .rinex2 import rinexnav2, _scan2
 from .rinex3 import rinexnav3, _scan3
 
@@ -13,6 +13,9 @@ COMPLVL = 1
 
 
 def readrinex(rinexfn: Path, outfn: Path=None, use: Union[str, list, tuple]=None, verbose: bool=True) -> xarray.Dataset:
+    """
+    Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
+    """
     nav = None
     obs = None
     rinexfn = Path(rinexfn).expanduser()
@@ -39,19 +42,15 @@ def getRinexVersion(fn: Path) -> float:
     """verify RINEX version"""
     fn = Path(fn).expanduser()
 
-    if fn.suffix == '.gz':
-        with gzip.open(fn, 'r') as f:
-            ver = float(f.readline()[:9])  # yes :9
-    else:
-        with fn.open('r') as f:
-            ver = float(f.readline()[:9])  # yes :9
+    with opener(fn) as f:
+        ver = float(f.readline()[:9])  # yes :9
 
     return ver
 # %% Navigation file
 
 
 def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
-
+    """ Read RINEX 2,3  NAV files in ASCII or GZIP"""
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
         try:
@@ -82,11 +81,7 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
 def rinexobs(fn: Path, ofn: Path=None, use: Union[str, list, tuple]=None,
              group: str='OBS', verbose: bool=False) -> xarray.Dataset:
     """
-    Program overviw:
-    1) scan the whole file for the header and other information using scan(lines)
-    2) each epoch is read
-
-    rinexobs() returns the data in an xarray.Dataset
+    Read RINEX 2,3 OBS files in ASCII or GZIP
     """
 
     fn = Path(fn).expanduser()

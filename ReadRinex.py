@@ -1,4 +1,17 @@
 #!/usr/bin/env python
+"""
+Reads RINEX 2/3 OBS/NAV files and plots.
+Returns data as xarray.Dataset, think of it like an N-dimensional Numpy NDarray with lots of metadata and
+very fancy indexing methods.
+Xarray can be thought of as an analytically-tuned Pandas.
+
+The RINEX version is automatically detected.  GZIP .gz files can be read directly as well.
+
+Examples:
+
+./ReadRinex.py ~/data/VEN100ITA_R_20181580000_01D_MN.rnx.gz
+
+"""
 import pyrinex as pr
 from pyrinex.plots import plotnav, plotobs
 
