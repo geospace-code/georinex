@@ -1,3 +1,4 @@
+from .io import opener
 from pathlib import Path
 import numpy as np
 from math import ceil
@@ -10,7 +11,7 @@ import logging
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 
 
-def _rinexnav2(fn: Path) -> xarray.Dataset:
+def rinexnav2(fn: Path) -> xarray.Dataset:
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch, Ph.D.
@@ -28,7 +29,7 @@ def _rinexnav2(fn: Path) -> xarray.Dataset:
     dt: List[datetime] = []
     raws = []
 
-    with fn.open('r') as f:
+    with opener(fn) as f:
         """verify RINEX version, and that it's NAV"""
         line = f.readline()
         ver = float(line[:9])  # yes :9
@@ -116,7 +117,7 @@ def _scan2(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
 
         use = None
 
-    with fn.open('r') as f:
+    with opener(fn) as f:
         header: Dict[str, Any] = {}
         Nobs = None
         # Capture header info

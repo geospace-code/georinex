@@ -1,3 +1,4 @@
+from .io import opener
 from pathlib import Path
 import numpy as np
 from datetime import datetime
@@ -15,7 +16,7 @@ QZSS = 192
 BEIDOU = 0
 
 
-def _rinexnav3(fn: Path) -> xarray.Dataset:
+def rinexnav3(fn: Path) -> xarray.Dataset:
     """
     Reads RINEX 3.0 NAV files
     Michael Hirsch, Ph.D.
@@ -28,10 +29,10 @@ def _rinexnav3(fn: Path) -> xarray.Dataset:
 
     svs = []
     raws = []
-    fields = {}
+    fields: Dict[str, List[str]] = {}
     dt: List[datetime] = []
 
-    with fn.open('r') as f:
+    with opener(fn) as f:
         """verify RINEX version, and that it's NAV"""
         line = f.readline()
         ver = float(line[:9])
@@ -50,9 +51,13 @@ def _rinexnav3(fn: Path) -> xarray.Dataset:
             sv, time, field = _newnav(line)
             dt.append(time)
 
+            if sv[0] == 'J':
+                print(sv)
+
             if sv[0] != svtypes[-1]:
                 svtypes.append(sv[0])
-            else:
+
+            if not sv[0] in fields:
                 fields[svtypes[-1]] = field
 
             svs.append(sv)
@@ -84,16 +89,22 @@ def _rinexnav3(fn: Path) -> xarray.Dataset:
             continue
 # %% check for optional GPS "fit interval" presence
         cf = fields[sv[0]]
-        testread = np.genfromtxt(
-            BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
-        if sv[0] == 'G' and len(cf) == len(testread)+1:
+        testread = np.genfromtxt(BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
+# %% patching for Spare entries, some receivers include, and some don't include...
+        if sv[0] == 'G' and len(cf) == testread.size + 1:
             cf = cf[:-1]
+        elif sv[0] == 'C' and len(cf) == testread.size - 1:
+            cf.insert(20, 'spare')
+        elif sv[0] == 'E' and len(cf) == testread.size - 1:
+            cf.insert(22, 'spare')
+
+        if testread.size != len(cf):
+            raise ValueError(f'The data at {t[svi]} is not the same length as the number of fields.')
 
         darr = np.empty((len(svi), len(cf)))
 
         for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(
-                BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+            darr[j, :] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
 
         dsf = {}
         for (f, d) in zip(cf, darr.T):
@@ -117,7 +128,7 @@ def _rinexnav3(fn: Path) -> xarray.Dataset:
     return nav
 
 
-def _newnav(ln: str) -> tuple:
+def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
     sv = ln[:3]
 
     svtype = sv[0]
@@ -199,7 +210,7 @@ def _scan3(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
 
         use = None
 
-    with fn.open('r') as f:
+    with opener(fn) as f:
         ln = f.readline()
         version = float(ln[:9])  # yes :9
         fields, header, Fmax = _getObsTypes(f, use)

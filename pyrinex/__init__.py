@@ -1,11 +1,12 @@
 from pathlib import Path
 import logging
 import xarray
+import gzip
 from time import time
 from typing import Union
 #
-from .rinex2 import _rinexnav2, _scan2
-from .rinex3 import _rinexnav3, _scan3
+from .rinex2 import rinexnav2, _scan2
+from .rinex3 import rinexnav3, _scan3
 
 # for NetCDF compression. too high slows down with little space savings.
 COMPLVL = 1
@@ -15,8 +16,12 @@ def readrinex(rinexfn: Path, outfn: Path=None, use: Union[str, list, tuple]=None
     nav = None
     obs = None
     rinexfn = Path(rinexfn).expanduser()
+# %% detect type of Rinex file
+    if rinexfn.suffix == '.gz':
+        fnl = rinexfn.stem.lower()
+    else:
+        fnl = rinexfn.name.lower()
 
-    fnl = rinexfn.name.lower()
     if fnl.endswith('n') or fnl.endswith('n.rnx'):
         nav = rinexnav(rinexfn, outfn)
     elif fnl.endswith('o') or fnl.endswith('o.rnx'):
@@ -31,13 +36,17 @@ def readrinex(rinexfn: Path, outfn: Path=None, use: Union[str, list, tuple]=None
 
 
 def getRinexVersion(fn: Path) -> float:
+    """verify RINEX version"""
     fn = Path(fn).expanduser()
 
-    with fn.open('r') as f:
-        """verify RINEX version"""
-        line = f.readline()
-        return float(line[:9])  # yes :9
+    if fn.suffix == '.gz':
+        with gzip.open(fn, 'r') as f:
+            ver = float(f.readline()[:9])  # yes :9
+    else:
+        with fn.open('r') as f:
+            ver = float(f.readline()[:9])  # yes :9
 
+    return ver
 # %% Navigation file
 
 
@@ -53,9 +62,9 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
 
     ver = getRinexVersion(fn)
     if int(ver) == 2:
-        nav = _rinexnav2(fn)
+        nav = rinexnav2(fn)
     elif int(ver) == 3:
-        nav = _rinexnav3(fn)
+        nav = rinexnav3(fn)
     else:
         raise ValueError(f'unknown RINEX verion {ver}  {fn}')
 
@@ -83,6 +92,7 @@ def rinexobs(fn: Path, ofn: Path=None, use: Union[str, list, tuple]=None,
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
         try:
+            logging.debug(f'loading {fn} with xarray')
             return xarray.open_dataset(fn, group=group)
         except OSError:
             logging.error(f'Group {group} not found in {fn}')

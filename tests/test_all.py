@@ -22,6 +22,7 @@ def test_convenience():
     assert obs.equals(truth)
 
 # %%
+    print('loading NetCDF4 file')
     truth = xarray.open_dataset(rdir/'test2all.nc', group='NAV')
     obs, nav = readrinex(rdir/'demo.10n')
 
@@ -33,19 +34,23 @@ def test_obs2_allsat():
     ./ReadRinex.py tests/demo.10o -o tests/test2all.nc
     ./ReadRinex.py tests/demo.10n -o tests/test2all.nc
     """
-
+    print('loading NetCDF4 file')
     truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
-
+    print('loaded.')
 # %% test reading all satellites
     for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
+        print('use', u)
         obs = rinexobs(rdir/'demo.10o', use=u)
         assert obs.equals(truth)
 
 # %% test read .nc
+    print('load NetCDF via API')
     obs = rinexobs(rdir/'test2all.nc')
+    print('testing equality with truth')
     assert obs.equals(truth)
 
 # %% test write .nc
+    print('testing with temp file')
     with tempfile.TemporaryDirectory() as d:
         obs = rinexobs(rdir/'demo.10o', ofn=Path(d)/'testout.nc')
 
