@@ -235,6 +235,8 @@ def _scan2(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
 
         data.attrs['filename'] = f.name
         data.attrs['version'] = verRinex
+        if 'APPROX POSITION XYZ' in header.keys():
+            data.attrs['position'] = header['APPROX POSITION XYZ']
 
         return data
 
