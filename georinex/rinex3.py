@@ -203,7 +203,9 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
 # %% OBS
 
 
-def _scan3(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
+def _scan3(fn: Path, use: Any,
+           tlim: Union[None, Tuple[datetime, datetime]],
+           verbose: bool=False) -> xarray.Dataset:
     """
     procss RINEX OBS data
     """
@@ -226,7 +228,8 @@ def _scan3(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
             if not ln:
                 break
 
-            assert ln[0] == '>'  # pg. A13
+            if ln[0] != '>':  # pg. A13
+                raise ValueError(f'RINEX 3 line beginning > is not present in {fn}')
             """
             Python >=merge 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
             Python < 3.7 supports microseconds.
@@ -235,6 +238,11 @@ def _scan3(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
                             hour=int(ln[13:15]), minute=int(ln[16:18]),
                             second=int(ln[19:21]),
                             microsecond=int(float(ln[19:29]) % 1 * 1000000))
+
+            if tlim is not None:
+                if not tlim[0] < time <= tlim[1]:
+                    continue
+
             if verbose:
                 print(time, '\r', end="")
 # %% get SV indices

@@ -23,7 +23,7 @@ allows filtering/processing of gigantic files too large to fit into RAM.
 Another key advantage of PyRinex is the Xarray base class, that allows
 all the database-like indexing power of Pandas to be unleashed.
 
-PyRinex works in Python &gt;= 3.6.
+PyRinex works in Python &ge; 3.6.
 
 ![RINEX plot](tests/example_plot.png)
 
@@ -33,10 +33,10 @@ PyRinex works in Python &gt;= 3.6.
 
 ## Usage
 
-The simplest command-line use is through the top-level `ReadRinex.py` script.
+The simplest command-line use is through the top-level `ReadRinex` script.
 
--   Read RINEX3 or RINEX 2 Obs or Nav file: `python ReadRinex.py myrinex.XXx`
--   Read NetCDF converted RINEX data: `python ReadRinex.py myrinex.nc`
+-   Read RINEX3 or RINEX 2 Obs or Nav file: `ReadRinex myrinex.XXx`
+-   Read NetCDF converted RINEX data: `ReadRinex myrinex.nc`
 
 It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
 as NetCDF4 is also human-readable, yet say 1000x faster to load than RINEX.
@@ -72,9 +72,9 @@ data within the .XXo observation file.
 NaN is used as a filler value, so the commands typically end with
 .dropna(dim='time',how='all') to eliminate the non-observable data vs
 time. As per pg. 15-20 of RINEX 3.03
-[specification](ftp://igs.org/pub/data/format/rinex303.pdf), 
-only certain fields are valid for particular satellite systems. 
-Not every receiver receives every type of GNSS system. 
+[specification](ftp://igs.org/pub/data/format/rinex303.pdf),
+only certain fields are valid for particular satellite systems.
+Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
 #### Index OBS data
@@ -97,7 +97,7 @@ import pyrinex as pr
 obs = pr.rinexobs('myfile.o', use='E')
 ```
 would load only Galileo data by the parameter E.
-ReadRinex.py allow this to be specified as the -use command line parameter.
+`ReadRinex` allow this to be specified as the -use command line parameter.
 
 If however you want to do this after loading all the data anyway, you can make a Boolean indexer
 ```python
@@ -145,8 +145,8 @@ Pick any parameter (say, `M0`) across all satellites and time (or index by that 
 nav['M0']
 ```
 
-## Analysis 
-A significant reason for using `xarray` as the base class of PyRinex is that big data operations are fast, easy and efficient. 
+## Analysis
+A significant reason for using `xarray` as the base class of PyRinex is that big data operations are fast, easy and efficient.
 It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and convserve memory.
 
 A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
@@ -161,7 +161,7 @@ Assuming you loaded OBS data from one file into `obs1` and data from another fil
 ```python
 obs = xarray.concat((obs1, obs2), dim='time')
 ```
-The `xarray.concat`operation may fail if there are different SV observation types in the files. 
+The `xarray.concat`operation may fail if there are different SV observation types in the files.
 you can try the more general:
 ```python
 obs = xarray.merge((obs1, obs2))
@@ -169,15 +169,15 @@ obs = xarray.merge((obs1, obs2))
 
 ## Converting to Pandas Dataframes
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
-Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual 
+Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 [Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).
 
 ## Notes
- 
+
 RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
 
 -   GPS satellite position is given for each time in the NAV file as
-    Keplerian parameters, which can be 
+    Keplerian parameters, which can be
     [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
 -   <https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf>
 -   <http://www.gage.es/gFD>
@@ -193,9 +193,9 @@ RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
 
 ### Data
 
-For 
+For
 [capable Android devices](https://developer.android.com/guide/topics/sensors/gnss.html),
-you can 
+you can
 [log RINEX 3](https://play.google.com/store/apps/details?id=de.geopp.rinexlogger)
 using the built-in GPS receiver.
 
@@ -204,3 +204,6 @@ Here is a lot of RINEX 3 data to work with:
 -   [OBS data](ftp://data-out.unavco.org/pub/rinex3/obs/)
 -   [NAV data](ftp://data-out.unavco.org/pub/rinex3/nav)
 
+### Hatanaka compressed RINEX .crx not supported
+The compressed Hatanaka `.crx` or `.crx.gz` files are not yet supported.
+There are distinct from the supported `.rnx` or `.rnx.gz` GZIP RINEX files.

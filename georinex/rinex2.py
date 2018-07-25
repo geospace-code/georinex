@@ -5,7 +5,7 @@ from math import ceil
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Union, List, Any, Dict
+from typing import Union, List, Any, Dict, Tuple
 import logging
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
@@ -60,7 +60,7 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
             svs.append(f'{svtype}{int(ln[:2]):02d}')
             # format I2
             dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11],
-                               ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
+                                ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
             """
             now get the data as one big long string per SV
             """
@@ -105,7 +105,9 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
     return nav
 
 
-def _scan2(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
+def _scan2(fn: Path, use: Any,
+           tlim: Union[None, Tuple[datetime, datetime]],
+           verbose: bool=False) -> xarray.Dataset:
     """
      procss RINEX OBS data
     """
@@ -166,8 +168,11 @@ def _scan2(fn: Path, use: Any, verbose: bool=False) -> xarray.Dataset:
                 print(eflag)
                 continue
 
-            time = _obstime(
-                [ln[1:3],  ln[4:6], ln[7:9],  ln[10:12], ln[13:15], ln[16:26]])
+            time = _obstime([ln[1:3],  ln[4:6], ln[7:9],  ln[10:12], ln[13:15], ln[16:26]])
+            if tlim is not None:
+                if not tlim[0] < time <= tlim[1]:
+                    continue
+
             if verbose:
                 print(time, '\r', end="")
 

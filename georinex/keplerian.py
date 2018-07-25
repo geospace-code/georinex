@@ -40,7 +40,7 @@ def keplerian2ecef(sv: xarray.DataArray) -> tuple:
 
     for i, (t1, t2) in enumerate(zip(sv['time'], sv['Toe'])):
         tsv = datetime.utcfromtimestamp(t1.item()/1e9)
-        toe = timedelta(seconds=t2.values.astype(int).item()) + t0 # type: ignore  # noqa
+        toe = timedelta(seconds=t2.values.astype(int).item()) + t0  # type: ignore  # noqa
         tk[i] = (tsv - toe).total_seconds()  # type: ignore  # noqa
 
     Mk = sv['M0'] + n*tk  # Mean Anomaly

@@ -2,7 +2,8 @@ from pathlib import Path
 import logging
 import xarray
 from time import time
-from typing import Union
+from typing import Union, Tuple
+from datetime import datetime
 #
 from .io import opener
 from .rinex2 import rinexnav2, _scan2
@@ -12,7 +13,10 @@ from .rinex3 import rinexnav3, _scan3
 COMPLVL = 1
 
 
-def readrinex(rinexfn: Path, outfn: Path=None, use: Union[str, list, tuple]=None, verbose: bool=True) -> xarray.Dataset:
+def readrinex(rinexfn: Path, outfn: Path=None,
+              use: Union[str, list, tuple]=None,
+              tlim: Union[None, Tuple[datetime, datetime]]=None,
+              verbose: bool=True) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
     """
@@ -29,6 +33,8 @@ def readrinex(rinexfn: Path, outfn: Path=None, use: Union[str, list, tuple]=None
         nav = rinexnav(rinexfn, outfn)
     elif fnl.endswith('o') or fnl.endswith('o.rnx'):
         obs = rinexobs(rinexfn, outfn, use=use, verbose=verbose)
+    elif fnl.endswith('.crx'):
+        raise NotImplementedError('Hatanaka compressed RINEX is not yet supported')
     elif rinexfn.suffix.endswith('.nc'):
         nav = rinexnav(rinexfn)
         obs = rinexobs(rinexfn)
@@ -78,8 +84,11 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
 # %% Observation File
 
 
-def rinexobs(fn: Path, ofn: Path=None, use: Union[str, list, tuple]=None,
-             group: str='OBS', verbose: bool=False) -> xarray.Dataset:
+def rinexobs(fn: Path, ofn: Path=None,
+             use: Union[str, list, tuple]=None,
+             group: str='OBS',
+             tlim: Union[None, Tuple[datetime, datetime]]=None,
+             verbose: bool=False) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
     """
@@ -96,9 +105,9 @@ def rinexobs(fn: Path, ofn: Path=None, use: Union[str, list, tuple]=None,
     tic = time()
     ver = getRinexVersion(fn)
     if int(ver) == 2:
-        obs = _scan2(fn, use, verbose)
+        obs = _scan2(fn, use, tlim=tlim, verbose=verbose)
     elif int(ver) == 3:
-        obs = _scan3(fn, use, verbose)
+        obs = _scan3(fn, use, tlim=tlim, verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX verion {ver}  {fn}')
         print(f"finished in {time()-tic:.2f} seconds")
