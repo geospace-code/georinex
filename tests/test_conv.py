@@ -10,6 +10,7 @@ import georinex as gr
 
 rdir = Path(__file__).parent
 
+
 def test_convenience():
     truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
 

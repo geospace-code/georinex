@@ -59,10 +59,9 @@ def main():
     axs[-1].set_xlabel('Time [UTC]')
     axs[-1].xaxis.set_major_formatter(md.DateFormatter('%Y-%m-%dT%H:%M'))
     fg.suptitle(f'{rinexfn.name}  satellite {SV}')
-    
+
     show()
 
 
 if __name__ == '__main__':
     main()
-
