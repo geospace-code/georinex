@@ -1,13 +1,13 @@
-[![Travis CI](https://travis-ci.org/scivision/pyrinex.svg?branch=master)](https://travis-ci.org/scivision/pyrinex)
-[![coverage](https://coveralls.io/repos/scivision/pyrinex/badge.svg?branch=master&service=github)](https://coveralls.io/github/scivision/pyrinex?branch=master)
-[![AppVeyor](https://ci.appveyor.com/api/projects/status/sxxqc77q7l3669dd?svg=true)](https://ci.appveyor.com/project/scivision/pyrinex)
-[![PyPi versions](https://img.shields.io/pypi/pyversions/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex)
-[![PyPi wheels](https://img.shields.io/pypi/format/pyrinex.svg)](https://pypi.python.org/pypi/pyrinex)
-[![Maintainability](https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability)](https://codeclimate.com/github/scivision/pyrinex/maintainability)
-[![PyPi Download stats](http://pepy.tech/badge/pyrinex)](http://pepy.tech/project/pyrinex)
+[![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
+[![coverage](https://coveralls.io/repos/scivision/georinex/badge.svg?branch=master&service=github)](https://coveralls.io/github/scivision/georinex?branch=master)
+[![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
+[![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
+[![PyPi wheels](https://img.shields.io/pypi/format/georinex.svg)](https://pypi.python.org/pypi/georinex)
+[![Maintainability](https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability)](https://codeclimate.com/github/scivision/georinex/maintainability)
+[![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 [![Xarray badge](https://img.shields.io/badge/powered%20by-xarray-orange.svg?style=flat)](http://xarray.pydata.org/en/stable/why-xarray.html)
 
-# PyRinex
+# GeoRinex
 
 RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data
 into
@@ -20,10 +20,10 @@ Writes to NetCDF4 (subset of HDF5), with `zlib` compression. This is a
 couple order of magnitude speedup in reading/converting RINEX data and
 allows filtering/processing of gigantic files too large to fit into RAM.
 
-Another key advantage of PyRinex is the Xarray base class, that allows
+Another key advantage of GeoRinex is the Xarray base class, that allows
 all the database-like indexing power of Pandas to be unleashed.
 
-PyRinex works in Python &ge; 3.6.
+GeoRinex works in Python &ge; 3.6.
 
 ![RINEX plot](tests/example_plot.png)
 
@@ -45,7 +45,7 @@ You can also of course use the package as a python imported module as in
 the following examples. Each example assumes you have first done:
 
 ```python
-import pyrinex as pr
+import georinex as gr
 ```
 
 ### read Rinex
@@ -54,7 +54,7 @@ This convenience function reads any possible Rinex 2/3 OBS/NAV or .nc
 file:
 
 ```python
-obs,nav = pr.readrinex('tests/demo.10o')
+obs,nav = gr.readrinex('tests/demo.10o')
 ```
 
 ### read Obs
@@ -62,7 +62,7 @@ obs,nav = pr.readrinex('tests/demo.10o')
 If you desire to specifically read a RINEX 2 or 3 OBS file:
 
 ```python
-obs = pr.rinexobs('tests/demo_MO.rnx')
+obs = gr.rinexobs('tests/demo_MO.rnx')
 ```
 
 This returns an
@@ -93,8 +93,8 @@ obs['L1'].dropna(dim='time',how='all')
 
 Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
 ```python
-import pyrinex as pr
-obs = pr.rinexobs('myfile.o', use='E')
+import georinex as gr
+obs = gr.rinexobs('myfile.o', use='E')
 ```
 would load only Galileo data by the parameter E.
 `ReadRinex` allow this to be specified as the -use command line parameter.
@@ -125,7 +125,7 @@ obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 
 If you desire to specifically read a RINEX 2 or 3 NAV file:
 ```python
-nav = pr.rinexnav('tests/demo_MN.rnx')
+nav = gr.rinexnav('tests/demo_MN.rnx')
 ```
 
 This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.
@@ -146,14 +146,14 @@ nav['M0']
 ```
 
 ## Analysis
-A significant reason for using `xarray` as the base class of PyRinex is that big data operations are fast, easy and efficient.
+A significant reason for using `xarray` as the base class of GeoRinex is that big data operations are fast, easy and efficient.
 It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and convserve memory.
 
 A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
 ```python
 obs.to_netcdf('process.nc', group='OBS')
 ```
-`pyrinex.__init.py__` shows examples of using compression and other options if desired.
+`georinex.__init.py__` shows examples of using compression and other options if desired.
 
 ### Join data from multiple files
 Please see documentation for `xarray.concat` and `xarray.merge` for more details.
