@@ -2,6 +2,7 @@
 import pytest
 import xarray
 import tempfile
+from numpy.testing import assert_allclose
 from pathlib import Path
 import georinex as gr
 #
@@ -13,23 +14,18 @@ def test_obs2_allsat():
     ./ReadRinex.py tests/demo.10o -o tests/test2all.nc
     ./ReadRinex.py tests/demo.10n -o tests/test2all.nc
     """
-    print('loading NetCDF4 file')
     truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
-    print('loaded.')
 # %% test reading all satellites
     for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
         print('use', u)
         obs = gr.rinexobs(rdir/'demo.10o', use=u)
         assert obs.equals(truth)
 
+    assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 # %% test read .nc
-    print('load NetCDF via API')
     obs = gr.rinexobs(rdir/'test2all.nc')
-    print('testing equality with truth')
     assert obs.equals(truth)
-
 # %% test write .nc
-    print('testing with temp file')
     with tempfile.TemporaryDirectory() as d:
         obs = gr.rinexobs(rdir/'demo.10o', ofn=Path(d)/'testout.nc')
 

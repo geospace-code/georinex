@@ -1,9 +1,9 @@
 [![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
-[![coverage](https://coveralls.io/repos/scivision/georinex/badge.svg?branch=master&service=github)](https://coveralls.io/github/scivision/georinex?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
 [![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi wheels](https://img.shields.io/pypi/format/georinex.svg)](https://pypi.python.org/pypi/georinex)
-[![Maintainability](https://api.codeclimate.com/v1/badges/69ce95c25db88777ed63/maintainability)](https://codeclimate.com/github/scivision/georinex/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/7c5da1b7b7dd26e135ab/maintainability)](https://codeclimate.com/github/scivision/georinex/maintainability)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 [![Xarray badge](https://img.shields.io/badge/powered%20by-xarray-orange.svg?style=flat)](http://xarray.pydata.org/en/stable/why-xarray.html)
 

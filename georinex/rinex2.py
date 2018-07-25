@@ -148,8 +148,7 @@ def _scan2(fn: Path, use: Any,
 # %% file seems OK, keep processing
         verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
         # list with x,y,z cartesian
-        header['APPROX POSITION XYZ'] = [
-            float(j) for j in header['APPROX POSITION XYZ'].split()]
+        header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
         # observation types
         fields = header['# / TYPES OF OBSERV'].split()
         assert Nobs == len(fields), 'header read incorrectly'
@@ -240,6 +239,7 @@ def _scan2(fn: Path, use: Any,
 
         data.attrs['filename'] = f.name
         data.attrs['version'] = verRinex
+        data.attrs['position'] = header['position']
 
         return data
 

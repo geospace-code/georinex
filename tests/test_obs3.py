@@ -3,6 +3,7 @@ import pytest
 import xarray
 from pathlib import Path
 import georinex as gr
+from numpy.testing import assert_allclose
 #
 rdir = Path(__file__).parent
 
@@ -18,6 +19,7 @@ def test_obs3_onesat():
         obs = gr.rinexobs(rdir/'demo3.10o', use=u)
         assert obs.equals(truth)
 
+    assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 
 def test_obs3_multisat():
     """

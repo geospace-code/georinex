@@ -207,7 +207,7 @@ def _scan3(fn: Path, use: Any,
            tlim: Union[None, Tuple[datetime, datetime]],
            verbose: bool=False) -> xarray.Dataset:
     """
-    procss RINEX OBS data
+    process RINEX 3 OBS data
     """
 
     if (not use or not use[0].strip() or
@@ -295,6 +295,7 @@ def _scan3(fn: Path, use: Any,
 
     data.attrs['filename'] = f.name
     data.attrs['version'] = version
+    data.attrs['position'] = header['position']
     # data.attrs['toffset'] = toffset
 
     return data
@@ -337,11 +338,10 @@ def _getObsTypes(f: TextIO, use: Union[str, list, tuple]) -> Tuple[Dict, Dict, i
 # %% sanity check for Mandatory RINEX 3 headers
     for h in ('APPROX POSITION XYZ',):
         if h not in header:
-            raise OSError(
-                'Mandatory RINEX 3 headers are missing from file, is it a valid RINEX 3 file?')
+            raise OSError('Mandatory RINEX 3 headers are missing from file, is it a valid RINEX 3 file?')
 
     # list with x,y,z cartesian
-    header['APPROX POSITION XYZ'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
+    header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
 # %% select specific satellite systems only (optional)
     if use is not None:
         fields = {k: fields[k] for k in use}
