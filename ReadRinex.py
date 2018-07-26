@@ -12,6 +12,9 @@ Examples:
 ./ReadRinex.py ~/data/VEN100ITA_R_20181580000_01D_MN.rnx.gz
 ./ReadRinex.py ~/data/ABMF00GLP_R_20181330000_01D_30S_MO.zip
 
+./ReadRinex.py ~/data/PUMO00CR__R_20180010000_01D_15S_MO.rnx -t 2018-01-01 2018-01-01T00:30
+
+
 """
 from argparse import ArgumentParser
 import xarray

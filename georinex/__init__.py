@@ -1,13 +1,15 @@
 from pathlib import Path
 import logging
 import xarray
-from typing import Union, Tuple, Dict, Any, Optional
+from typing import Union, Tuple, Dict, Any, Optional, List
 from datetime import datetime
 from dateutil.parser import parse
 #
 from .io import rinexinfo
-from .rinex2 import rinexnav2, rinexobs2, obsheader2, navheader2
-from .rinex3 import rinexnav3, rinexobs3, obsheader3, navheader3
+from .obs2 import rinexobs2, obsheader2, gettime2
+from .obs3 import rinexobs3, obsheader3, gettime3
+from .nav2 import rinexnav2, navheader2
+from .nav3 import rinexnav3, navheader3
 
 # for NetCDF compression. too high slows down with little space savings.
 COMPLVL = 1
@@ -118,8 +120,30 @@ def rinexobs(fn: Path, ofn: Path=None,
     return obs
 
 
+def gettime(fn: Path) -> List[datetime]:
+    """
+    get times in RINEX 2/3 file
+    Note: in header,
+        * TIME OF FIRST OBS is mandatory
+        * TIME OF LAST OBS is optional
+    """
+    fn = Path(fn).expanduser()
+
+    info = rinexinfo(fn)
+    assert rinextype(fn) == 'obs', 'times is in OBS files'
+
+    if int(info['version']) == 2:
+        times = gettime2(fn)
+    elif int(info['version']) == 3:
+        times = gettime3(fn)
+    else:
+        raise ValueError(f'unknown RINEX {info}  {fn}')
+
+    return times
+
+
 def rinextype(fn: Path) -> str:
-    if fn.suffix in ('.gz', '.zip'):
+    if fn.suffix in ('.gz', '.zip', '.Z'):
         fnl = fn.stem.lower()
     else:
         fnl = fn.name.lower()
@@ -143,7 +167,6 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
     fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
-
     rtype = rinextype(fn)
 
     if int(info['version']) == 2:

@@ -7,97 +7,6 @@ from io import BytesIO
 import xarray
 from typing import Union, List, Any, Dict, Tuple, Optional
 from typing.io import TextIO
-import logging
-from .io import rinexinfo
-#
-STARTCOL2 = 3  # column where numerical data starts for RINEX 2
-
-
-def rinexnav2(fn: Path) -> xarray.Dataset:
-    """
-    Reads RINEX 2.11 NAV files
-    Michael Hirsch, Ph.D.
-    SciVision, Inc.
-
-    http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
-    ftp://igs.org/pub/data/format/rinex211.txt
-    """
-    fn = Path(fn).expanduser()
-
-    Nl = 7  # number of additional lines per record, for RINEX 2 NAV
-    Lf = 19  # string length per field
-
-    svs = []
-    dt: List[datetime] = []
-    raws = []
-
-    with opener(fn) as f:
-
-        header = navheader2(f)
-
-        if header['filetype'] == 'N':
-            svtype = 'G'
-            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
-                      'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
-                      'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
-                      'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
-        elif header['filetype'] == 'G':
-            svtype = 'R'  # GLONASS
-            fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
-                      'X', 'dX', 'dX2', 'health',
-                      'Y', 'dY', 'dY2', 'FreqNum',
-                      'Z', 'dZ', 'dZ2', 'AgeOpInfo']
-        else:
-            raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {header["sys"]}  {fn}')
-# %% read data
-        for ln in f:
-            # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
-            svs.append(f'{svtype}{int(ln[:2]):02d}')
-            # format I2
-            dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11],
-                                ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
-            """
-            now get the data as one big long string per SV
-            """
-            raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
-            for _ in range(Nl):
-                raw += f.readline()[STARTCOL2:79]
-            # one line per SV
-            raws.append(raw.replace('D', 'E'))
-# %% parse
-    t = np.array([np.datetime64(t, 'ns') for t in dt])
-    nav: xarray.Dataset = None
-    svu = sorted(set(svs))
-
-    for sv in svu:
-        svi = [i for i, s in enumerate(svs) if s == sv]
-
-        tu = np.unique(t[svi])
-        if tu.size != t[svi].size:
-            logging.warning(f'duplicate times detected, skipping SV {sv}')
-            continue
-
-        darr = np.empty((len(svi), len(fields)))
-
-        for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(
-                BytesIO(raws[i].encode('ascii')), delimiter=[Lf]*len(fields))
-
-        dsf = {f: (('time', 'sv'), d[:, None])
-               for (f, d) in zip(fields, darr.T)}
-
-        if nav is None:
-            nav = xarray.Dataset(dsf, coords={'time': t[svi], 'sv': [sv]})
-        else:
-            nav = xarray.merge((nav,
-                                xarray.Dataset(dsf,
-                                               coords={'time': t[svi],
-                                                       'sv': [sv]})))
-
-    nav.attrs['version'] = header['version']
-    nav.attrs['filename'] = fn.name
-
-    return nav
 
 
 def rinexobs2(fn: Path, use: Any,
@@ -131,14 +40,14 @@ def rinexobs2(fn: Path, use: Any,
                 print(eflag)
                 continue
 
-            time = _obstime([ln[1:3],  ln[4:6], ln[7:9],  ln[10:12], ln[13:15], ln[16:26]])
+            time = _timeobs(ln)
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
                 if not tlim[0] < time <= tlim[1]:
                     continue
 
             if verbose:
-                print(time, '\r', end="")
+                print(time, end="\r")
 
             try:
                 toffset = ln[68:80]
@@ -156,7 +65,7 @@ def rinexobs2(fn: Path, use: Any,
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
             darr = np.empty((len(sv), Nobs*3))
-            Nl_sv = int(ceil(Nobs/5))  # CEIL needed for Py27 only.
+            Nl_sv = ceil(Nobs/5)
 
             for i, s in enumerate(sv):
                 raw = ''
@@ -248,25 +157,6 @@ def obsheader2(f: TextIO) -> Dict[str, Any]:
     return header
 
 
-def navheader2(f: TextIO) -> Dict[str, Any]:
-    if isinstance(f, Path):
-        fn = f
-        with fn.open('r') as f:
-            return navheader2(f)
-
-# %%verify RINEX version, and that it's NAV
-    hdr = rinexinfo(f)
-    assert int(hdr['version']) == 2, 'see rinexnav3() for RINEX 3.0 files'
-
-    for ln in f:
-        if 'END OF HEADER' in ln:
-            break
-
-        hdr[ln[60:]] = ln[:60]
-
-    return hdr
-
-
 def _getsvind(f, ln: str) -> List[str]:
     Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
     # get first 12 SV ID's
@@ -294,19 +184,57 @@ def _getSVlist(ln: str, N: int, sv: list) -> list:
     return sv
 
 
-def _obstime(fol: List[str]) -> datetime:
+def gettime2(fn: Path) -> List[datetime]:
+    """
+    read all times in RINEX2 OBS file
+    """
+    times = []
+    with opener(fn) as f:
+        # Capture header info
+        header = obsheader2(f)
+        Nobs = header['Nobs']
+
+        while True:
+            ln = f.readline()
+            if not ln:
+                break
+
+            eflag = int(ln[28])
+            if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
+                print(eflag)
+                continue
+
+            times.append(_timeobs(ln))
+# %% skip ahead
+            sv = _getsvind(f, ln)
+            Nl_sv = ceil(Nobs/5)
+
+            # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
+            for _ in range(len(sv)*Nl_sv):
+                f.readline()
+
+    return times
+
+
+def _timeobs(ln: str) -> datetime:
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
     """
-    year = int(fol[0])
+
+    year = int(ln[1:3])
     if 80 <= year <= 99:
         year += 1900
     elif year < 80:  # because we might pass in four-digit year
         year += 2000
+    else:
+        raise ValueError(f'unknown year format {year}')
 
-    return datetime(year=year, month=int(fol[1]), day=int(fol[2]),
-                    hour=int(fol[3]), minute=int(fol[4]),
-                    second=int(float(fol[5])),
-                    microsecond=int(float(fol[5]) % 1 * 1000000)
+    return datetime(year=year,
+                    month=int(ln[4:6]),
+                    day=int(ln[7:9]),
+                    hour=int(ln[10:12]),
+                    minute=int(ln[13:15]),
+                    second=int(float(ln[16:26])),
+                    microsecond=int(float(ln[16:26]) % 1 * 1000000)
                     )

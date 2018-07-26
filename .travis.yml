@@ -38,7 +38,7 @@ script:
   - mypy . --ignore-missing-imports
 
 after_success:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* ]]; then
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux ]]; then
     pytest --cov;
     coveralls;
     fi

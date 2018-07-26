@@ -5,6 +5,10 @@ from contextlib import contextmanager
 import io
 from typing.io import TextIO
 from typing import Union, Dict
+try:
+    import unlzw
+except ImportError:
+    unlzw = None
 
 
 @contextmanager
@@ -20,6 +24,12 @@ def opener(fn: Path):
                 with z.open(rinexfn, 'r') as bf:
                     f = io.TextIOWrapper(bf, newline=None)
                     yield f
+    elif fn.suffix == '.Z':
+        if unlzw is None:
+            raise ImportError('pip install unlzw')
+        with fn.open('rb') as zu:
+            with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
+                yield f
     else:
         with fn.open('r') as f:
             yield f

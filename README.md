@@ -217,8 +217,14 @@ using the built-in GPS receiver.
 
 Here is a lot of RINEX 3 data to work with:
 
--   [OBS data](ftp://data-out.unavco.org/pub/rinex3/obs/)
--   [NAV data](ftp://data-out.unavco.org/pub/rinex3/nav)
+* OBS: ftp://data-out.unavco.org/pub/rinex3/obs/
+* NAV: ftp://data-out.unavco.org/pub/rinex3/nav/
+
+Likewise here's a bunch of RINEX 2 data:
+
+* OBS: ftp://data-out.unavco.org/pub/rinex/obs/
+* NAV: ftp://data-out.unavco.org/pub/rinex/nav/
+
 
 ### Hatanaka compressed RINEX .crx not supported
 The compressed Hatanaka `.crx` or `.crx.gz` files are not yet supported.
