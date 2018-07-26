@@ -18,10 +18,10 @@ def test_obs2_one_sv():
 
 def test_obs2_all_systems():
     """
-    ./ReadRinex.py tests/demo.10o -o tests/test2all.nc
-    ./ReadRinex.py tests/demo.10n -o tests/test2all.nc
+    ./ReadRinex.py -q tests/demo.10o -o r2all.nc
+    ./ReadRinex.py -q tests/demo.10n -o r2all.nc
     """
-    truth = xarray.open_dataset(R/'test2all.nc', group='OBS')
+    truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
 # %% test reading all satellites
     for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
         print('use', u)
@@ -30,7 +30,7 @@ def test_obs2_all_systems():
 
     assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 # %% test read .nc
-    obs = gr.rinexobs(R/'test2all.nc')
+    obs = gr.rinexobs(R / 'r2all.nc')
     assert obs.equals(truth)
 # %% test write .nc
     with tempfile.TemporaryDirectory() as d:
@@ -38,9 +38,10 @@ def test_obs2_all_systems():
 
 
 def test_obs2_one_system():
-    """./ReadRinex.py tests/demo.10o -u G -o tests/test2G.nc"""
+    """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
+    """
 
-    truth = xarray.open_dataset(R/'test2G.nc', group='OBS')
+    truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
         obs = gr.rinexobs(R/'demo.10o', use=u)
@@ -48,13 +49,14 @@ def test_obs2_one_system():
 
 
 def test_obs2_multi_system():
-    """./ReadRinex.py tests/demo.10o -u G R -o tests/test2GR.nc"""
+    """./ReadRinex.py -q tests/demo.10o -u G R -o r2GR.nc
+    """
 
-    truth = xarray.open_dataset(R/'test2GR.nc', group='OBS')
+    truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS', autoclose=True)
 
     obs = gr.rinexobs(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

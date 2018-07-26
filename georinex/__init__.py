@@ -1,12 +1,13 @@
 from pathlib import Path
 import logging
 import xarray
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple, Dict, Any, Optional
 from datetime import datetime
+from dateutil.parser import parse
 #
 from .io import rinexinfo
-from .rinex2 import rinexnav2, _scan2, obsheader2, navheader2
-from .rinex3 import rinexnav3, _scan3, obsheader3, navheader3
+from .rinex2 import rinexnav2, rinexobs2, obsheader2, navheader2
+from .rinex3 import rinexnav3, rinexobs3, obsheader3, navheader3
 
 # for NetCDF compression. too high slows down with little space savings.
 COMPLVL = 1
@@ -15,6 +16,7 @@ COMPLVL = 1
 def readrinex(rinexfn: Path, outfn: Path=None,
               use: Union[str, list, tuple]=None,
               tlim: Union[None, Tuple[datetime, datetime]]=None,
+              useindicators: bool=False,
               verbose: bool=True) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
@@ -28,7 +30,7 @@ def readrinex(rinexfn: Path, outfn: Path=None,
     if rtype == 'nav':
         nav = rinexnav(rinexfn, outfn)
     elif rtype == 'obs':
-        obs = rinexobs(rinexfn, outfn, use=use, verbose=verbose)
+        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim, useindicators=useindicators, verbose=verbose)
     elif rtype == 'nc':
         nav = rinexnav(rinexfn)
         obs = rinexobs(rinexfn)
@@ -44,7 +46,7 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
         try:
-            return xarray.open_dataset(fn, group=group)
+            return xarray.open_dataset(fn, group=group, autoclose=True)
         except OSError:
             logging.error(f'Group {group} not found in {fn}')
             return
@@ -71,27 +73,36 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
 def rinexobs(fn: Path, ofn: Path=None,
              use: Union[str, list, tuple]=None,
              group: str='OBS',
-             tlim: Union[None, Tuple[datetime, datetime]]=None,
+             tlim: Optional[Tuple[datetime, datetime]]=None,
+             useindicators: bool=False,
              verbose: bool=False) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
     """
 
     fn = Path(fn).expanduser()
+# %% NetCDF4
     if fn.suffix == '.nc':
         try:
             logging.debug(f'loading {fn} with xarray')
-            return xarray.open_dataset(fn, group=group)
+            return xarray.open_dataset(fn, group=group, autoclose=True)
         except OSError:
             logging.error(f'Group {group} not found in {fn}')
             return
+# %% time limits
+    if tlim is not None and len(tlim) == 2 and isinstance(tlim[0], str):
+        tlim = tuple(map(parse, tlim))
+    elif tlim is None:
+        pass
+    else:
+        raise ValueError(f'Not sure what time limits are: {tlim}')
 # %% version selection
     info = rinexinfo(fn)
 
     if int(info['version']) == 2:
-        obs = _scan2(fn, use, tlim=tlim, verbose=verbose)
+        obs = rinexobs2(fn, use, tlim=tlim, useindicators=useindicators, verbose=verbose)
     elif int(info['version']) == 3:
-        obs = _scan3(fn, use, tlim=tlim, verbose=verbose)
+        obs = rinexobs3(fn, use, tlim=tlim, useindicators=useindicators, verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 # %% optional output write

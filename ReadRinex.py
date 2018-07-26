@@ -24,15 +24,16 @@ def main():
     p.add_argument('rinexfn', help='path to RINEX 2 or RINEX 3 file')
     p.add_argument('-o', '--outfn', help='write data as NetCDF4 file')
     p.add_argument('-q', '--quiet',
-                   help='do not generate plots or print unneeded text (for HPC/cloud)',
-                   action='store_true')
-    p.add_argument('-use', help='select which GNSS system(s) to use',
-                   nargs='+')
+                   help='do not generate plots or print unneeded text (for HPC/cloud)', action='store_true')
+    p.add_argument('-u', '--use', help='select which GNSS system(s) to use', nargs='+')
+    p.add_argument('-t', '--tlim', help='specify time limits (process part of file)', nargs=2)
+    p.add_argument('-useindicators', help='use SSI, LLI indicators (signal, loss of lock)', action='store_true')
     P = p.parse_args()
 
     verbose = not P.quiet
 
-    obs, nav = gr.readrinex(P.rinexfn, P.outfn, P.use, verbose)
+    obs, nav = gr.readrinex(P.rinexfn, P.outfn, use=P.use, tlim=P.tlim,
+                            useindicators=P.useindicators, verbose=verbose)
 
 # %% plots
     if verbose:

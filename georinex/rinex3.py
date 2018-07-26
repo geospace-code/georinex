@@ -5,7 +5,7 @@ from datetime import datetime
 from io import BytesIO
 import xarray
 import logging
-from typing import Union, Dict, List, Tuple, Any
+from typing import Union, Dict, List, Tuple, Any, Optional
 from typing.io import TextIO
 from .io import rinexinfo
 #
@@ -195,9 +195,10 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
 # %% OBS
 
 
-def _scan3(fn: Path, use: Any,
-           tlim: Union[None, Tuple[datetime, datetime]],
-           verbose: bool=False) -> xarray.Dataset:
+def rinexobs3(fn: Path, use: Any,
+              tlim: Optional[Tuple[datetime, datetime]],
+              useindicators: bool,
+              verbose: bool=False) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
     """
@@ -232,6 +233,7 @@ def _scan3(fn: Path, use: Any,
                             microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
             if tlim is not None:
+                assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
                 if not tlim[0] < time <= tlim[1]:
                     continue
 
@@ -260,16 +262,12 @@ def _scan3(fn: Path, use: Any,
                 garr = darr[si, :]
                 gsv = np.array(sv)[si]
 
-                dsf = {}
+                dsf: Dict[str, tuple] = {}
                 for i, k in enumerate(header['fields'][sk]):
                     dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
 
-                    if k.startswith('L1') or k.startswith('L2'):
-                        dsf[k+'lli'] = (('time', 'sv'),
-                                        np.atleast_2d(garr[:, i*3+1]))
-
-                    dsf[k+'ssi'] = (('time', 'sv'),
-                                    np.atleast_2d(garr[:, i*3+2]))
+                    if useindicators:
+                        dsf = _indicators(dsf, i, k, garr)
 
                 if verbose:
                     print(time, '\r', end='')
@@ -293,6 +291,15 @@ def _scan3(fn: Path, use: Any,
     # data.attrs['toffset'] = toffset
 
     return data
+
+
+def _indicators(d: dict, i: int, k: str, arr: np.ndarray) -> Dict[str, tuple]:
+    if k.startswith('L1') or k.startswith('L2'):
+        d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+1]))
+
+    d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+2]))
+
+    return d
 
 
 def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:

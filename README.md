@@ -77,6 +77,17 @@ only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
+#### Time limits
+For very large files, time bounds can be set -- load only data between those time bounds with the
+```python
+--tlim start stop
+```
+option, where `start` and `stop` are formatted like `2017-02-23T12:00`
+
+#### Use Signal and Loss of Lock indicators
+By default, the SSI and LLI (loss of lock indicators) are not loaded to speed up the program and save memory.
+If you need them, the `-useindicators` option loads SSI and LLI.
+
 #### get OBS header
 To get a `dict()` of the RINEX file header:
 ```python

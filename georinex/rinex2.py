@@ -5,7 +5,7 @@ from math import ceil
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Union, List, Any, Dict, Tuple
+from typing import Union, List, Any, Dict, Tuple, Optional
 from typing.io import TextIO
 import logging
 from .io import rinexinfo
@@ -100,9 +100,10 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
     return nav
 
 
-def _scan2(fn: Path, use: Any,
-           tlim: Union[None, Tuple[datetime, datetime]],
-           verbose: bool=False) -> xarray.Dataset:
+def rinexobs2(fn: Path, use: Any,
+              tlim: Optional[Tuple[datetime, datetime]],
+              useindicators: bool,
+              verbose: bool=False) -> xarray.Dataset:
     """
      procss RINEX OBS data
     """
@@ -132,6 +133,7 @@ def _scan2(fn: Path, use: Any,
 
             time = _obstime([ln[1:3],  ln[4:6], ln[7:9],  ln[10:12], ln[13:15], ln[16:26]])
             if tlim is not None:
+                assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
                 if not tlim[0] < time <= tlim[1]:
                     continue
 
@@ -171,15 +173,11 @@ def _scan2(fn: Path, use: Any,
                 darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*Nobs)
 # % select only "used" satellites
             garr = darr[iuse, :]
-            dsf = {}
+            dsf: Dict[str, tuple] = {}
             for i, k in enumerate(header['fields']):
                 dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
-                if k not in ('S1', 'S2'):  # FIXME which other should be excluded?
-                    if k in ('L1', 'L2'):
-                        dsf[k+'lli'] = (('time', 'sv'),
-                                        np.atleast_2d(garr[:, i*3+1]))
-                    dsf[k+'ssi'] = (('time', 'sv'),
-                                    np.atleast_2d(garr[:, i*3+2]))
+                if useindicators:
+                    dsf = _indicators(dsf, i, k, garr)
 
             if data is None:
                 data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})
@@ -193,6 +191,16 @@ def _scan2(fn: Path, use: Any,
         data.attrs['position'] = header['position']
 
         return data
+
+
+def _indicators(d: dict, i: int, k: str, arr: np.ndarray) -> Dict[str, tuple]:
+    if k not in ('S1', 'S2'):  # FIXME which other should be excluded?
+        if k in ('L1', 'L2'):
+            d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+1]))
+
+        d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+2]))
+
+    return d
 
 
 def obsheader2(f: TextIO) -> Dict[str, Any]:

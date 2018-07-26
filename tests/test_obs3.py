@@ -23,10 +23,10 @@ def test_obs3_zip():
 
 def test_obs3_one_system():
     """
-    ./ReadRinex.py tests/demo3.10o  -u G -o tests/test3G.nc
+    ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
     """
 
-    truth = xarray.open_dataset(R/'test3G.nc', group='OBS')
+    truth = xarray.open_dataset(R/'r3G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
         obs = gr.rinexobs(R/'demo3.10o', use=u)
@@ -37,26 +37,26 @@ def test_obs3_one_system():
 
 def test_obs3_multi_system():
     """
-    ./ReadRinex.py tests/demo3.10o  -u G R -o tests/test3GR.nc
+    ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
     """
     use = ('G', 'R')
 
     obs = gr.rinexobs(R/'demo3.10o', use=use)
-    truth = xarray.open_dataset(R/'test3GR.nc', group='OBS')
+    truth = xarray.open_dataset(R/'r3GR.nc', group='OBS', autoclose=True)
 
     assert obs.equals(truth)
 
 
 def test_obs3_all_system():
     """
-    ./ReadRinex.py tests/demo3.10o -o tests/test3all.nc
+    ./ReadRinex.py -q tests/demo3.10o -o r3all.nc
     """
 
     obs = gr.rinexobs(R/'demo3.10o')
-    truth = gr.rinexobs(R/'test3all.nc', group='OBS')
+    truth = gr.rinexobs(R/'r3all.nc', group='OBS')
 
     assert obs.equals(truth)
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])

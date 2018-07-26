@@ -11,15 +11,20 @@ import georinex as gr
 R = Path(__file__).parent
 
 
+def test_netcdf():
+    obs, nav = gr.readrinex(R/'r2all.nc')
+    assert isinstance(obs, xarray.Dataset)
+
+
 def test_obsdata():
-    truth = xarray.open_dataset(R/'test2all.nc', group='OBS')
+    truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
 
     obs, nav = gr.readrinex(R/'demo.10o')
     assert obs.equals(truth)
 
 
 def test_navdata():
-    truth = xarray.open_dataset(R/'test2all.nc', group='NAV')
+    truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     obs, nav = gr.readrinex(R/'demo.10n')
 
     assert nav.equals(truth)
@@ -48,4 +53,4 @@ def test_navheader():
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([__file__])
