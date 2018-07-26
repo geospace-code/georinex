@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 R = Path(__file__).parent
 
 
-def test_obs3_zip():
+def test_zip():
     obs = gr.rinexobs(R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip')
 
     assert (obs.sv.values == ['E04', 'E09', 'E12', 'E24', 'G02', 'G05', 'G06', 'G07', 'G09', 'G12', 'G13',
@@ -21,7 +21,7 @@ def test_obs3_zip():
         dtype='datetime64[ns]')).all()
 
 
-def test_obs3_one_system():
+def test_one_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
     """
@@ -35,7 +35,7 @@ def test_obs3_one_system():
     assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 
 
-def test_obs3_multi_system():
+def test_multi_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
     """
@@ -47,7 +47,7 @@ def test_obs3_multi_system():
     assert obs.equals(truth)
 
 
-def test_obs3_all_system():
+def test_all_system():
     """
     ./ReadRinex.py -q tests/demo3.10o -o r3all.nc
     """
@@ -56,6 +56,18 @@ def test_obs3_all_system():
     truth = gr.rinexobs(R/'r3all.nc', group='OBS')
 
     assert obs.equals(truth)
+
+
+def tests_all_indicators():
+    """
+    ./ReadRinex.py -q tests/demo3.10o -useindicators -o r3all_indicators.nc
+    """
+
+    obs = gr.rinexobs(R/'demo3.10o', useindicators=True)
+    truth = gr.rinexobs(R/'r3all_indicators.nc', group='OBS')
+
+    assert obs.equals(truth)
+
 
 
 if __name__ == '__main__':

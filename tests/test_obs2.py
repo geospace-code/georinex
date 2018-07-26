@@ -9,16 +9,16 @@ import georinex as gr
 R = Path(__file__).parent
 
 
-def test_obs2_one_sv():
+def test_one_sv():
     obs = gr.rinexobs(R/'rinex2onesat.10o')
 
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'
 
 
-def test_obs2_all_systems():
+def test_all_systems():
     """
-    ./ReadRinex.py -q tests/demo.10o -o r2all.nc
+    ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all.nc
     ./ReadRinex.py -q tests/demo.10n -o r2all.nc
     """
     truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
@@ -37,7 +37,7 @@ def test_obs2_all_systems():
         obs = gr.rinexobs(R/'demo.10o', ofn=Path(d)/'testout.nc')
 
 
-def test_obs2_one_system():
+def test_one_system():
     """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
     """
 
@@ -48,7 +48,7 @@ def test_obs2_one_system():
         assert obs.equals(truth)
 
 
-def test_obs2_multi_system():
+def test_multi_system():
     """./ReadRinex.py -q tests/demo.10o -u G R -o r2GR.nc
     """
 
@@ -57,6 +57,15 @@ def test_obs2_multi_system():
     obs = gr.rinexobs(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)
 
+
+def tests_all_indicators():
+    """
+    ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all_indicators.nc
+    """
+    obs = gr.rinexobs(R/'demo.10o', useindicators=True)
+    truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
+
+    assert obs.equals(truth)
 
 if __name__ == '__main__':
     pytest.main([__file__])
