@@ -14,7 +14,6 @@ except ImportError:
 R = Path(__file__).parent
 
 
-
 def test_one_sv():
     obs = gr.rinexobs(R/'rinex2onesat.10o')
 
