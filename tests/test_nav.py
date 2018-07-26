@@ -4,14 +4,14 @@ import xarray
 from pathlib import Path
 import georinex as gr
 try:
-    import netcdf4
+    import netCDF4
 except ImportError:
-    netcdf4 = None
+    netCDF4 = None
 #
 R = Path(__file__).parent
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_nav2():
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo.10n')
@@ -19,7 +19,7 @@ def test_nav2():
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_nav3sbas():
     """./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
     """
@@ -29,7 +29,7 @@ def test_nav3sbas():
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_nav3gps():
     """./ReadRinex.py -qtests/demo.17n -o r3gps.nc
     """
@@ -39,7 +39,7 @@ def test_nav3gps():
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_nav3galileo():
     """
     ./ReadRinex.py tests/galileo3.15n -o r3galileo.nc

@@ -8,20 +8,20 @@ import xarray
 from pathlib import Path
 import georinex as gr
 try:
-    import netcdf4
+    import netCDF4
 except ImportError:
-    netcdf4 = None
+    netCDF4 = None
 
 R = Path(__file__).parent
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_netcdf():
     obs, nav = gr.readrinex(R/'r2all.nc')
     assert isinstance(obs, xarray.Dataset)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_obsdata():
     truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
 
@@ -29,7 +29,7 @@ def test_obsdata():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_navdata():
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     obs, nav = gr.readrinex(R/'demo.10n')

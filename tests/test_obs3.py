@@ -6,9 +6,9 @@ import georinex as gr
 import numpy as np
 from numpy.testing import assert_allclose
 try:
-    import netcdf4
+    import netCDF4
 except ImportError:
-    netcdf4 = None
+    netCDF4 = None
 #
 R = Path(__file__).parent
 
@@ -25,7 +25,7 @@ def test_zip():
         dtype='datetime64[ns]')).all()
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_one_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
@@ -40,7 +40,7 @@ def test_one_system():
     assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_multi_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
@@ -53,7 +53,7 @@ def test_multi_system():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_all_system():
     """
     ./ReadRinex.py -q tests/demo3.10o -o r3all.nc
@@ -65,7 +65,7 @@ def test_all_system():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def tests_all_indicators():
     """
     ./ReadRinex.py -q tests/demo3.10o -useindicators -o r3all_indicators.nc
