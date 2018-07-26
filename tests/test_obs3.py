@@ -2,9 +2,9 @@
 import pytest
 import xarray
 from pathlib import Path
+from datetime import datetime
 import georinex as gr
-import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 try:
     import netCDF4
 except ImportError:
@@ -20,9 +20,9 @@ def test_zip():
                               'G17', 'G19', 'G25', 'G30', 'R01', 'R02', 'R08', 'R22', 'R23', 'R24', 'S20',
                               'S31', 'S35', 'S38']).all()
 
-    assert (obs.time.values == np.array(
-        ['2018-05-13T01:30:00.000000000', '2018-05-13T01:30:30.000000000',  '2018-05-13T01:31:00.000000000'],
-        dtype='datetime64[ns]')).all()
+    times = gr.gettime(R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip')
+
+    assert_equal(times, [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30), datetime(2018, 5, 13, 1, 31)])
 
 
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')

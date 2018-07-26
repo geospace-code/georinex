@@ -2,9 +2,10 @@
 import pytest
 import xarray
 import tempfile
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 from pathlib import Path
 import georinex as gr
+from datetime import datetime
 try:
     import netCDF4
 except ImportError:
@@ -13,11 +14,15 @@ except ImportError:
 R = Path(__file__).parent
 
 
+
 def test_one_sv():
     obs = gr.rinexobs(R/'rinex2onesat.10o')
 
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'
+
+    times = gr.gettime(R/'rinex2onesat.10o')
+    assert_equal(times, [datetime(2010, 3, 5, 0, 0), datetime(2010, 3, 5, 0, 0, 30)])
 
 
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
