@@ -86,7 +86,7 @@ def rinexobs2(fn: Path, use: Any,
             for i, k in enumerate(header['fields']):
                 dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
                 if useindicators:
-                    dsf = _indicators(dsf, i, k, garr)
+                    dsf = _indicators(dsf, k, garr[:, i*3+1:i*3+3])
 
             if data is None:
                 data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})
@@ -102,12 +102,12 @@ def rinexobs2(fn: Path, use: Any,
         return data
 
 
-def _indicators(d: dict, i: int, k: str, arr: np.ndarray) -> Dict[str, tuple]:
+def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
     if k not in ('S1', 'S2'):  # FIXME which other should be excluded?
         if k in ('L1', 'L2'):
-            d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+1]))
+            d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, 0]))
 
-        d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, i*3+2]))
+        d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, 1]))
 
     return d
 
