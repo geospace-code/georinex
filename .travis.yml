@@ -1,21 +1,38 @@
-language: python
+language: generic
 group: travis_latest
 
 git:
   depth: 3
   quiet: true
 
+env:
+  - TRAVIS_PYTHON_VERSION=3.6
+#  - TRAVIS_PYTHON_VERSION=3.7  FIXME: Netcdf4 wheel linux 
+
 os:
   - linux
+  - osx
+  
 
-python:
-  - 3.6
-  - 3.7
+before_install:
+  - if [[ $TRAVIS_OS_NAME == osx ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
 
-install:
-  - pip install -e .[tests,io]
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - hash -r
 
-script: 
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda create -n test python=$TRAVIS_PYTHON_VERSION
+  - source activate test
+
+install: pip install -e .[tests,io]
+
+script:
   - pytest -sv
   - flake8
   - mypy . --ignore-missing-imports
