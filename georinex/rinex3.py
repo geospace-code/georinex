@@ -257,11 +257,13 @@ def _scan3(fn: Path, use: Any,
                 sv.append(k)
                 raw += ln[3:]
 
-            darr = np.genfromtxt(
-                BytesIO(raw.encode('ascii')), delimiter=(14, 1, 1)*Fmax)
+            darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
+                                               delimiter=(14, 1, 1)*Fmax))
 # %% assign data for each time step
             for sk in fields:  # for each satellite system type (G,R,S, etc.)
                 si = [i for i, s in enumerate(sv) if s[0] in sk]
+                if len(si) == 0:  # no SV of this system "sk" at this time
+                    continue
 
                 garr = darr[si, :]
                 gsv = np.array(sv)[si]

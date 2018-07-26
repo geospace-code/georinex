@@ -10,6 +10,7 @@ The RINEX version is automatically detected.  GZIP .gz files can be read directl
 Examples:
 
 ./ReadRinex.py ~/data/VEN100ITA_R_20181580000_01D_MN.rnx.gz
+./ReadRinex.py ~/data/ABMF00GLP_R_20181330000_01D_30S_MO.zip
 
 """
 from argparse import ArgumentParser

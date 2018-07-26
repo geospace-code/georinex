@@ -206,4 +206,4 @@ Here is a lot of RINEX 3 data to work with:
 
 ### Hatanaka compressed RINEX .crx not supported
 The compressed Hatanaka `.crx` or `.crx.gz` files are not yet supported.
-There are distinct from the supported `.rnx` or `.rnx.gz` GZIP RINEX files.
+There are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.

@@ -1,7 +1,6 @@
 from pathlib import Path
 import logging
 import xarray
-from time import time
 from typing import Union, Tuple
 from datetime import datetime
 #
@@ -24,7 +23,7 @@ def readrinex(rinexfn: Path, outfn: Path=None,
     obs = None
     rinexfn = Path(rinexfn).expanduser()
 # %% detect type of Rinex file
-    if rinexfn.suffix == '.gz':
+    if rinexfn.suffix in ('.gz', '.zip'):
         fnl = rinexfn.stem.lower()
     else:
         fnl = rinexfn.name.lower()
@@ -101,17 +100,16 @@ def rinexobs(fn: Path, ofn: Path=None,
         except OSError:
             logging.error(f'Group {group} not found in {fn}')
             return
-
-    tic = time()
+# %% version selection
     ver = getRinexVersion(fn)
+
     if int(ver) == 2:
         obs = _scan2(fn, use, tlim=tlim, verbose=verbose)
     elif int(ver) == 3:
         obs = _scan3(fn, use, tlim=tlim, verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX verion {ver}  {fn}')
-        print(f"finished in {time()-tic:.2f} seconds")
-
+# %% optional output write
     if ofn:
         ofn = Path(ofn).expanduser()
         print('saving OBS data to', ofn)

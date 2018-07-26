@@ -42,10 +42,8 @@ def plotnav(nav: xarray.Dataset):
         elif sv[0] == 'G':
             ecef = keplerian2ecef(nav.sel(sv=sv))
             lat, lon, alt = ecef2geodetic(*ecef)
-            assert ((19.4e6 < alt) & (alt < 21.0e6)).all(
-            ), 'unrealistic GPS satellite altitudes'
-            assert ((-57 < lat) & (lat < 57)
-                    ).all(), 'GPS inclination ~ 55 degrees'
+            assert ((19.4e6 < alt) & (alt < 21.0e6)).all(), 'unrealistic GPS satellite altitudes'
+            assert ((-57 < lat) & (lat < 57)).all(), 'GPS inclination ~ 55 degrees'
         else:
             continue
 
@@ -60,13 +58,15 @@ def plotobs(obs: xarray.Dataset):
         if p not in obs:
             continue
 
+        dat = obs[p].dropna(how='all', dim='time')
+
         ax = figure().gca()
 
-        ax.plot(obs.time, obs[p])
+        ax.plot(dat.time, dat)
 
         ax.set_title(obs.filename)
         ax.set_xlabel('time [UTC]')
         ax.set_ylabel(p)
         ax.grid(True)
 
-        ax.legend(obs[p].sv.values.astype(str), loc='best')
+        ax.legend(dat.sv.values.astype(str), loc='best')

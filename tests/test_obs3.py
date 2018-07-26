@@ -21,6 +21,7 @@ def test_obs3_onesat():
 
     assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 
+
 def test_obs3_multisat():
     """
     ./ReadRinex.py tests/demo3.10o  -u G R -o tests/test3GR.nc
