@@ -5,6 +5,10 @@ import tempfile
 from numpy.testing import assert_allclose
 from pathlib import Path
 import georinex as gr
+try:
+    import netcdf4
+except ImportError:
+    netcdf4 = None
 #
 R = Path(__file__).parent
 
@@ -16,6 +20,7 @@ def test_one_sv():
     assert obs.sv.item() == 'G13'
 
 
+@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
 def test_all_systems():
     """
     ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all.nc
@@ -37,6 +42,7 @@ def test_all_systems():
         obs = gr.rinexobs(R/'demo.10o', ofn=Path(d)/'testout.nc')
 
 
+@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
 def test_one_system():
     """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
     """
@@ -48,6 +54,7 @@ def test_one_system():
         assert obs.equals(truth)
 
 
+@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
 def test_multi_system():
     """./ReadRinex.py -q tests/demo.10o -u G R -o r2GR.nc
     """
@@ -58,6 +65,7 @@ def test_multi_system():
     assert obs.equals(truth)
 
 
+@pytest.mark.skipif(netcdf4 is None, reason='NetCDF4 required')
 def tests_all_indicators():
     """
     ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all_indicators.nc
@@ -66,6 +74,7 @@ def tests_all_indicators():
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -16,9 +16,8 @@ for easy use in analysis and plotting. This gives remarkable speed vs.
 legacy iterative methods, and allows for HPC / out-of-core operations on
 massive amounts of GNSS data.
 
-Writes to NetCDF4 (subset of HDF5), with `zlib` compression. This is a
-couple order of magnitude speedup in reading/converting RINEX data and
-allows filtering/processing of gigantic files too large to fit into RAM.
+Writes to NetCDF4 (subset of HDF5), with `zlib` compression. 
+This yields orders of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
 
 Another key advantage of GeoRinex is the Xarray base class, that allows
 all the database-like indexing power of Pandas to be unleashed.
