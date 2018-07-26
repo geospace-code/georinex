@@ -77,6 +77,12 @@ only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
+#### get OBS header
+To get a `dict()` of the RINEX file header:
+```python
+hdr = gr.rinexheader('myfile.rnx')
+```
+
 #### Index OBS data
 
 assume the OBS data from a file is loaded in variable `obs`.

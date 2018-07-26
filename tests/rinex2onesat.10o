@@ -1,0 +1,31 @@
+     2.11           OBSERVATION DATA    M (MIXED)           RINEX VERSION / TYPE
+BLANK OR G = GPS,  R = GLONASS,  E = GALILEO,  M = MIXED    COMMENT             
+gLAB                gAGE                 17-MAR-10 12:14    PGM / RUN BY / DATE 
+EXAMPLE OF A MIXED RINEX FILE                               COMMENT             
+MRKR                                                        MARKER NAME         
+9080.1.34                                                   MARKER NUMBER       
+gAGE                UPC: Technical University of Catalonia  OBSERVER / AGENCY   
+THIS FILE IS PART OF THE gLAB TOOL SUITE                    COMMENT             
+FILE PREPARED BY: ADRIA ROVIRA GARCIA                       COMMENT             
+PLEASE EMAIL ANY COMMENT OR REQUEST TO:   glab @ gage.es    COMMENT             
+IR2200716006        ASHTECH UZ-12       CQ00                REC # / TYPE / VERS 
+482                 AOAD/M_T        NONE                    ANT # / TYPE        
+   4789028.4701    176610.0133   4195017.0310               APPROX POSITION XYZ 
+         0.9030         0.0000         0.0000               ANTENNA: DELTA H/E/N
+     1     1                                                WAVELENGTH FACT L1/2
+     1     2     3   G14   G18   G19                        WAVELENGTH FACT L1/2
+     7    L1    L2    P1    P2    C1    S1    S2            # / TYPES OF OBSERV 
+    30.000                                                  INTERVAL            
+  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS   
+  2010     3     5    23    59    30.0000000     GPS        TIME OF LAST OBS    
+     1                                                      RCV CLOCK OFFS APPL 
+    15                                                      LEAP SECONDS        
+     1                                                      # OF SATELLITES     
+   G13   762   762   762   762   762   762   762            PRN / # OF OBS      
+                                                            END OF HEADER       
+ 10  3  5  0  0  0.0000000  0  1G13                                     -0.12345                                    
+ 121367582.20508  94572134.49208  23095489.677 9  23095481.949 9  23095483.463 7
+        42.000          40.000                                                            
+ 10  3  5  0  0 30.0000000  0  1G13                                     -0.12345
+ 130321269.80108 101549030.34908  24799319.672 9  24799319.752 9  24799318.768 7
+        62.000          80.000

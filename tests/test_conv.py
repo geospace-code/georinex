@@ -8,21 +8,43 @@ import xarray
 from pathlib import Path
 import georinex as gr
 
-rdir = Path(__file__).parent
+R = Path(__file__).parent
 
 
-def test_convenience():
-    truth = xarray.open_dataset(rdir/'test2all.nc', group='OBS')
+def test_obsdata():
+    truth = xarray.open_dataset(R/'test2all.nc', group='OBS')
 
-    obs, nav = gr.readrinex(rdir/'demo.10o')
+    obs, nav = gr.readrinex(R/'demo.10o')
     assert obs.equals(truth)
 
-# %%
-    print('loading NetCDF4 file')
-    truth = xarray.open_dataset(rdir/'test2all.nc', group='NAV')
-    obs, nav = gr.readrinex(rdir/'demo.10n')
+
+def test_navdata():
+    truth = xarray.open_dataset(R/'test2all.nc', group='NAV')
+    obs, nav = gr.readrinex(R/'demo.10n')
 
     assert nav.equals(truth)
+
+
+def test_obsheader():
+    # %% rinex 2
+    hdr = gr.rinexheader(R/'demo.10o')
+    assert isinstance(hdr, dict)
+    assert len(hdr['position']) == 3
+    # %% rinex 3
+    hdr = gr.rinexheader(R/'demo3.10o')
+    assert isinstance(hdr, dict)
+    assert len(hdr['position']) == 3
+
+
+def test_navheader():
+    # %% rinex 2
+    hdr = gr.rinexheader(R/'demo.10n')
+    assert isinstance(hdr, dict)
+    assert int(hdr['version']) == 2
+    # %% rinex 3
+    hdr = gr.rinexheader(R/'demo3.10n')
+    assert isinstance(hdr, dict)
+    assert int(hdr['version']) == 3
 
 
 if __name__ == '__main__':

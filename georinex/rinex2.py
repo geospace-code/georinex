@@ -6,7 +6,9 @@ from datetime import datetime
 from io import BytesIO
 import xarray
 from typing import Union, List, Any, Dict, Tuple
+from typing.io import TextIO
 import logging
+from .io import rinexinfo
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 
@@ -30,30 +32,23 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
     raws = []
 
     with opener(fn) as f:
-        """verify RINEX version, and that it's NAV"""
-        line = f.readline()
-        ver = float(line[:9])  # yes :9
-        assert int(ver) == 2, 'see _rinexnav3() for RINEX 3.0 files'
 
-        if line[20] == 'N':
+        header = navheader2(f)
+
+        if header['filetype'] == 'N':
             svtype = 'G'
             fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
                       'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
                       'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
                       'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
-        elif line[20] == 'G':
+        elif header['filetype'] == 'G':
             svtype = 'R'  # GLONASS
             fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                       'X', 'dX', 'dX2', 'health',
                       'Y', 'dY', 'dY2', 'FreqNum',
                       'Z', 'dZ', 'dZ2', 'AgeOpInfo']
         else:
-            raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {line}')
-
-# %% skip header, which has non-constant number of rows
-        while True:
-            if 'END OF HEADER' in f.readline():
-                break
+            raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {header["sys"]}  {fn}')
 # %% read data
         for ln in f:
             # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
@@ -99,7 +94,7 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
                                                coords={'time': t[svi],
                                                        'sv': [sv]})))
 
-    nav.attrs['version'] = ver
+    nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
 
     return nav
@@ -120,43 +115,11 @@ def _scan2(fn: Path, use: Any,
         use = None
 
     with opener(fn) as f:
-        header: Dict[str, Any] = {}
-        Nobs = None
         # Capture header info
-        for l in f:
-            if "END OF HEADER" in l:
-                break
-
-            h = l[60:80]
-            c = l[:60]
-            if '# / TYPES OF OBSERV' in h:
-                if Nobs is None:
-                    Nobs = int(c[:6])
-                    c = c[6:]
-
-            if h.strip() not in header:  # Header label
-                header[h.strip()] = c
-                # string with info
-            else:
-                header[h.strip()] += " " + c
-                # concatenate to the existing string
-# %% sanity check that MANDATORY RINEX 2 headers exist
-        for h in ('RINEX VERSION / TYPE', 'APPROX POSITION XYZ', 'INTERVAL'):
-            if h not in header:
-                raise OSError(f'Mandatory RINEX 2 headers are missing from {fn}'
-                              ' is it a valid RINEX 2 file?')
-# %% file seems OK, keep processing
-        verRinex = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
-        # list with x,y,z cartesian
-        header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
-        # observation types
-        fields = header['# / TYPES OF OBSERV'].split()
-        assert Nobs == len(fields), 'header read incorrectly'
-
-        header['INTERVAL'] = float(header['INTERVAL'][:10])
-
-        data: xarray.Dataset = None
+        header = obsheader2(f)
+        Nobs = header['Nobs']
 # %% process rest of file
+        data: xarray.Dataset = None
         while True:
             ln = f.readline()
             if not ln:
@@ -180,17 +143,7 @@ def _scan2(fn: Path, use: Any,
             except ValueError:
                 toffset = None
 # %% get SV indices
-            Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
-            # get first 12 SV ID's
-            sv = _getSVlist(ln, min(12, Nsv), [])
-
-            # any more SVs?
-            n = Nsv-12
-            while n > 0:
-                ln = f.readline()
-                sv = _getSVlist(ln, min(12, n), sv)
-                n -= 12
-            assert Nsv == len(sv), 'satellite list read incorrectly'
+            sv = _getsvind(f, ln)
 # %% select one, a few, or all satellites
             iuse: Union[List[int], slice]
             if use is not None:
@@ -200,7 +153,7 @@ def _scan2(fn: Path, use: Any,
 
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
-            darr = np.empty((Nsv, Nobs*3))
+            darr = np.empty((len(sv), Nobs*3))
             Nl_sv = int(ceil(Nobs/5))  # CEIL needed for Py27 only.
 
             for i, s in enumerate(sv):
@@ -215,12 +168,11 @@ def _scan2(fn: Path, use: Any,
                 # some files truncate and put \n in data space.
                 raw = raw.replace('\n', ' ')
 
-                darr[i, :] = np.genfromtxt(
-                    BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*Nobs)
+                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*Nobs)
 # % select only "used" satellites
             garr = darr[iuse, :]
             dsf = {}
-            for i, k in enumerate(fields):
+            for i, k in enumerate(header['fields']):
                 dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
                 if k not in ('S1', 'S2'):  # FIXME which other should be excluded?
                     if k in ('L1', 'L2'):
@@ -230,18 +182,97 @@ def _scan2(fn: Path, use: Any,
                                     np.atleast_2d(garr[:, i*3+2]))
 
             if data is None:
-                data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={
-                                      'toffset': toffset})
+                data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})
             else:
                 data = xarray.concat((data,
                                       xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})),
                                      dim='time')
 
         data.attrs['filename'] = f.name
-        data.attrs['version'] = verRinex
+        data.attrs['version'] = header['version']
         data.attrs['position'] = header['position']
 
         return data
+
+
+def obsheader2(f: TextIO) -> Dict[str, Any]:
+    if isinstance(f, Path):
+        fn = f
+        with fn.open('r') as f:
+            return obsheader2(f)
+
+    header: Dict[str, Any] = {}
+    Nobs = None
+
+    for l in f:
+        if "END OF HEADER" in l:
+            break
+
+        h = l[60:80].strip()
+        c = l[:60]
+        if '# / TYPES OF OBSERV' in h:
+            if Nobs is None:
+                Nobs = int(c[:6])
+                c = c[6:]
+
+        if h not in header:  # Header label
+            header[h] = c
+            # string with info
+        else:
+            header[h] += " " + c
+            # concatenate to the existing string
+# %% useful mandatory values
+    header['version'] = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
+    header['Nobs'] = Nobs
+    # list with x,y,z cartesian
+    header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
+    # observation types
+    header['fields'] = header['# / TYPES OF OBSERV'].split()
+    assert Nobs == len(header['fields']), 'header read incorrectly'
+
+    header['INTERVAL'] = float(header['INTERVAL'][:10])
+# %% sanity check that MANDATORY RINEX 2 headers exist
+    for h in ('RINEX VERSION / TYPE', 'APPROX POSITION XYZ', 'INTERVAL'):
+        if h not in header:
+            raise OSError(f'Mandatory RINEX 2 headers are missing from {f.name}'
+                          ' is it a valid RINEX 2 OBS file?')
+
+    return header
+
+
+def navheader2(f: TextIO) -> Dict[str, Any]:
+    if isinstance(f, Path):
+        fn = f
+        with fn.open('r') as f:
+            return navheader2(f)
+
+# %%verify RINEX version, and that it's NAV
+    hdr = rinexinfo(f)
+    assert int(hdr['version']) == 2, 'see rinexnav3() for RINEX 3.0 files'
+
+    for ln in f:
+        if 'END OF HEADER' in ln:
+            break
+
+        hdr[ln[60:]] = ln[:60]
+
+    return hdr
+
+
+def _getsvind(f, ln: str) -> List[str]:
+    Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
+    # get first 12 SV ID's
+    sv = _getSVlist(ln, min(12, Nsv), [])
+
+    # any more SVs?
+    n = Nsv-12
+    while n > 0:
+        ln = f.readline()
+        sv = _getSVlist(ln, min(12, n), sv)
+        n -= 12
+    assert Nsv == len(sv), 'satellite list read incorrectly'
+
+    return sv
 
 
 def _getSVlist(ln: str, N: int, sv: list) -> list:

@@ -7,6 +7,7 @@ import xarray
 import logging
 from typing import Union, Dict, List, Tuple, Any
 from typing.io import TextIO
+from .io import rinexinfo
 #
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
@@ -33,16 +34,7 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
     dt: List[datetime] = []
 
     with opener(fn) as f:
-        """verify RINEX version, and that it's NAV"""
-        line = f.readline()
-        ver = float(line[:9])
-        assert int(ver) == 3, 'see _rinexnav2() for RINEX 3.0 files'
-        assert line[20] == 'N', 'Did not detect Nav file'
-#        svtype=line[40]
-# %% skip header, which has non-constant number of rows
-        for line in f:
-            if 'END OF HEADER' in line:
-                break
+        header = navheader3(f)
 # %% read data
         # these while True are necessary to make EOF work right. not for line in f!
         line = f.readline()
@@ -125,7 +117,7 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
             nav = xarray.merge((nav,
                                 xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
 
-    nav.attrs['version'] = ver
+    nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes
 
@@ -219,7 +211,7 @@ def _scan3(fn: Path, use: Any,
     with opener(fn) as f:
         ln = f.readline()
         version = float(ln[:9])  # yes :9
-        fields, header, Fmax = _getObsTypes(f, use)
+        header = obsheader3(f, use)
 
         data: xarray.Dataset = None
     # %% process rest of file
@@ -258,9 +250,9 @@ def _scan3(fn: Path, use: Any,
                 raw += ln[3:]
 
             darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
-                                               delimiter=(14, 1, 1)*Fmax))
+                                               delimiter=(14, 1, 1)*header['Fmax']))
 # %% assign data for each time step
-            for sk in fields:  # for each satellite system type (G,R,S, etc.)
+            for sk in header['fields']:  # for each satellite system type (G,R,S, etc.)
                 si = [i for i, s in enumerate(sv) if s[0] in sk]
                 if len(si) == 0:  # no SV of this system "sk" at this time
                     continue
@@ -269,7 +261,7 @@ def _scan3(fn: Path, use: Any,
                 gsv = np.array(sv)[si]
 
                 dsf = {}
-                for i, k in enumerate(fields[sk]):
+                for i, k in enumerate(header['fields'][sk]):
                     dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
 
                     if k.startswith('L1') or k.startswith('L2'):
@@ -287,7 +279,7 @@ def _scan3(fn: Path, use: Any,
                     data = xarray.Dataset(
                         dsf, coords={'time': [time], 'sv': gsv})
                 else:
-                    if len(fields) == 1:
+                    if len(header['fields']) == 1:
                         data = xarray.concat((data,
                                               xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})),
                                              dim='time')
@@ -303,11 +295,16 @@ def _scan3(fn: Path, use: Any,
     return data
 
 
-def _getObsTypes(f: TextIO, use: Union[str, list, tuple]) -> Tuple[Dict, Dict, int]:
+def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
     """ get RINEX 3 OBS types, for each system type"""
     header: Dict[str, Any] = {}
     fields = {}
     Fmax = 0
+
+    if isinstance(f, Path):
+        fn = f
+        with fn.open('r') as f:
+            return obsheader3(f)
     # Capture header info
     for ln in f:
         if "END OF HEADER" in ln:
@@ -348,4 +345,26 @@ def _getObsTypes(f: TextIO, use: Union[str, list, tuple]) -> Tuple[Dict, Dict, i
     if use is not None:
         fields = {k: fields[k] for k in use}
 
-    return fields, header, Fmax
+    header['fields'] = fields
+    header['Fmax'] = Fmax
+
+    return header
+
+
+def navheader3(f) -> Dict[str, Any]:
+    if isinstance(f, Path):
+        fn = f
+        with fn.open('r') as f:
+            return navheader3(f)
+
+    hdr = rinexinfo(f)
+    assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 3.0 files'
+    assert hdr['filetype'] == 'N', 'Did not detect Nav file'
+
+    for ln in f:
+        if 'END OF HEADER' in ln:
+            break
+
+        hdr[ln[60:]] = ln[:60]
+
+    return hdr
