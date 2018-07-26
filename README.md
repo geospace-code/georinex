@@ -47,6 +47,7 @@ the following examples. Each example assumes you have first done:
 import georinex as gr
 ```
 
+
 ### read Rinex
 
 This convenience function reads any possible Rinex 2/3 OBS/NAV or .nc
@@ -75,6 +76,18 @@ time. As per pg. 15-20 of RINEX 3.03
 only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
+
+#### read times in OBS file
+```sh
+TimeRinex ~/my.rnx
+```
+prints the start, stop times in an OBS file.
+
+```python
+times = gr.gettimes('~/my.rnx')
+```
+gives list of `datetime.datetime` in a RINEX 2 / 3 OBS file.
+
 
 #### Time limits
 For very large files, time bounds can be set -- load only data between those time bounds with the
