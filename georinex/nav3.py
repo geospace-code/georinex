@@ -28,7 +28,7 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 
     svs = []
     raws = []
-    svtypes = []
+    svtypes: List[str] = []
     fields: Dict[str, List[str]] = {}
     times: List[datetime] = []
 
