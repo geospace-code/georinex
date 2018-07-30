@@ -5,9 +5,10 @@ Michael Hirsch, Ph.D.
 from datetime import datetime, timedelta
 import xarray
 import numpy as np
+from typing import Tuple
 
 
-def keplerian2ecef(sv: xarray.DataArray) -> tuple:
+def keplerian2ecef(sv: xarray.DataArray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     based on:
     https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03

@@ -37,7 +37,6 @@ def test_netcdf_write():
         assert obs.equals(wobs)
 
 
-
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_obsdata():
     truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)

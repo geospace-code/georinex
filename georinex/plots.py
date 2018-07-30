@@ -6,13 +6,16 @@ try:
     import cartopy.feature as cpf
 except ImportError:
     cartopy = None
-#
-from pymap3d import ecef2geodetic
+try:
+    import pymap3d as pm
+except ImportError:
+    pm = None
+
 from .keplerian import keplerian2ecef
 
 
 def plotnav(nav: xarray.Dataset):
-    if nav is None:
+    if nav is None or pm is None:
         return
 
     svs = nav.sv.values
@@ -29,10 +32,10 @@ def plotnav(nav: xarray.Dataset):
 
     for sv in svs:
         if sv[0] == 'S':
-            lat, lon, alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time', how='all'),
-                                          nav.sel(sv=sv)['Y'].dropna(
-                                              dim='time', how='all'),
-                                          nav.sel(sv=sv)['Z'].dropna(dim='time', how='all'))
+            lat, lon, alt = pm.ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time', how='all'),
+                                             nav.sel(sv=sv)['Y'].dropna(
+                dim='time', how='all'),
+                nav.sel(sv=sv)['Z'].dropna(dim='time', how='all'))
 
             if ((alt < 35.7e6) | (alt > 35.9e6)).any():
                 logging.warning('unrealistic geostationary satellite altitudes')
@@ -41,10 +44,10 @@ def plotnav(nav: xarray.Dataset):
                 logging.warning('unrealistic geostationary satellite latitudes')
 
         elif sv[0] == 'R':
-            lat, lon, alt = ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time', how='all'),
-                                          nav.sel(sv=sv)['Y'].dropna(
-                                              dim='time', how='all'),
-                                          nav.sel(sv=sv)['Z'].dropna(dim='time', how='all'))
+            lat, lon, alt = pm.ecef2geodetic(nav.sel(sv=sv)['X'].dropna(dim='time', how='all'),
+                                             nav.sel(sv=sv)['Y'].dropna(
+                dim='time', how='all'),
+                nav.sel(sv=sv)['Z'].dropna(dim='time', how='all'))
 
             if ((alt < 19.0e6) | (alt > 19.4e6)).any():
                 logging.warning('unrealistic GLONASS satellite altitudes')
@@ -54,7 +57,7 @@ def plotnav(nav: xarray.Dataset):
 
         elif sv[0] == 'G':
             ecef = keplerian2ecef(nav.sel(sv=sv))
-            lat, lon, alt = ecef2geodetic(*ecef)
+            lat, lon, alt = pm.ecef2geodetic(*ecef)
 
             if ((alt < 19.4e6) | (alt > 21.0e6)).any():
                 logging.warning('unrealistic GPS satellite altitudes')

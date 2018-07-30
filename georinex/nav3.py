@@ -64,8 +64,8 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
-            for _,line in zip(range(Nl[sv[0]]), f):
-                 raw += line[STARTCOL3:80]
+            for _, line in zip(range(Nl[sv[0]]), f):
+                raw += line[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 # %% parse
@@ -131,7 +131,7 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 
 
 def _skip(f: TextIO, Nl: int):
-    for _,_ in zip(range(Nl),f):
+    for _, _ in zip(range(Nl), f):
         pass
 
 
