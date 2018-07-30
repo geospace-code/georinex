@@ -19,7 +19,7 @@ def test_mangled():
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
-    assert times == datetime(2018,6,22,8)
+    assert times == datetime(2018, 6, 22, 8)
 
 
 def test_tlim():

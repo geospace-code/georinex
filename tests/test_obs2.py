@@ -21,7 +21,7 @@ def test_mangled():
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
 
-    assert (times == (datetime(2018,6,22,6,17,30), datetime(2018,6,22,6,17,45), datetime(2018,6,22,6,18))).all()
+    assert (times == (datetime(2018, 6, 22, 6, 17, 30), datetime(2018, 6, 22, 6, 17, 45), datetime(2018, 6, 22, 6, 18))).all()
 
 
 def test_Z_lzw():

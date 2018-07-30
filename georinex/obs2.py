@@ -33,7 +33,7 @@ def rinexobs2(fn: Path, use: Any,
         data: xarray.Dataset = None
 
         for ln in f:
-# %% time
+            # %% time
             try:
                 time = _timeobs(ln)
             except ValueError:  # garbage between header and RINEX data
