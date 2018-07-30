@@ -88,7 +88,8 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 # %% parse
-    t = np.array([np.datetime64(t, 'us') for t in times])
+    # NOTE: must be 'ns' or .to_netcdf will fail!
+    t = np.array([np.datetime64(t, 'ns') for t in times])
     nav: xarray.Dataset = None
     svu = sorted(set(svs))
 

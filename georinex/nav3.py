@@ -22,38 +22,39 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
     Lf = 19  # string length per field
+    Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
 
     fn = Path(fn).expanduser()
 
     svs = []
     raws = []
+    svtypes = []
     fields: Dict[str, List[str]] = {}
     times: List[datetime] = []
 
     with opener(fn) as f:
         header = navheader3(f)
 # %% read data
-        # these while True are necessary to make EOF work right. not for line in f!
-        line = f.readline()
-        svtypes = [line[0]]
-        while True:
+        for line in f:
+            if line.startswith('\n'):  # EOF
+                break
+
             time = _time(line)
 
             if tlim is not None:
-                if time < tlim[0]:
-                    line = _skip(f)
-                    if not line or line.startswith('\n'):  # EOF
-                        break
+                if time < tlim[0] or time > tlim[1]:
+                    _skip(f, Nl[line[0]])
                     continue
-                elif time > tlim[1]:
-                    break
+                # not break due to non-monotonic NAV files
 
             times.append(time)
-# %%
+# %% SV types
             sv = line[:3]
             field = _newnav(line, sv)
 
-            if sv[0] != svtypes[-1]:
+            if len(svtypes) == 0:
+                svtypes.append(sv[0])
+            elif sv[0] != svtypes[-1]:
                 svtypes.append(sv[0])
 
             if not sv[0] in fields:
@@ -63,29 +64,26 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
-            eof = True
-            for line in f:
-                if not line.startswith(' '):  # new SV
-                    eof = line.startswith('\n')
-                    break
-
-                raw += line[STARTCOL3:80]
+            for _,line in zip(range(Nl[sv[0]]), f):
+                 raw += line[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
-
-            if eof:  # EOF
-                break
 # %% parse
-    t = np.array([np.datetime64(t, 'us') for t in times])
+    # NOTE: must be 'ns' or .to_netcdf will fail!
+    t = np.array([np.datetime64(t, 'ns') for t in times])
     nav: xarray.Dataset = None
     svu = sorted(set(svs))
+
+    if len(svu) == 0:
+        logging.warning('no specified data found in {fn}')
+        return None
 
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
 
         tu, iu = np.unique(t[svi], return_index=True)
         if tu.size != t[svi].size:
-            logging.warning(f'duplicate times detected on SV {sv}, using first of duplicated time(s)')
+            logging.warning(f'duplicate times detected on SV {sv}, using first of duplicate times')
             """ I have seen that the data rows match identically when times are duplicated"""
 # %% check for optional GPS "fit interval" presence
         cf = fields[sv[0]]
@@ -99,7 +97,7 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
             cf.insert(22, 'spare')
 
         if testread.size != len(cf):
-            raise ValueError(f'The data at {tu} is not the same length as the number of fields.')
+            raise ValueError(f'{sv[0]} NAV data @ {tu} is not the same length as the number of fields.')
 
         darr = np.empty((svi.size, len(cf)))
 
@@ -132,12 +130,9 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     return nav
 
 
-def _skip(f: TextIO) -> str:
-    for line in f:
-        if not line.startswith(' '):  # new SV
-            break
-
-    return line
+def _skip(f: TextIO, Nl: int):
+    for _,_ in zip(range(Nl),f):
+        pass
 
 
 def _time(ln: str) -> datetime:

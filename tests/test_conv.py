@@ -3,6 +3,7 @@
 Self-test file, registration case
 for OBS RINEX reader
 """
+import tempfile
 import pytest
 import xarray
 from pathlib import Path
@@ -16,9 +17,25 @@ R = Path(__file__).parent
 
 
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
-def test_netcdf():
+def test_netcdf_read():
     obs, nav = gr.readrinex(R/'r2all.nc')
     assert isinstance(obs, xarray.Dataset)
+
+
+@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
+def test_netcdf_write():
+    """
+    NetCDF4 is fuzzy about filenames, it doesn't like arbitrary tempfile.NamedTemporaryFile names
+    """
+    with tempfile.TemporaryDirectory() as D:
+        fn = Path(D)/'rw.nc'
+        obs, nav = gr.readrinex(R/'demo.10o', outfn=fn)
+
+        wobs, wnav = gr.readrinex(fn)
+
+        # MUST be under context manager for lazy loading
+        assert obs.equals(wobs)
+
 
 
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')

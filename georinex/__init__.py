@@ -48,7 +48,11 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV',
     """ Read RINEX 2 or 3  NAV files"""
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
-        return xarray.open_dataset(fn, group=group, autoclose=True)
+        try:
+            return xarray.open_dataset(fn, group=group, autoclose=True)
+        except OSError as e:
+            logging.error(f'Group {group} not found in {fn}    {e}')
+            return None
 
     tlim = _tlim(tlim)
 
@@ -85,10 +89,9 @@ def rinexobs(fn: Path, ofn: Path=None,
 # %% NetCDF4
     if fn.suffix == '.nc':
         try:
-            logging.debug(f'loading {fn} with xarray')
             return xarray.open_dataset(fn, group=group, autoclose=True)
-        except OSError:
-            logging.error(f'Group {group} not found in {fn}')
+        except OSError as e:
+            logging.error(f'Group {group} not found in {fn}   {e}')
             return
 
     tlim = _tlim(tlim)
@@ -188,10 +191,12 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
 
 
 def _tlim(tlim: Optional[Tuple[datetime, datetime]]) -> Optional[Tuple[datetime, datetime]]:
-    if tlim is not None and len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = tuple(map(parse, tlim))
-    elif tlim is None:
+    if tlim is None:
         pass
+    elif len(tlim) == 2 and isinstance(tlim[0], datetime):
+        pass
+    elif len(tlim) == 2 and isinstance(tlim[0], str):
+        tlim = tuple(map(parse, tlim))
     else:
         raise ValueError(f'Not sure what time limits are: {tlim}')
 

@@ -59,6 +59,10 @@ python -m pip install -e .
 The simplest command-line use is through the top-level `ReadRinex` script.
 
 -   Read RINEX3 or RINEX 2 Obs or Nav file: `ReadRinex myrinex.XXx`
+    * you can read multiple files bounded by `--tlim` like
+      ```sh
+      ReadRinex ~/data/ --tlim 2017-01-02-T21 2017-01-03T01
+      ```
 -   Read NetCDF converted RINEX data: `ReadRinex myrinex.nc`
 
 It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
