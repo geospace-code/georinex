@@ -37,6 +37,7 @@ def rinexobs2(fn: Path, use: Any,
             try:
                 time = _timeobs(ln)
             except ValueError:  # garbage between header and RINEX data
+                logging.error(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
 
             if tlim is not None:

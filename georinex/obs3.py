@@ -1,6 +1,7 @@
 from .io import opener
 from pathlib import Path
 import numpy as np
+import logging
 from datetime import datetime
 from io import BytesIO
 import xarray
@@ -41,7 +42,11 @@ def rinexobs3(fn: Path, use: Any,
             if not ln.startswith('>'):  # end of file
                 break
 
-            time = _timeobs(ln, fn)
+            try:
+                time = _timeobs(ln, fn)
+            except ValueError:  # garbage between header and RINEX data
+                logging.error(f'garbage detected in {fn}, trying to parse at next time step')
+                continue
 # %% get SV indices
             # Number of visible satellites this time %i3  pg. A13
             Nsv = int(ln[33:35])
