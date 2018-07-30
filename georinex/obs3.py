@@ -34,13 +34,11 @@ def rinexobs3(fn: Path, use: Any,
         assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
 # %% loop
     with opener(fn) as f:
-        ln = f.readline()
-        version = float(ln[:9])  # yes :9
+        version = float(f.readline()[:9])  # yes :9
         header = obsheader3(f, use)
 # %% process OBS file
-        while True:
-            ln = f.readline().rstrip()
-            if not ln:  # end of file
+        for ln in f:
+            if not ln.startswith('>'):  # end of file
                 break
 
             time = _timeobs(ln, fn)
@@ -50,8 +48,7 @@ def rinexobs3(fn: Path, use: Any,
 
             sv = []
             raw = ''
-            for i in range(Nsv):
-                ln = f.readline()
+            for i, ln in zip(range(Nsv), f):
                 k = ln[:3]
                 sv.append(k)
                 raw += ln[3:]
@@ -67,7 +64,7 @@ def rinexobs3(fn: Path, use: Any,
 
             data = _eachtime(data, raw, header, time, sv, useindicators, verbose)
 
-    data.attrs['filename'] = f.name
+    data.attrs['filename'] = fn.name
     data.attrs['version'] = version
     data.attrs['position'] = header['position']
     # data.attrs['toffset'] = toffset
@@ -89,18 +86,24 @@ def _timeobs(ln: str, fn: Path) -> datetime:
                     microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
 
-def gettime3(fn: Path) -> List[datetime]:
+def gettime3(fn: Path) -> xarray.DataArray:
     """
     return all times in RINEX file
     """
     times = []
+    header = obsheader3(fn)
 
     with opener(fn) as f:
         for ln in f:
             if ln.startswith('>'):
                 times.append(_timeobs(ln, fn))
 
-    return times
+    timedat = xarray.DataArray(times,
+                               dims=['time'],
+                               attrs={'filename': fn,
+                                      'interval': header['interval']})
+
+    return timedat
 
 
 def _eachtime(data: xarray.Dataset, raw: str, header: dict, time: datetime, sv: List[str],
@@ -159,7 +162,7 @@ def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
 
     if isinstance(f, Path):
         fn = f
-        with fn.open('r') as f:
+        with opener(fn) as f:
             return obsheader3(f)
     # Capture header info
     for ln in f:
@@ -190,13 +193,21 @@ def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
             # string with info
         else:  # concatenate to the existing string
             header[h.strip()] += " " + c
-# %% sanity check for Mandatory RINEX 3 headers
-    for h in ('APPROX POSITION XYZ',):
-        if h not in header:
-            raise OSError('Mandatory RINEX 3 headers are missing from file, is it a valid RINEX 3 file?')
+# %% useful values
 
     # list with x,y,z cartesian
     header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
+# %% time
+    t0s = header['TIME OF FIRST OBS']
+    # NOTE: must do second=int(float()) due to non-conforming files
+    header['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                            hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                            microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+
+    try:
+        header['interval'] = float(header['INTERVAL'][:10])
+    except KeyError:
+        header['interval'] = None
 # %% select specific satellite systems only (optional)
     if use is not None:
         fields = {k: fields[k] for k in use}

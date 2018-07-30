@@ -12,23 +12,47 @@
 RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data
 into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
-for easy use in analysis and plotting. This gives remarkable speed vs.
-legacy iterative methods, and allows for HPC / out-of-core operations on
-massive amounts of GNSS data.
-
-Writes to NetCDF4 (subset of HDF5), with `zlib` compression. 
-This yields orders of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
-
-Another key advantage of GeoRinex is the Xarray base class, that allows
-all the database-like indexing power of Pandas to be unleashed.
-
+for easy use in analysis and plotting.
+This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
 GeoRinex works in Python &ge; 3.6.
 
 ![RINEX plot](tests/example_plot.png)
 
+
+## Inputs
+
+* RINEX 3 or RINEX 2
+  * NAV
+  * OBS
+* Plain ASCII or seamlessly read compressed ASCII in:
+  * `.gz` GZIP
+  * `.Z` LZW
+  * `.zip`
+
+## Output
+
+* File: NetCDF4 (subset of HDF5), with `zlib` compression.
+This yields orders of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
+* In-memory: Xarray. This allows all the database-like indexing power of Pandas to be unleashed.
+
+
+
 ## Install
 
-    python -m pip install -e .
+Latest stable release:
+```sh
+pip install georinex
+```
+
+Current development version:
+```sh
+git clone https://github.com/scivision/georinex
+
+cd georinex
+
+python -m pip install -e .
+```
+
 
 ## Usage
 
@@ -48,9 +72,9 @@ import georinex as gr
 ```
 
 
-### read Rinex
+### read RINEX
 
-This convenience function reads any possible Rinex 2/3 OBS/NAV or .nc
+This convenience function reads any possible RINEX 2/3 OBS/NAV or .nc
 file:
 
 ```python
@@ -77,16 +101,22 @@ only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
-#### read times in OBS file
+#### read times in OBS file(s)
+Print start, stop times and measurement interval in an OBS file:
 ```sh
 TimeRinex ~/my.rnx
 ```
-prints the start, stop times in an OBS file.
 
+Print start, stop times and measurement interval for all OBS files in a directory:
+```sh
+TimeRinex ~/data *.rnx
+```
+
+Get `xarray.DataArray` of times in RINEX file:
 ```python
 times = gr.gettimes('~/my.rnx')
 ```
-gives list of `datetime.datetime` in a RINEX 2 / 3 OBS file.
+
 
 
 #### Time limits
@@ -130,7 +160,7 @@ would load only Galileo data by the parameter E.
 
 If however you want to do this after loading all the data anyway, you can make a Boolean indexer
 ```python
-Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy boolean 1-D array
+Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy Boolean 1-D array
 Edata = obs.isel(sv=Eind)  # any combination of other indices at same time or before/after also possible
 ```
 
@@ -144,7 +174,7 @@ ax.plot(obs.time, obs['L1C'])
 show()
 ```
 
-Suppose L1C psuedorange plot is desired for `G13`:
+Suppose L1C pseudorange plot is desired for `G13`:
 ```python
 obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 ```
@@ -176,7 +206,7 @@ nav['M0']
 
 ## Analysis
 A significant reason for using `xarray` as the base class of GeoRinex is that big data operations are fast, easy and efficient.
-It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and convserve memory.
+It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and conserve memory.
 
 A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
 ```python
@@ -196,7 +226,7 @@ you can try the more general:
 obs = xarray.merge((obs1, obs2))
 ```
 
-## Converting to Pandas Dataframes
+## Converting to Pandas DataFrames
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 [Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).

@@ -14,6 +14,9 @@ except ImportError:
 @contextmanager
 def opener(fn: Path):
     """provides file handle for regular ASCII or gzip files transparently"""
+    if fn.is_dir():
+        raise FileNotFoundError(f'{fn} is a directory; I need a file')
+
     if fn.suffix == '.gz':
         with gzip.open(fn, 'rt') as f:
             yield f
@@ -43,9 +46,12 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
         with opener(fn) as f:
             return rinexinfo(f)
 
-    line = f.readline()
+    try:
+        line = f.readline()
 
-    info = {'version': float(line[:9]),  # yes :9
-            'filetype': line[20]}
+        info = {'version': float(line[:9]),  # yes :9
+                'filetype': line[20]}
+    except (ValueError, UnicodeDecodeError) as e:
+        raise OSError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
 
     return info

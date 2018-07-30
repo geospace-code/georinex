@@ -1,6 +1,7 @@
 from .io import opener
 from pathlib import Path
 import numpy as np
+import logging
 from math import ceil
 from datetime import datetime
 from io import BytesIO
@@ -28,23 +29,28 @@ def rinexobs2(fn: Path, use: Any,
         # Capture header info
         header = obsheader2(f)
         Nobs = header['Nobs']
-# %% process rest of file
+# %% process data
         data: xarray.Dataset = None
-        while True:
-            ln = f.readline()
-            if not ln:
-                break
 
-            eflag = int(ln[28])
-            if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
-                print(eflag)
+        for ln in f:
+# %% time
+            try:
+                time = _timeobs(ln)
+            except ValueError:  # garbage between header and RINEX data
                 continue
 
-            time = _timeobs(ln)
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
-                if not tlim[0] < time <= tlim[1]:
+                if time < tlim[0]:
+                    _skip(f, ln, Nobs)
                     continue
+                elif time > tlim[1]:
+                    break
+# %%
+            eflag = int(ln[28])
+            if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
+                logging.info(f'{time}: epoch flag {eflag}')
+                continue
 
             if verbose:
                 print(time, end="\r")
@@ -95,7 +101,7 @@ def rinexobs2(fn: Path, use: Any,
                                       xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})),
                                      dim='time')
 
-        data.attrs['filename'] = f.name
+        data.attrs['filename'] = fn.name
         data.attrs['version'] = header['version']
         data.attrs['position'] = header['position']
 
@@ -115,7 +121,7 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 def obsheader2(f: TextIO) -> Dict[str, Any]:
     if isinstance(f, Path):
         fn = f
-        with fn.open('r') as f:
+        with opener(fn) as f:
             return obsheader2(f)
 
     header: Dict[str, Any] = {}
@@ -130,34 +136,55 @@ def obsheader2(f: TextIO) -> Dict[str, Any]:
         if '# / TYPES OF OBSERV' in h:
             if Nobs is None:
                 Nobs = int(c[:6])
-                c = c[6:]
+                c = c[6:].split()
 
         if h not in header:  # Header label
-            header[h] = c
-            # string with info
-        else:
-            header[h] += " " + c
-            # concatenate to the existing string
-# %% useful mandatory values
+            header[h] = c  # string with info
+        else:  # concatenate
+            if isinstance(header[h], str):
+                header[h] += " " + c
+            elif isinstance(header[h], list):
+                header[h] += c
+            else:
+                raise ValueError(f'not sure what {c} is')
+# %% useful values
     header['version'] = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
     header['Nobs'] = Nobs
     # list with x,y,z cartesian
     header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
     # observation types
-    header['fields'] = header['# / TYPES OF OBSERV'].split()
-    assert Nobs == len(header['fields']), 'header read incorrectly'
+    header['fields'] = header['# / TYPES OF OBSERV']
 
-    header['INTERVAL'] = float(header['INTERVAL'][:10])
-# %% sanity check that MANDATORY RINEX 2 headers exist
-    for h in ('RINEX VERSION / TYPE', 'APPROX POSITION XYZ', 'INTERVAL'):
-        if h not in header:
-            raise OSError(f'Mandatory RINEX 2 headers are missing from {f.name}'
-                          ' is it a valid RINEX 2 OBS file?')
+    if Nobs != len(header['fields']):
+        raise ValueError(f'{f.name} header read incorrectly')
+
+    if '# OF SATELLITES' in header:
+        header['# OF SATELLITES'] = int(header['# OF SATELLITES'][:6])
+# %% time
+    t0s = header['TIME OF FIRST OBS']
+    # NOTE: must do second=int(float()) due to non-conforming files
+    header['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                            hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                            microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+
+    try:
+        t0s = header['TIME OF LAST OBS']
+        # NOTE: must do second=int(float()) due to non-conforming files
+        header['t1'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                                hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                                microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    except KeyError:
+        pass
+
+    try:  # This key is OPTIONAL
+        header['interval'] = float(header['INTERVAL'][:10])
+    except KeyError:
+        header['interval'] = None
 
     return header
 
 
-def _getsvind(f, ln: str) -> List[str]:
+def _getsvind(f: TextIO, ln: str) -> List[str]:
     Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
     # get first 12 SV ID's
     sv = _getSVlist(ln, min(12, Nsv), [])
@@ -165,15 +192,14 @@ def _getsvind(f, ln: str) -> List[str]:
     # any more SVs?
     n = Nsv-12
     while n > 0:
-        ln = f.readline()
-        sv = _getSVlist(ln, min(12, n), sv)
+        sv = _getSVlist(f.readline(), min(12, n), sv)
         n -= 12
     assert Nsv == len(sv), 'satellite list read incorrectly'
 
     return sv
 
 
-def _getSVlist(ln: str, N: int, sv: list) -> list:
+def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     """ parse a line of text from RINEX2 SV list"""
     for i in range(N):
         s = ln[32+i*3:35+i*3].strip()
@@ -184,7 +210,7 @@ def _getSVlist(ln: str, N: int, sv: list) -> list:
     return sv
 
 
-def gettime2(fn: Path) -> List[datetime]:
+def gettime2(fn: Path) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
@@ -199,21 +225,28 @@ def gettime2(fn: Path) -> List[datetime]:
             if not ln:
                 break
 
-            eflag = int(ln[28])
-            if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
-                print(eflag)
-                continue
-
             times.append(_timeobs(ln))
-# %% skip ahead
-            sv = _getsvind(f, ln)
-            Nl_sv = ceil(Nobs/5)
 
-            # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
-            for _ in range(len(sv)*Nl_sv):
-                f.readline()
+            _skip(f, ln, Nobs)
 
-    return times
+    timedat = xarray.DataArray(times,
+                               dims=['time'],
+                               attrs={'filename': fn,
+                                      'interval': header['interval']})
+
+    return timedat
+
+
+def _skip(f: TextIO, ln: str, Nobs: int):
+    """
+    skip ahead to next time step
+    """
+    sv = _getsvind(f, ln)
+    Nl_sv = ceil(Nobs/5)
+
+    # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
+    for _ in range(len(sv)*Nl_sv):
+        f.readline()
 
 
 def _timeobs(ln: str) -> datetime:
@@ -235,6 +268,6 @@ def _timeobs(ln: str) -> datetime:
                     day=int(ln[7:9]),
                     hour=int(ln[10:12]),
                     minute=int(ln[13:15]),
-                    second=int(float(ln[16:26])),
+                    second=int(ln[16:18]),
                     microsecond=int(float(ln[16:26]) % 1 * 1000000)
                     )

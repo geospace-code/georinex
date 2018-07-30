@@ -7,16 +7,19 @@ from io import BytesIO
 from datetime import datetime
 from .io import opener, rinexinfo
 from typing import Dict, List, Tuple, Any
+from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 
 
-def rinexnav3(fn: Path) -> xarray.Dataset:
+def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """
-    Reads RINEX 3.0 NAV files
+    Reads RINEX 3.x NAV files
     Michael Hirsch, Ph.D.
     SciVision, Inc.
     http://www.gage.es/sites/default/files/gLAB/HTML/SBAS_Navigation_Rinex_v3.01.html
+
+    The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
     Lf = 19  # string length per field
 
@@ -25,7 +28,7 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
     svs = []
     raws = []
     fields: Dict[str, List[str]] = {}
-    dt: List[datetime] = []
+    times: List[datetime] = []
 
     with opener(fn) as f:
         header = navheader3(f)
@@ -34,11 +37,21 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
         line = f.readline()
         svtypes = [line[0]]
         while True:
-            sv, time, field = _newnav(line)
-            dt.append(time)
+            time = _time(line)
 
-            if sv[0] == 'J':
-                print(sv)
+            if tlim is not None:
+                if time < tlim[0]:
+                    line = _skip(f)
+                    if not line or line.startswith('\n'):  # EOF
+                        break
+                    continue
+                elif time > tlim[1]:
+                    break
+
+            times.append(time)
+# %%
+            sv = line[:3]
+            field = _newnav(line, sv)
 
             if sv[0] != svtypes[-1]:
                 svtypes.append(sv[0])
@@ -50,19 +63,20 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
-            while True:
-                line = f.readline().rstrip()
-                if not line or not line.startswith(' '):  # new SV
+            eof = True
+            for line in f:
+                if not line.startswith(' '):  # new SV
+                    eof = line.startswith('\n')
                     break
 
                 raw += line[STARTCOL3:80]
             # one line per SV
-            raws.append(raw.replace('D', 'E'))
+            raws.append(raw.replace('D', 'E').replace('\n', ''))
 
-            if not line:  # EOF
+            if eof:  # EOF
                 break
 # %% parse
-    t = np.array([np.datetime64(t, 'ns') for t in dt])
+    t = np.array([np.datetime64(t, 'us') for t in times])
     nav: xarray.Dataset = None
     svu = sorted(set(svs))
 
@@ -118,12 +132,27 @@ def rinexnav3(fn: Path) -> xarray.Dataset:
     return nav
 
 
-def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
-    sv = ln[:3]
+def _skip(f: TextIO) -> str:
+    for line in f:
+        if not line.startswith(' '):  # new SV
+            break
 
-    svtype = sv[0]
+    return line
 
-    if svtype == 'G':
+
+def _time(ln: str) -> datetime:
+
+    return datetime(year=int(ln[4:8]),
+                    month=int(ln[9:11]),
+                    day=int(ln[12:14]),
+                    hour=int(ln[15:17]),
+                    minute=int(ln[18:20]),
+                    second=int(ln[21:23]))
+
+
+def _newnav(ln: str, sv: str) -> List[str]:
+
+    if sv.startswith('G'):
         """
         ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
         """
@@ -135,7 +164,7 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
                   'TransTime', 'FitIntvl']
-    elif svtype == 'C':  # pg A-33  Beidou Compass BDT
+    elif sv.startswith('C'):  # pg A-33  Beidou Compass BDT
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'AODE', 'Crs', 'DeltaN', 'M0',
                   'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
@@ -144,17 +173,17 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
                   'IDOT', 'BDTWeek',
                   'SVacc', 'SatH1', 'TGD1', 'TGD2',
                   'TransTime', 'AODC']
-    elif svtype == 'R':  # pg. A-29   GLONASS
+    elif sv.startswith('R'):  # pg. A-29   GLONASS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'FreqNum',
                   'Z', 'dZ', 'dZ2', 'AgeOpInfo']
-    elif svtype == 'S':  # pg. A-35 SBAS
+    elif sv.startswith('S'):  # pg. A-35 SBAS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'URA',
                   'Z', 'dZ', 'dZ2', 'IODN']
-    elif svtype == 'J':  # pg. A-31  QZSS
+    elif sv.startswith('J'):  # pg. A-31  QZSS
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODE', 'Crs', 'DeltaN', 'M0',
                   'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
@@ -163,7 +192,7 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
                   'TransTime', 'FitIntvl']
-    elif svtype == 'E':
+    elif sv.startswith('E'):  # pg. A-25 Galileo Table A8
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODnav', 'Crs', 'DeltaN', 'M0',
                   'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
@@ -175,26 +204,17 @@ def _newnav(ln: str) -> Tuple[str, datetime, List[str]]:
     else:
         raise ValueError(f'Unknown SV type {sv[0]}')
 
-    year = int(ln[4:8])  # I4
-
-    time = datetime(year=year,
-                    month=int(ln[9:11]),
-                    day=int(ln[12:14]),
-                    hour=int(ln[15:17]),
-                    minute=int(ln[18:20]),
-                    second=int(ln[21:23]))
-
-    return sv, time, fields
+    return fields
 
 
-def navheader3(f) -> Dict[str, Any]:
+def navheader3(f: TextIO) -> Dict[str, Any]:
     if isinstance(f, Path):
         fn = f
         with fn.open('r') as f:
             return navheader3(f)
 
     hdr = rinexinfo(f)
-    assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 3.0 files'
+    assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 2.x files'
     assert hdr['filetype'] == 'N', 'Did not detect Nav file'
 
     for ln in f:

@@ -4,7 +4,7 @@ import xarray
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
-from numpy.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose
 try:
     import netCDF4
 except ImportError:
@@ -14,15 +14,29 @@ R = Path(__file__).parent
 
 
 def test_zip():
-    obs = gr.rinexobs(R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip')
+    fn = R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip'
+    obs = gr.rinexobs(fn)
 
     assert (obs.sv.values == ['E04', 'E09', 'E12', 'E24', 'G02', 'G05', 'G06', 'G07', 'G09', 'G12', 'G13',
                               'G17', 'G19', 'G25', 'G30', 'R01', 'R02', 'R08', 'R22', 'R23', 'R24', 'S20',
                               'S31', 'S35', 'S38']).all()
 
-    times = gr.gettime(R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip')
+    times = gr.gettime(fn).values.astype('datetime64[us]').astype(datetime)
 
-    assert_equal(times, [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30), datetime(2018, 5, 13, 1, 31)])
+    assert (times == [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30),  datetime(2018, 5, 13, 1, 31)]).all()
+
+    hdr = gr.rinexheader(fn)
+    assert hdr['t0'] <= times[0]
+
+
+def test_tlim():
+    fn = R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz'
+    obs = gr.rinexobs(fn, tlim=('2018-07-29T01:17', '2018-07-29T01:18'))
+
+    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+
+    assert (times == [datetime(2018, 7, 29, 1, 17), datetime(2018, 7, 29, 1, 17, 15),
+                      datetime(2018, 7, 29, 1, 17, 45), datetime(2018, 7, 29, 1, 18)]).all()
 
 
 @pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
@@ -78,4 +92,4 @@ def tests_all_indicators():
 
 
 if __name__ == '__main__':
-    pytest.main([__file__])
+    pytest.main(['-x', __file__])

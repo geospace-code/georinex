@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 import xarray
-from typing import Union, Tuple, Dict, Any, Optional, List
+from typing import Union, Tuple, Dict, Any, Optional
 from datetime import datetime
 from dateutil.parser import parse
 #
@@ -17,7 +17,7 @@ COMPLVL = 1
 
 def readrinex(rinexfn: Path, outfn: Path=None,
               use: Union[str, list, tuple]=None,
-              tlim: Union[None, Tuple[datetime, datetime]]=None,
+              tlim: Tuple[datetime, datetime]=None,
               useindicators: bool=False,
               verbose: bool=True) -> xarray.Dataset:
     """
@@ -30,7 +30,7 @@ def readrinex(rinexfn: Path, outfn: Path=None,
     rtype = rinextype(rinexfn)
 
     if rtype == 'nav':
-        nav = rinexnav(rinexfn, outfn)
+        nav = rinexnav(rinexfn, outfn, tlim=tlim)
     elif rtype == 'obs':
         obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim, useindicators=useindicators, verbose=verbose)
     elif rtype == 'nc':
@@ -43,21 +43,20 @@ def readrinex(rinexfn: Path, outfn: Path=None,
 # %% Navigation file
 
 
-def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
-    """ Read RINEX 2,3  NAV files in ASCII or GZIP"""
+def rinexnav(fn: Path, ofn: Path=None, group: str='NAV',
+             tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
+    """ Read RINEX 2 or 3  NAV files"""
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
-        try:
-            return xarray.open_dataset(fn, group=group, autoclose=True)
-        except OSError:
-            logging.error(f'Group {group} not found in {fn}')
-            return
+        return xarray.open_dataset(fn, group=group, autoclose=True)
+
+    tlim = _tlim(tlim)
 
     info = rinexinfo(fn)
     if int(info['version']) == 2:
-        nav = rinexnav2(fn)
+        nav = rinexnav2(fn, tlim)
     elif int(info['version']) == 3:
-        nav = rinexnav3(fn)
+        nav = rinexnav3(fn, tlim)
     else:
         raise ValueError(f'unknown RINEX  {info}  {fn}')
 
@@ -75,7 +74,7 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV') -> xarray.Dataset:
 def rinexobs(fn: Path, ofn: Path=None,
              use: Union[str, list, tuple]=None,
              group: str='OBS',
-             tlim: Optional[Tuple[datetime, datetime]]=None,
+             tlim: Tuple[datetime, datetime]=None,
              useindicators: bool=False,
              verbose: bool=False) -> xarray.Dataset:
     """
@@ -91,13 +90,8 @@ def rinexobs(fn: Path, ofn: Path=None,
         except OSError:
             logging.error(f'Group {group} not found in {fn}')
             return
-# %% time limits
-    if tlim is not None and len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = tuple(map(parse, tlim))
-    elif tlim is None:
-        pass
-    else:
-        raise ValueError(f'Not sure what time limits are: {tlim}')
+
+    tlim = _tlim(tlim)
 # %% version selection
     info = rinexinfo(fn)
 
@@ -120,7 +114,7 @@ def rinexobs(fn: Path, ofn: Path=None,
     return obs
 
 
-def gettime(fn: Path) -> List[datetime]:
+def gettime(fn: Path) -> xarray.DataArray:
     """
     get times in RINEX 2/3 file
     Note: in header,
@@ -130,8 +124,9 @@ def gettime(fn: Path) -> List[datetime]:
     fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
-    assert rinextype(fn) == 'obs', 'times is in OBS files'
-
+    if rinextype(fn) != 'obs':
+        raise ValueError('per-observation time is in OBS files')
+# %% select function
     if int(info['version']) == 2:
         times = gettime2(fn)
     elif int(info['version']) == 3:
@@ -143,17 +138,20 @@ def gettime(fn: Path) -> List[datetime]:
 
 
 def rinextype(fn: Path) -> str:
+    """
+    based on file extension only, does not actually inspect the file--that comes later
+    """
     if fn.suffix in ('.gz', '.zip', '.Z'):
         fnl = fn.stem.lower()
     else:
         fnl = fn.name.lower()
 
-    if fnl.endswith('o') or fnl.endswith('o.rnx'):
+    if fnl.endswith(('o', 'o.rnx')):
         return 'obs'
-    elif fnl.endswith('n') or fnl.endswith('n.rnx'):
+    elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
         return 'nav'
     elif fnl.endswith('.crx'):
-        raise NotImplementedError('Hatanaka compressed RINEX is not yet supported')
+        raise NotImplementedError('need to convert Hatanaka compressed RINEX: http://terras.gsi.go.jp/ja/crx2rnx.html')
     elif fn.suffix.endswith('.nc'):
         return 'nc'
     else:
@@ -187,3 +185,14 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 
     return hdr
+
+
+def _tlim(tlim: Optional[Tuple[datetime, datetime]]) -> Optional[Tuple[datetime, datetime]]:
+    if tlim is not None and len(tlim) == 2 and isinstance(tlim[0], str):
+        tlim = tuple(map(parse, tlim))
+    elif tlim is None:
+        pass
+    else:
+        raise ValueError(f'Not sure what time limits are: {tlim}')
+
+    return tlim

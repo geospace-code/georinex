@@ -16,6 +16,7 @@ Examples:
 
 
 """
+from pathlib import Path
 from argparse import ArgumentParser
 import xarray
 import georinex as gr
@@ -25,6 +26,7 @@ def main():
     p = ArgumentParser(
         description='example of reading RINEX 2/3 Navigation/Observation file')
     p.add_argument('rinexfn', help='path to RINEX 2 or RINEX 3 file')
+    p.add_argument('-g', '--glob', help='file glob pattern', default='*')
     p.add_argument('-o', '--outfn', help='write data as NetCDF4 file')
     p.add_argument('-q', '--quiet',
                    help='do not generate plots or print unneeded text (for HPC/cloud)', action='store_true')
@@ -35,9 +37,25 @@ def main():
 
     verbose = not P.quiet
 
-    obs, nav = gr.readrinex(P.rinexfn, P.outfn, use=P.use, tlim=P.tlim,
-                            useindicators=P.useindicators, verbose=verbose)
+    fn = Path(P.rinexfn).expanduser()
 
+    if fn.is_file():
+        obs, nav = gr.readrinex(P.rinexfn, P.outfn, use=P.use, tlim=P.tlim,
+                                useindicators=P.useindicators, verbose=verbose)
+    elif fn.is_dir():
+        flist = [f for f in fn.glob(P.glob) if f.is_file()]
+        for f in flist:
+            try:
+                obs, nav = gr.readrinex(f, P.outfn, use=P.use, tlim=P.tlim,
+                                        useindicators=P.useindicators, verbose=verbose)
+            except Exception as e:
+                print(f'{f.name}: {e}')
+                continue
+
+            if verbose:
+                plots(nav, obs)
+    else:
+        raise FileNotFoundError(f'{fn} is not a path or file')
 # %% plots
     if verbose:
         plots(nav, obs)

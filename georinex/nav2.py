@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from typing.io import TextIO
 import xarray
 import numpy as np
@@ -12,7 +12,7 @@ from .io import opener, rinexinfo
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 
 
-def rinexnav2(fn: Path) -> xarray.Dataset:
+def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """
     Reads RINEX 2.11 NAV files
     Michael Hirsch, Ph.D.
@@ -23,11 +23,10 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
     """
     fn = Path(fn).expanduser()
 
-    Nl = 7  # number of additional lines per record, for RINEX 2 NAV
     Lf = 19  # string length per field
 
     svs = []
-    dt: List[datetime] = []
+    times: List[datetime] = []
     raws = []
 
     with opener(fn) as f:
@@ -36,34 +35,60 @@ def rinexnav2(fn: Path) -> xarray.Dataset:
 
         if header['filetype'] == 'N':
             svtype = 'G'
-            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
-                      'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
-                      'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
-                      'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
+            Nl = 7  # number of additional lines per record, for RINEX 2 NAV
+            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
+                      'IODE', 'Crs', 'DeltaN', 'M0',
+                      'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
+                      'Toe', 'Cic', 'Omega0', 'Cis',
+                      'Io', 'Crc', 'omega', 'OmegaDot',
+                      'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
+                      'SVacc', 'health', 'TGD', 'IODC',
+                      'TransTime', 'FitIntvl']
         elif header['filetype'] == 'G':
             svtype = 'R'  # GLONASS
+            Nl = 7
             fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                       'X', 'dX', 'dX2', 'health',
                       'Y', 'dY', 'dY2', 'FreqNum',
                       'Z', 'dZ', 'dZ2', 'AgeOpInfo']
+        elif header['filetype'] == 'E':
+            svtype = 'E'  # Galileo
+            Nl = 7
+            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
+                      'IODnav', 'Crs', 'DeltaN', 'M0',
+                      'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
+                      'Toe', 'Cic', 'Omega0', 'Cis',
+                      'Io', 'Crc', 'omega', 'OmegaDot',
+                      'IDOT', 'DataSrc', 'GALWeek',
+                      'SISA', 'health', 'BGDe5a', 'BGDe5b',
+                      'TransTime']
         else:
             raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {header["sys"]}  {fn}')
 # %% read data
         for ln in f:
-            # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
+            time = _timenav(ln)
+
+            if tlim is not None:
+                if time < tlim[0]:
+                    for _, ln in zip(range(Nl), f):
+                        pass
+                    continue
+                elif time > tlim[1]:
+                    break
+# %% format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
             svs.append(f'{svtype}{int(ln[:2]):02d}')
-            # format I2
-            dt.append(_timenav(ln))
+
+            times.append(time)
             """
             now get the data as one big long string per SV
             """
             raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
-            for _ in range(Nl):
-                raw += f.readline()[STARTCOL2:79]
+            for i, ln in zip(range(Nl), f):
+                raw += ln[STARTCOL2:79]
             # one line per SV
-            raws.append(raw.replace('D', 'E'))
+            raws.append(raw.replace('D', 'E').replace('\n', ''))
 # %% parse
-    t = np.array([np.datetime64(t, 'ns') for t in dt])
+    t = np.array([np.datetime64(t, 'us') for t in times])
     nav: xarray.Dataset = None
     svu = sorted(set(svs))
 
