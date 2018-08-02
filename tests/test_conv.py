@@ -14,7 +14,7 @@ R = Path(__file__).parent
 
 def test_netcdf_read():
     pytest.importorskip('netCDF4')
-    
+
     obs, nav = gr.readrinex(R/'r2all.nc')
     assert isinstance(obs, xarray.Dataset)
 
@@ -37,7 +37,7 @@ def test_netcdf_write():
 
 def test_obsdata():
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
 
     obs, nav = gr.readrinex(R/'demo.10o')
@@ -46,7 +46,7 @@ def test_obsdata():
 
 def test_navdata():
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     obs, nav = gr.readrinex(R/'demo.10n')
 

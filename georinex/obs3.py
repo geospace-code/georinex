@@ -169,9 +169,9 @@ def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
             return obsheader3(f)
 # %% first line
     ln = f.readline()
-    header = {'version': float(ln[:9]), # yes :9
+    header = {'version': float(ln[:9]),  # yes :9
               'systems': ln[40],
-             }
+              }
     for ln in f:
         if "END OF HEADER" in ln:
             break

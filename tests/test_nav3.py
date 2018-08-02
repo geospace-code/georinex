@@ -7,11 +7,12 @@ from datetime import datetime
 #
 R = Path(__file__).parent
 
+
 def test_time():
     times = gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz').values.astype('datetime64[us]').astype(datetime)
 
-    assert times[0] == datetime(2018,4,24,8)
-    assert times[-1] == datetime(2018,6,20,22)
+    assert times[0] == datetime(2018, 4, 24, 8)
+    assert times[-1] == datetime(2018, 6, 20, 22)
 
 
 def test_tlim():
@@ -37,9 +38,93 @@ def test_qzss():
     assert nav.equals(truth)
 
 
-def test_mixed():
-    pytest.importorskip('netCDF4')
+def test_large_galileo():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn, use='E')
 
+    assert nav.svtype[0] == 'E' and len(nav.svtype) == 1
+
+    E05 = nav.sel(sv='E05').dropna(how='all', dim='time').to_dataframe()
+    assert E05.shape[0] == 45  # manually counted from file
+    assert E05.shape[1] == 28  # by Galileo NAV3 def'n
+
+    assert E05.notnull().all().all()
+
+
+def test_large_beidou():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn, use='C')
+
+    assert nav.svtype[0] == 'C' and len(nav.svtype) == 1
+
+    C05 = nav.sel(sv='C05').dropna(how='all', dim='time').to_dataframe()
+    assert C05.shape[0] == 25  # manually counted from file
+    assert C05.shape[1] == 29  # by Beidou NAV3 def'n
+
+    assert C05.notnull().all().all()
+
+
+def test_large_gps():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn, use='G')
+
+    assert nav.svtype[0] == 'G' and len(nav.svtype) == 1
+
+    G05 = nav.sel(sv='G05').dropna(how='all', dim='time').to_dataframe()
+    assert G05.shape[0] == 7  # manually counted from file
+    assert G05.shape[1] == 30  # by GPS NAV3 def'n
+
+    assert G05.notnull().all().all()
+
+
+def test_large_sbas():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn, use='S')
+
+    assert nav.svtype[0] == 'S' and len(nav.svtype) == 1
+
+    S36 = nav.sel(sv='S36').dropna(how='all', dim='time').to_dataframe()
+    assert S36.shape[0] == 542  # manually counted from file
+    assert S36.shape[1] == 16  # by SBAS NAV3 def'n
+
+    assert S36.notnull().all().all()
+
+
+def test_large_glonass():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn, use='R')
+
+    assert nav.svtype[0] == 'R' and len(nav.svtype) == 1
+
+    R05 = nav.sel(sv='R05').dropna(how='all', dim='time').to_dataframe()
+    assert R05.shape[0] == 19  # manually counted from file
+    assert R05.shape[1] == 16  # by GLONASS NAV3 def'n
+
+    assert R05.notnull().all().all()
+
+
+def test_large():
+    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
+    nav = gr.rinexnav(fn)
+    assert sorted(nav.svtype) == ['C', 'E', 'G', 'R', 'S']
+
+    C05 = nav.sel(sv='C05').dropna(how='all', dim='time').to_dataframe()
+    assert C05.shape[0] == 25  # manually counted from file
+
+    E05 = nav.sel(sv='E05').dropna(how='all', dim='time').to_dataframe()
+    assert E05.shape[0] == 45  # manually counted from file
+
+    G05 = nav.sel(sv='G05').dropna(how='all', dim='time').to_dataframe()
+    assert G05.shape[0] == 7  # manually counted from file
+
+    R05 = nav.sel(sv='R05').dropna(how='all', dim='time').to_dataframe()
+    assert R05.shape[0] == 19
+
+    S36 = nav.sel(sv='S36').dropna(how='all', dim='time').to_dataframe()
+    assert S36.shape[0] == 542  # manually counted from file
+
+
+def test_mixed():
     fn = R/'ELKO00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.rinexnav(fn,
                       tlim=(datetime(2018, 7, 28, 21),

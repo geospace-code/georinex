@@ -6,14 +6,16 @@ import numpy as np
 from io import BytesIO
 from datetime import datetime
 from .io import opener, rinexinfo
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Union
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
 
 
-def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
+def rinexnav3(fn: Path,
+              use: Union[str, list, tuple]=None,
+              tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """
     Reads RINEX 3.x NAV files
     Michael Hirsch, Ph.D.
@@ -47,9 +49,13 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
                     continue
                 # not break due to non-monotonic NAV files
 
+            sv = line[:3]
+            if use is not None and not sv[0] in use:
+                _skip(f, Nl[sv[0]])
+                continue
+
             times.append(time)
 # %% SV types
-            sv = line[:3]
             field = _newnav(line, sv)
 
             if len(svtypes) == 0:

@@ -55,7 +55,7 @@ def test_multi_system():
     ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     use = ('G', 'R')
 
     obs = gr.rinexobs(R/'demo3.10o', use=use)

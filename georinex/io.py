@@ -49,12 +49,11 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
     try:
         line = f.readline()
 
-
         info = {'version': float(line[:9]),  # yes :9
                 'filetype': line[20],
                 'systems': line[40]}
 
-        if info['filetype'] == 'N' and int(info['version'])==2 and info['systems'] == ' ':
+        if info['filetype'] == 'N' and int(info['version']) == 2 and info['systems'] == ' ':
             info['systems'] = 'G'
 
     except (ValueError, UnicodeDecodeError) as e:

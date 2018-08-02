@@ -11,8 +11,8 @@ R = Path(__file__).parent
 def test_time():
     times = gr.gettime(R/'ab422100.18n.Z').values.astype('datetime64[us]').astype(datetime)
 
-    assert times[0] == datetime(2018,7,29,1,59,44)
-    assert times[-1] == datetime(2018,7,30)
+    assert times[0] == datetime(2018, 7, 29, 1, 59, 44)
+    assert times[-1] == datetime(2018, 7, 30)
 
 
 def test_mangled():

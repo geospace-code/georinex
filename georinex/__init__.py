@@ -43,7 +43,9 @@ def readrinex(rinexfn: Path, outfn: Path=None,
 # %% Navigation file
 
 
-def rinexnav(fn: Path, ofn: Path=None, group: str='NAV',
+def rinexnav(fn: Path, ofn: Path=None,
+             use: Union[str, list, tuple]=None,
+             group: str='NAV',
              tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """ Read RINEX 2 or 3  NAV files"""
     fn = Path(fn).expanduser()
@@ -58,9 +60,9 @@ def rinexnav(fn: Path, ofn: Path=None, group: str='NAV',
 
     info = rinexinfo(fn)
     if int(info['version']) == 2:
-        nav = rinexnav2(fn, tlim)
+        nav = rinexnav2(fn, tlim=tlim)
     elif int(info['version']) == 3:
-        nav = rinexnav3(fn, tlim)
+        nav = rinexnav3(fn, use=use, tlim=tlim)
     else:
         raise ValueError(f'unknown RINEX  {info}  {fn}')
 
@@ -127,7 +129,7 @@ def gettime(fn: Path) -> xarray.DataArray:
     fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
-    assert int(info['version']) in (2,3)
+    assert int(info['version']) in (2, 3)
 
     rtype = rinextype(fn)
 
