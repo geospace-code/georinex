@@ -87,12 +87,12 @@ obs,nav = gr.readrinex('tests/demo.10o')
 
 
 ### read times in OBS, NAV file(s)
-Print start, stop times and measurement interval in an OBS file:
+Print start, stop times and measurement interval in a RINEX OBS or NAV file:
 ```sh
 TimeRinex ~/my.rnx
 ```
 
-Print start, stop times and measurement interval for all OBS files in a directory:
+Print start, stop times and measurement interval for all files in a directory:
 ```sh
 TimeRinex ~/data *.rnx
 ```
