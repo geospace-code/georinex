@@ -27,8 +27,8 @@ def rinexobs2(fn: Path, use: Any,
 
     with opener(fn) as f:
         # Capture header info
-        header = obsheader2(f)
-        Nobs = header['Nobs']
+        hdr = obsheader2(f)
+        Nobs = hdr['Nobs']
 # %% process data
         data: xarray.Dataset = None
 
@@ -90,7 +90,7 @@ def rinexobs2(fn: Path, use: Any,
 # % select only "used" satellites
             garr = darr[iuse, :]
             dsf: Dict[str, tuple] = {}
-            for i, k in enumerate(header['fields']):
+            for i, k in enumerate(hdr['fields']):
                 dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
                 if useindicators:
                     dsf = _indicators(dsf, k, garr[:, i*3+1:i*3+3])
@@ -103,8 +103,8 @@ def rinexobs2(fn: Path, use: Any,
                                      dim='time')
 
         data.attrs['filename'] = fn.name
-        data.attrs['version'] = header['version']
-        data.attrs['position'] = header['position']
+        data.attrs['version'] = hdr['version']
+        data.attrs['position'] = hdr['position']
 
         return data
 
@@ -150,6 +150,7 @@ def obsheader2(f: TextIO) -> Dict[str, Any]:
                 raise ValueError(f'not sure what {c} is')
 # %% useful values
     header['version'] = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
+    header['systems'] = header['RINEX VERSION / TYPE'][40]
     header['Nobs'] = Nobs
     # list with x,y,z cartesian
     header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]

@@ -232,7 +232,7 @@ def navtime3(fn: Path) -> xarray.DataArray:
 
         for line in f:
             times.append(_time(line))
-            _skip(f, Nl[line[0]])
+            _skip(f, Nl[line[0]])  # different system types skip different line counts
 
     times = np.unique(times)
 

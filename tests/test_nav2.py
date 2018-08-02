@@ -8,6 +8,13 @@ import georinex as gr
 R = Path(__file__).parent
 
 
+def test_time():
+    times = gr.gettime(R/'ab422100.18n.Z').values.astype('datetime64[us]').astype(datetime)
+
+    assert times[0] == datetime(2018,7,29,1,59,44)
+    assert times[-1] == datetime(2018,7,30)
+
+
 def test_mangled():
     fn = R/'14601736.18n'
 
@@ -32,9 +39,9 @@ def test_tlim():
     assert times == datetime(2018, 7, 29, 23, 45)
 
 
-def test_nav2():
+def test_gps():
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo.10n')
 

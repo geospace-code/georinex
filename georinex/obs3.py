@@ -35,8 +35,7 @@ def rinexobs3(fn: Path, use: Any,
         assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
 # %% loop
     with opener(fn) as f:
-        version = float(f.readline()[:9])  # yes :9
-        header = obsheader3(f, use)
+        hdr = obsheader3(f, use)
 # %% process OBS file
         for ln in f:
             if not ln.startswith('>'):  # end of file
@@ -67,11 +66,11 @@ def rinexobs3(fn: Path, use: Any,
             if verbose:
                 print(time, end="\r")
 
-            data = _eachtime(data, raw, header, time, sv, useindicators, verbose)
+            data = _eachtime(data, raw, hdr, time, sv, useindicators, verbose)
 
     data.attrs['filename'] = fn.name
-    data.attrs['version'] = version
-    data.attrs['position'] = header['position']
+    data.attrs['version'] = hdr['version']
+    data.attrs['position'] = hdr['position']
     # data.attrs['toffset'] = toffset
 
     return data
@@ -161,7 +160,6 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 
 def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
     """ get RINEX 3 OBS types, for each system type"""
-    header: Dict[str, Any] = {}
     fields = {}
     Fmax = 0
 
@@ -169,7 +167,11 @@ def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
         fn = f
         with opener(fn) as f:
             return obsheader3(f)
-    # Capture header info
+# %% first line
+    ln = f.readline()
+    header = {'version': float(ln[:9]), # yes :9
+              'systems': ln[40],
+             }
     for ln in f:
         if "END OF HEADER" in ln:
             break

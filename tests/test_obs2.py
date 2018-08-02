@@ -2,7 +2,6 @@
 import pytest
 import xarray
 import tempfile
-from numpy.testing import assert_allclose
 from pathlib import Path
 import georinex as gr
 from datetime import datetime
@@ -21,6 +20,8 @@ def test_mangled():
 
 
 def test_Z_lzw():
+    pytest.importorskip('unlzw')
+
     fn = R/'ac660270.18o.Z'
 
     obs = gr.rinexobs(fn)
@@ -31,6 +32,8 @@ def test_Z_lzw():
 
 
 def test_tlim():
+    pytest.importorskip('unlzw')
+
     obs = gr.rinexobs(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
@@ -58,7 +61,7 @@ def test_all_systems():
     ./ReadRinex.py -q tests/demo.10n -o r2all.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
 # %% test reading all satellites
     for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
@@ -66,7 +69,7 @@ def test_all_systems():
         obs = gr.rinexobs(R/'demo.10o', use=u)
         assert obs.equals(truth)
 
-    assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
+    assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
 # %% test read .nc
     obs = gr.rinexobs(R / 'r2all.nc')
     assert obs.equals(truth)
@@ -79,7 +82,7 @@ def test_one_system():
     """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
@@ -103,7 +106,7 @@ def tests_all_indicators():
     ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all_indicators.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     obs = gr.rinexobs(R/'demo.10o', useindicators=True)
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 

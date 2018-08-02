@@ -10,6 +10,7 @@ from io import BytesIO
 from .io import opener, rinexinfo
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
+Nl = {'G': 7, 'R': 3}   # number of additional SV lines
 
 
 def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
@@ -166,15 +167,18 @@ def _timenav(ln: str) -> datetime:
                     )
 
 
+def _skip(f: TextIO, Nl: int):
+    for _, _ in zip(range(Nl), f):
+        pass
+
+
 def navtime2(fn: Path) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
     times = []
     with opener(fn) as f:
-        # Capture header info
-        header = navheader2(f)
-        Nobs = header['Nobs']
+        hdr = navheader2(f)
 
         while True:
             ln = f.readline()
@@ -183,11 +187,13 @@ def navtime2(fn: Path) -> xarray.DataArray:
 
             times.append(_timenav(ln))
 
-            _skip(f, ln, Nobs)
+            _skip(f, Nl[hdr['systems']])
+
+    times = np.unique(times)
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
                                attrs={'filename': fn,
-                                      'interval': header['interval']})
+                                      'interval': ''})
 
     return timedat

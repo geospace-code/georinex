@@ -7,6 +7,12 @@ from datetime import datetime
 #
 R = Path(__file__).parent
 
+def test_time():
+    times = gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz').values.astype('datetime64[us]').astype(datetime)
+
+    assert times[0] == datetime(2018,4,24,8)
+    assert times[-1] == datetime(2018,6,20,22)
+
 
 def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
@@ -33,7 +39,7 @@ def test_qzss():
 
 def test_mixed():
     pytest.importorskip('netCDF4')
-    
+
     fn = R/'ELKO00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.rinexnav(fn,
                       tlim=(datetime(2018, 7, 28, 21),
@@ -69,7 +75,7 @@ def test_sbas():
     """./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo3.10n')
 
@@ -80,7 +86,7 @@ def test_gps():
     """./ReadRinex.py -q tests/demo.17n -o r3gps.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r3gps.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo.17n')
 
@@ -92,7 +98,7 @@ def test_galileo():
     ./ReadRinex.py -q tests/galileo3.15n -o r3galileo.nc
     """
     pytest.importorskip('netCDF4')
-    
+
     truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'galileo3.15n')
 
