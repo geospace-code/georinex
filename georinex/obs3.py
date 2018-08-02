@@ -29,7 +29,7 @@ def rinexobs3(fn: Path, use: Any,
 
         use = None
 # %% allocate
-    # times = gettime3(fn)
+    # times = obstime3(fn)
     data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
     if tlim is not None:
         assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
@@ -91,7 +91,7 @@ def _timeobs(ln: str, fn: Path) -> datetime:
                     microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
 
-def gettime3(fn: Path) -> xarray.DataArray:
+def obstime3(fn: Path) -> xarray.DataArray:
     """
     return all times in RINEX file
     """

@@ -4,10 +4,6 @@ import xarray
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
-try:
-    import netCDF4
-except ImportError:
-    netCDF4 = None
 #
 R = Path(__file__).parent
 
@@ -36,8 +32,9 @@ def test_tlim():
     assert times == datetime(2018, 7, 29, 23, 45)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_nav2():
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo.10n')
 

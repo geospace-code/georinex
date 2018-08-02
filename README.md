@@ -85,6 +85,24 @@ file:
 obs,nav = gr.readrinex('tests/demo.10o')
 ```
 
+
+### read times in OBS, NAV file(s)
+Print start, stop times and measurement interval in an OBS file:
+```sh
+TimeRinex ~/my.rnx
+```
+
+Print start, stop times and measurement interval for all OBS files in a directory:
+```sh
+TimeRinex ~/data *.rnx
+```
+
+Get `xarray.DataArray` of times in RINEX file:
+```python
+times = gr.gettimes('~/my.rnx')
+```
+
+
 ### read Obs
 
 If you desire to specifically read a RINEX 2 or 3 OBS file:
@@ -105,21 +123,6 @@ only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
-#### read times in OBS file(s)
-Print start, stop times and measurement interval in an OBS file:
-```sh
-TimeRinex ~/my.rnx
-```
-
-Print start, stop times and measurement interval for all OBS files in a directory:
-```sh
-TimeRinex ~/data *.rnx
-```
-
-Get `xarray.DataArray` of times in RINEX file:
-```python
-times = gr.gettimes('~/my.rnx')
-```
 
 
 

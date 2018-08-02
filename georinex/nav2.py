@@ -164,3 +164,30 @@ def _timenav(ln: str) -> datetime:
                     second=int(float(ln[17:20])),
                     microsecond=int(float(ln[17:22]) % 1 * 1000000)
                     )
+
+
+def navtime2(fn: Path) -> xarray.DataArray:
+    """
+    read all times in RINEX2 OBS file
+    """
+    times = []
+    with opener(fn) as f:
+        # Capture header info
+        header = navheader2(f)
+        Nobs = header['Nobs']
+
+        while True:
+            ln = f.readline()
+            if not ln:
+                break
+
+            times.append(_timenav(ln))
+
+            _skip(f, ln, Nobs)
+
+    timedat = xarray.DataArray(times,
+                               dims=['time'],
+                               attrs={'filename': fn,
+                                      'interval': header['interval']})
+
+    return timedat

@@ -5,10 +5,6 @@ from pathlib import Path
 from datetime import datetime
 import georinex as gr
 from numpy.testing import assert_allclose
-try:
-    import netCDF4
-except ImportError:
-    netCDF4 = None
 #
 R = Path(__file__).parent
 
@@ -39,11 +35,11 @@ def test_tlim():
                       datetime(2018, 7, 29, 1, 17, 45), datetime(2018, 7, 29, 1, 18)]).all()
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_one_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
     """
+    pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r3G.nc', group='OBS', autoclose=True)
 
@@ -54,11 +50,12 @@ def test_one_system():
     assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_multi_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
     """
+    pytest.importorskip('netCDF4')
+    
     use = ('G', 'R')
 
     obs = gr.rinexobs(R/'demo3.10o', use=use)
@@ -67,11 +64,11 @@ def test_multi_system():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_all_system():
     """
     ./ReadRinex.py -q tests/demo3.10o -o r3all.nc
     """
+    pytest.importorskip('netCDF4')
 
     obs = gr.rinexobs(R/'demo3.10o')
     truth = gr.rinexobs(R/'r3all.nc', group='OBS')
@@ -79,11 +76,11 @@ def test_all_system():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def tests_all_indicators():
     """
     ./ReadRinex.py -q tests/demo3.10o -useindicators -o r3all_indicators.nc
     """
+    pytest.importorskip('netCDF4')
 
     obs = gr.rinexobs(R/'demo3.10o', useindicators=True)
     truth = gr.rinexobs(R/'r3all_indicators.nc', group='OBS')

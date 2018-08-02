@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple, Any
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
+Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
 
 
 def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
@@ -22,7 +23,6 @@ def rinexnav3(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
     Lf = 19  # string length per field
-    Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
 
     fn = Path(fn).expanduser()
 
@@ -219,3 +219,26 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
         hdr[ln[60:]] = ln[:60]
 
     return hdr
+
+
+def navtime3(fn: Path) -> xarray.DataArray:
+    """
+    return all times in RINEX file
+    """
+    times = []
+
+    with opener(fn) as f:
+        navheader3(f)  # skip header
+
+        for line in f:
+            times.append(_time(line))
+            _skip(f, Nl[line[0]])
+
+    times = np.unique(times)
+
+    timedat = xarray.DataArray(times,
+                               dims=['time'],
+                               attrs={'filename': fn,
+                                      'interval': ''})
+
+    return timedat

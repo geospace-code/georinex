@@ -6,10 +6,10 @@ from datetime import datetime
 from dateutil.parser import parse
 #
 from .io import rinexinfo
-from .obs2 import rinexobs2, obsheader2, gettime2
-from .obs3 import rinexobs3, obsheader3, gettime3
-from .nav2 import rinexnav2, navheader2
-from .nav3 import rinexnav3, navheader3
+from .obs2 import rinexobs2, obsheader2, obstime2
+from .obs3 import rinexobs3, obsheader3, obstime3
+from .nav2 import rinexnav2, navheader2, navtime2
+from .nav3 import rinexnav3, navheader3, navtime3
 
 # for NetCDF compression. too high slows down with little space savings.
 COMPLVL = 1
@@ -127,13 +127,23 @@ def gettime(fn: Path) -> xarray.DataArray:
     fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
-    if rinextype(fn) != 'obs':
-        raise ValueError('per-observation time is in OBS files')
+    assert int(info['version']) in (2,3)
+
+    rtype = rinextype(fn)
+
+    if rtype not in ('nav', 'obs'):
+        raise NotImplementedError('per-observation time is in NAV, OBS files')
 # %% select function
-    if int(info['version']) == 2:
-        times = gettime2(fn)
-    elif int(info['version']) == 3:
-        times = gettime3(fn)
+    if rtype == 'obs':
+        if int(info['version']) == 2:
+            times = obstime2(fn)
+        elif int(info['version']) == 3:
+            times = obstime3(fn)
+    elif rtype == 'nav':
+        if int(info['version']) == 2:
+            times = navtime2(fn)
+        elif int(info['version']) == 3:
+            times = navtime3(fn)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 

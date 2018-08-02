@@ -6,10 +6,6 @@ from numpy.testing import assert_allclose
 from pathlib import Path
 import georinex as gr
 from datetime import datetime
-try:
-    import netCDF4
-except ImportError:
-    netCDF4 = None
 #
 R = Path(__file__).parent
 
@@ -56,12 +52,13 @@ def test_one_sv():
     assert (times == [datetime(2010, 3, 5, 0, 0), datetime(2010, 3, 5, 0, 0, 30)]).all()
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_all_systems():
     """
     ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all.nc
     ./ReadRinex.py -q tests/demo.10n -o r2all.nc
     """
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
 # %% test reading all satellites
     for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
@@ -78,11 +75,11 @@ def test_all_systems():
         obs = gr.rinexobs(R/'demo.10o', ofn=Path(d)/'testout.nc')
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_one_system():
     """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
     """
-
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
@@ -90,10 +87,10 @@ def test_one_system():
         assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_multi_system():
     """./ReadRinex.py -q tests/demo.10o -u G R -o r2GR.nc
     """
+    pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS', autoclose=True)
 
@@ -101,11 +98,12 @@ def test_multi_system():
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def tests_all_indicators():
     """
     ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all_indicators.nc
     """
+    pytest.importorskip('netCDF4')
+    
     obs = gr.rinexobs(R/'demo.10o', useindicators=True)
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 

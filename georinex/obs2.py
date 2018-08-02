@@ -211,7 +211,7 @@ def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     return sv
 
 
-def gettime2(fn: Path) -> xarray.DataArray:
+def obstime2(fn: Path) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """

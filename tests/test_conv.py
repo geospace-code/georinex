@@ -8,25 +8,23 @@ import pytest
 import xarray
 from pathlib import Path
 import georinex as gr
-try:
-    import netCDF4
-except ImportError:
-    netCDF4 = None
-
+#
 R = Path(__file__).parent
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_netcdf_read():
+    pytest.importorskip('netCDF4')
+    
     obs, nav = gr.readrinex(R/'r2all.nc')
     assert isinstance(obs, xarray.Dataset)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_netcdf_write():
     """
     NetCDF4 is fuzzy about filenames, it doesn't like arbitrary tempfile.NamedTemporaryFile names
     """
+    pytest.importorskip('netCDF4')
+
     with tempfile.TemporaryDirectory() as D:
         fn = Path(D)/'rw.nc'
         obs, nav = gr.readrinex(R/'demo.10o', outfn=fn)
@@ -37,16 +35,18 @@ def test_netcdf_write():
         assert obs.equals(wobs)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_obsdata():
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
 
     obs, nav = gr.readrinex(R/'demo.10o')
     assert obs.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_navdata():
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
     obs, nav = gr.readrinex(R/'demo.10n')
 
@@ -76,4 +76,4 @@ def test_navheader():
 
 
 if __name__ == '__main__':
-    pytest.main([__file__])
+    pytest.main(['-x', __file__])

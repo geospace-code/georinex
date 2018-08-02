@@ -4,10 +4,6 @@ import georinex as gr
 import pytest
 import xarray
 from datetime import datetime
-try:
-    import netCDF4
-except ImportError:
-    netCDF4 = None
 #
 R = Path(__file__).parent
 
@@ -35,8 +31,9 @@ def test_qzss():
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_mixed():
+    pytest.importorskip('netCDF4')
+    
     fn = R/'ELKO00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.rinexnav(fn,
                       tlim=(datetime(2018, 7, 28, 21),
@@ -68,31 +65,34 @@ def test_mixed():
     assert E05.time.size == 22  # duplications in file at same time--> take first time
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_sbas():
     """./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
     """
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo3.10n')
 
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_gps():
     """./ReadRinex.py -q tests/demo.17n -o r3gps.nc
     """
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r3gps.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'demo.17n')
 
     assert nav.equals(truth)
 
 
-@pytest.mark.skipif(netCDF4 is None, reason='netCDF4 required')
 def test_galileo():
     """
     ./ReadRinex.py -q tests/galileo3.15n -o r3galileo.nc
     """
+    pytest.importorskip('netCDF4')
+    
     truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV', autoclose=True)
     nav = gr.rinexnav(R/'galileo3.15n')
 
