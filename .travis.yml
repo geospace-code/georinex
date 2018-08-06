@@ -10,36 +10,35 @@ env:
 #  - TRAVIS_PYTHON_VERSION=3.7  FIXME: Netcdf4 wheel linux 
 
 os:
-  - linux
-  - osx
-  
+- linux
+- osx
 
 before_install:
-  - if [[ $TRAVIS_OS_NAME == osx ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then
+  wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+  else
+  wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  fi
 
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH=$HOME/miniconda/bin:$PATH
-  - hash -r
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH=$HOME/miniconda/bin:$PATH
+- hash -r
 
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda create -n test python=$TRAVIS_PYTHON_VERSION
-  - source activate test
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda create -n test python=$TRAVIS_PYTHON_VERSION
+- source activate test
 
 install: pip install -e .[tests,io]
 
 script:
-  - pytest -sv
-  - flake8
-  - mypy . --ignore-missing-imports
+- pytest -xrsv
+- flake8
+- mypy . --ignore-missing-imports
 
 after_success:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux ]]; then
-    pytest --cov;
-    coveralls;
-    fi
+- if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux ]]; then
+  pytest --cov;
+  coveralls;
+  fi
 

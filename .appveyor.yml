@@ -1,20 +1,20 @@
 image:
 - Visual Studio 2017
-- Ubuntu
+# - Ubuntu   # waiting py37 linux netcdf wheel
 
 stack: python 3
 
 environment:
   PY_DIR: C:\Python37-x64
-  
-build: off
 
 clone_depth: 3
+
+build: off
 
 init:
 - cmd: set PATH=%PY_DIR%;%PY_DIR%\Scripts;%PATH%
 
-install:  pip install -e .[tests,io]
-  
-test_script: pytest -xv
+install: pip install -e .[tests,io]
+
+test_script: pytest -xrsv
 
