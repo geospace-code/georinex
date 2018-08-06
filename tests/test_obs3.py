@@ -2,6 +2,7 @@
 import pytest
 from pytest import approx
 import xarray
+import numpy as np
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
@@ -47,6 +48,11 @@ def test_meas():
     S2P = obs['S2P']
     assert S2P.shape == (2, 14)
     assert (S2P.sel(sv='G13') == approx([40., 80.])).all()
+    # satellites that don't have a measurement are NaN
+    # either because they weren't visible at that time
+    # or simply do not make that kind of measurement at all
+    R23 = S2P.sel(sv='R23')
+    assert np.isnan(R23).all()
 # %% measurement not in any system
     obs = gr.rinexobs(fn, meas='nonsense')
     assert 'nonsense' not in obs
