@@ -121,28 +121,30 @@ def obstime3(fn: Path) -> xarray.DataArray:
 
 
 def _eachtime(data: xarray.Dataset, raw: str,
-              header: Dict[str, Any],
+              hdr: Dict[str, Any],
               time: datetime,
               sv: List[str],
               useindicators: bool,
               verbose: bool) -> xarray.Dataset:
 
     darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
-                                       delimiter=(14, 1, 1)*header['Fmax']))
+                                       delimiter=(14, 1, 1) * hdr['Fmax']))
 # %% assign data for each time step
-    for sk in header['fields']:  # for each satellite system type (G,R,S, etc.)
+    for sk in hdr['fields']:  # for each satellite system type (G,R,S, etc.)
         # satellite indices "si" to extract from this time's measurements
         si = [i for i, s in enumerate(sv) if s[0] in sk]
         if len(si) == 0:  # no SV of this system "sk" at this time
             continue
 
         # measurement indices "di" to extract at this time step
-
+        di = hdr['fields_ind'][sk]
         garr = darr[si, :]
+        garr = garr[:, di]
+
         gsv = np.array(sv)[si]
 
         dsf: Dict[str, tuple] = {}
-        for i, k in enumerate(header['fields'][sk]):
+        for i, k in enumerate(hdr['fields'][sk]):
             dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
 
             if useindicators:
@@ -153,10 +155,9 @@ def _eachtime(data: xarray.Dataset, raw: str,
 
         if data is None:
             # , attrs={'toffset':toffset})
-            data = xarray.Dataset(
-                dsf, coords={'time': [time], 'sv': gsv})
+            data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
         else:
-            if len(header['fields']) == 1:  # one satellite system selected, faster to process
+            if len(hdr['fields']) == 1:  # one satellite system selected, faster to process
                 data = xarray.concat((data,
                                       xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})),
                                      dim='time')
@@ -202,6 +203,7 @@ def obsheader3(f: TextIO,
             k = c[0]
             fields[k] = c[6:60].split()
             N = int(c[3:6])
+# %% maximum number of fields in a file, to allow fast Numpy parse.
             Fmax = max(N, Fmax)
 
             n = N-13
@@ -241,11 +243,19 @@ def obsheader3(f: TextIO,
 
     # perhaps this could be done more efficiently, but it's probably low impact on overall program.
     # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
+    sysind = {}
     if meas is not None:
         for sk in fields:  # iterate over each system
-            fields[sk] = np.array(fields[sk])[np.isin(fields[sk], meas)].tolist()
+            ind = np.isin(fields[sk], meas)  # boolean vector
+            fields[sk] = np.array(fields[sk])[ind].tolist()
+            sysind[sk] = np.empty(Fmax*3, dtype=bool)  # *3 due to LLI, SSI
+            for j,i in enumerate(ind):
+                sysind[sk][j*3:j*3+3] = i
+    else:
+        sysind = {k: slice(None) for k in fields}
 
     header['fields'] = fields
+    header['fields_ind'] = sysind
     header['Fmax'] = Fmax
 
     return header

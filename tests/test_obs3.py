@@ -18,24 +18,25 @@ def test_meas():
     for v in ['L1C', 'L2P', 'C1P', 'C2P', 'C1C', 'S1C', 'S1P', 'S2P']:
         assert v in obs
 # %% one measurement
-    obs = gr.rinexobs(fn, meas='L1C')
-    assert 'L2P' not in obs
-
-    L1C = obs['L1C']
-    assert L1C.shape == (2, 14)
-
-    assert (L1C.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
-# %% two measurements
-    obs = gr.rinexobs(fn, meas=['L1C', 'C1C'])
-    assert 'L2P' not in obs
-
-    L1C = obs['L1C']
-    assert L1C.shape == (2, 14)
+    obs = gr.rinexobs(fn, meas='C1C')
+    assert 'L1C' not in obs
 
     C1C = obs['C1C']
     assert C1C.shape == (2, 14)
 
-    assert (C1C.sel(sv='R23') == approx([22600648.288, 22706470.024])).all()
+    assert (C1C.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
+# %% two NON-SEQUENTIAL measurements
+    obs = gr.rinexobs(fn, meas=['L1C', 'S1C'])
+    assert 'L2P' not in obs
+
+    L1C = obs['L1C']
+    assert L1C.shape == (2, 14)
+    assert (L1C.sel(sv='G07')== approx([118767195.32608, 133174968.81808])).all()
+
+    S1C = obs['S1C']
+    assert S1C.shape == (2, 14)
+
+    assert (S1C.sel(sv='R23') == approx([39., 79.])).all()
 
     assert not C1C.equals(L1C)
 
