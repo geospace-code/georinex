@@ -23,6 +23,8 @@ def test_meas():
 
     L1C = obs['L1C']
     assert L1C.shape == (2, 14)
+
+    assert (L1C.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
 # %% two measurements
     obs = gr.rinexobs(fn, meas=['L1C', 'C1C'])
     assert 'L2P' not in obs
@@ -32,6 +34,8 @@ def test_meas():
 
     C1C = obs['C1C']
     assert C1C.shape == (2, 14)
+
+    assert (C1C.sel(sv='R23') == approx([22600648.288, 22706470.024])).all()
 
     assert not C1C.equals(L1C)
 
