@@ -17,6 +17,7 @@ def test_meas():
     obs = gr.rinexobs(fn)
     for v in ['L1C', 'L2P', 'C1P', 'C2P', 'C1C', 'S1C', 'S1P', 'S2P']:
         assert v in obs
+    assert len(obs.data_vars) == 8
 # %% one measurement
     obs = gr.rinexobs(fn, meas='C1C')
     assert 'L1C' not in obs
@@ -31,7 +32,7 @@ def test_meas():
 
     L1C = obs['L1C']
     assert L1C.shape == (2, 14)
-    assert (L1C.sel(sv='G07')== approx([118767195.32608, 133174968.81808])).all()
+    assert (L1C.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
 
     S1C = obs['S1C']
     assert S1C.shape == (2, 14)
@@ -39,6 +40,18 @@ def test_meas():
     assert (S1C.sel(sv='R23') == approx([39., 79.])).all()
 
     assert not C1C.equals(L1C)
+# %% measurement not in some systems
+    obs = gr.rinexobs(fn, meas=['S2P'])
+    assert 'L2P' not in obs
+
+    S2P = obs['S2P']
+    assert S2P.shape == (2, 14)
+    assert (S2P.sel(sv='G13') == approx([40., 80.])).all()
+# %% measurement not in any system
+    obs = gr.rinexobs(fn, meas='nonsense')
+    assert 'nonsense' not in obs
+
+    assert len(obs.data_vars) == 0
 
 
 def test_zip():

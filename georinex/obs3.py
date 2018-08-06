@@ -249,7 +249,7 @@ def obsheader3(f: TextIO,
             ind = np.isin(fields[sk], meas)  # boolean vector
             fields[sk] = np.array(fields[sk])[ind].tolist()
             sysind[sk] = np.empty(Fmax*3, dtype=bool)  # *3 due to LLI, SSI
-            for j,i in enumerate(ind):
+            for j, i in enumerate(ind):
                 sysind[sk][j*3:j*3+3] = i
     else:
         sysind = {k: slice(None) for k in fields}
