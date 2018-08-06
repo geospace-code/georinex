@@ -24,7 +24,7 @@ def test_meas():
     assert 'L1C' not in obs
 
     C1C = obs['C1C']
-    assert C1C.shape == (2, 14)
+    assert C1C.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
 
     assert (C1C.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
 # %% two NON-SEQUENTIAL measurements
