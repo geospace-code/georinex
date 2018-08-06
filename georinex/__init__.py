@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 import xarray
-from typing import Union, Tuple, Dict, Any, Optional
+from typing import Union, Tuple, Dict, Any, Optional, List
 from datetime import datetime
 from dateutil.parser import parse
 #
@@ -16,9 +16,10 @@ COMPLVL = 1
 
 
 def readrinex(rinexfn: Path, outfn: Path=None,
-              use: Union[str, list, tuple]=None,
+              use: List[str]=None,
               tlim: Tuple[datetime, datetime]=None,
               useindicators: bool=False,
+              meas: List[str]=None,
               verbose: bool=True) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
@@ -32,7 +33,9 @@ def readrinex(rinexfn: Path, outfn: Path=None,
     if rtype == 'nav':
         nav = rinexnav(rinexfn, outfn, tlim=tlim)
     elif rtype == 'obs':
-        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim, useindicators=useindicators, verbose=verbose)
+        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim,
+                       useindicators=useindicators, meas=meas,
+                       verbose=verbose)
     elif rtype == 'nc':
         nav = rinexnav(rinexfn)
         obs = rinexobs(rinexfn)
@@ -78,10 +81,11 @@ def rinexnav(fn: Path, ofn: Path=None,
 
 
 def rinexobs(fn: Path, ofn: Path=None,
-             use: Union[str, list, tuple]=None,
+             use: List[str]=None,
              group: str='OBS',
              tlim: Tuple[datetime, datetime]=None,
              useindicators: bool=False,
+             meas: List[str]=None,
              verbose: bool=False) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
@@ -101,9 +105,13 @@ def rinexobs(fn: Path, ofn: Path=None,
     info = rinexinfo(fn)
 
     if int(info['version']) == 2:
-        obs = rinexobs2(fn, use, tlim=tlim, useindicators=useindicators, verbose=verbose)
+        obs = rinexobs2(fn, use, tlim=tlim,
+                        useindicators=useindicators, meas=meas,
+                        verbose=verbose)
     elif int(info['version']) == 3:
-        obs = rinexobs3(fn, use, tlim=tlim, useindicators=useindicators, verbose=verbose)
+        obs = rinexobs3(fn, use, tlim=tlim,
+                        useindicators=useindicators, meas=meas,
+                        verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 # %% optional output write

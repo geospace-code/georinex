@@ -9,6 +9,33 @@ import georinex as gr
 R = Path(__file__).parent
 
 
+def test_meas():
+    """
+    test specifying specific measurements (usually only a few of the thirty or so are needed)
+    """
+    fn = R/'demo3.10o'
+    obs = gr.rinexobs(fn)
+    for v in ['L1C','L2P','C1P','C2P','C1C','S1C','S1P','S2P']:
+        assert v in obs
+# %% one measurement
+    obs = gr.rinexobs(fn, meas='L1C')
+    assert 'L2P' not in obs
+
+    L1C = obs['L1C']
+    assert L1C.shape == (2,14)
+# %% two measurements
+    obs = gr.rinexobs(fn, meas=['L1C', 'C1C'])
+    assert 'L2P' not in obs
+
+    L1C = obs['L1C']
+    assert L1C.shape == (2,14)
+
+    C1C = obs['C1C']
+    assert C1C.shape == (2,14)
+
+    assert not C1C.equals(L1C)
+
+
 def test_zip():
     fn = R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip'
     obs = gr.rinexobs(fn)

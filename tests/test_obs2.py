@@ -64,7 +64,7 @@ def test_all_systems():
 
     truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
 # %% test reading all satellites
-    for u in (None, 'm', 'all', ' ', '', ['G', 'R', 'S']):
+    for u in (None, ' ', '', ['G', 'R', 'S']):
         print('use', u)
         obs = gr.rinexobs(R/'demo.10o', use=u)
         assert obs.equals(truth)

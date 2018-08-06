@@ -6,25 +6,36 @@ from math import ceil
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Union, List, Any, Dict, Tuple, Optional
+from typing import Union, List, Any, Dict, Tuple
 from typing.io import TextIO
 
 
-def rinexobs2(fn: Path, use: Any,
-              tlim: Optional[Tuple[datetime, datetime]],
-              useindicators: bool,
+def rinexobs2(fn: Path,
+              use: List[str]=None,
+              tlim: Tuple[datetime, datetime]=None,
+              useindicators: bool=False,
+              meas: List[str]=None,
               verbose: bool=False) -> xarray.Dataset:
     """
      procss RINEX OBS data
+    use: 'G'  or ['G', 'R'] or similar
+    meas:  'L1C'  or  ['L1C', 'C1C'] or similar
     """
     Lf = 14
+# %% selection
+    if isinstance(use, str):
+        use = [use]
 
-    if (not use or not use[0].strip() or
-        isinstance(use, str) and use.lower() in ('m', 'all') or
-            isinstance(use, (tuple, list, np.ndarray)) and use[0].lower() in ('m', 'all')):
+    if isinstance(meas, str):
+        meas = [meas]
 
+    if not use or not use[0].strip():
         use = None
 
+    if not meas or not meas[0].strip():
+        meas = None
+
+# %% start reading
     with opener(fn) as f:
         # Capture header info
         hdr = obsheader2(f)

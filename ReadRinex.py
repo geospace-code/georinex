@@ -5,7 +5,12 @@ Returns data as xarray.Dataset, think of it like an N-dimensional Numpy NDarray 
 very fancy indexing methods.
 Xarray can be thought of as an analytically-tuned Pandas.
 
-The RINEX version is automatically detected.  GZIP .gz files can be read directly as well.
+The RINEX version is automatically detected.
+Compressed RINEX files including:
+    * GZIP .gz
+    * ZIP .zip
+    * LZW .Z
+are handled seamlessly via TextIO stream.
 
 Examples:
 
@@ -31,6 +36,7 @@ def main():
     p.add_argument('-q', '--quiet',
                    help='do not generate plots or print unneeded text (for HPC/cloud)', action='store_true')
     p.add_argument('-u', '--use', help='select which GNSS system(s) to use', nargs='+')
+    p.add_argument('-m', '--meas', help='select which GNSS measurement(s) to use', nargs='+')
     p.add_argument('-t', '--tlim', help='specify time limits (process part of file)', nargs=2)
     p.add_argument('-useindicators', help='use SSI, LLI indicators (signal, loss of lock)', action='store_true')
     P = p.parse_args()
@@ -41,13 +47,13 @@ def main():
 
     if fn.is_file():
         obs, nav = gr.readrinex(P.rinexfn, P.outfn, use=P.use, tlim=P.tlim,
-                                useindicators=P.useindicators, verbose=verbose)
+                                useindicators=P.useindicators, meas=P.meas, verbose=verbose)
     elif fn.is_dir():
         flist = [f for f in fn.glob(P.glob) if f.is_file()]
         for f in flist:
             try:
                 obs, nav = gr.readrinex(f, P.outfn, use=P.use, tlim=P.tlim,
-                                        useindicators=P.useindicators, verbose=verbose)
+                                        useindicators=P.useindicators, meas=P.meas, verbose=verbose)
             except Exception as e:
                 print(f'{f.name}: {e}')
                 continue

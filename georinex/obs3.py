@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Union, Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any
 from typing.io import TextIO
 #
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
@@ -15,19 +15,29 @@ QZSS = 192
 BEIDOU = 0
 
 
-def rinexobs3(fn: Path, use: Any,
-              tlim: Optional[Tuple[datetime, datetime]],
-              useindicators: bool,
+def rinexobs3(fn: Path,
+              use: List[str]=None,
+              tlim: Tuple[datetime, datetime]=None,
+              useindicators: bool=False,
+              meas: List[str]=None,
               verbose: bool=False) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
+
+    use: 'G'  or ['G', 'R'] or similar
+    meas:  'L1C'  or  ['L1C', 'C1C'] or similar
     """
+    if isinstance(use, str):
+        use = [use]
 
-    if (not use or not use[0].strip() or
-        isinstance(use, str) and use.lower() in ('m', 'all') or
-            isinstance(use, (tuple, list, np.ndarray)) and use[0].lower() in ('m', 'all')):
+    if isinstance(meas, str):
+        meas = [meas]
 
+    if not use or not use[0].strip():
         use = None
+
+    if not meas or not meas[0].strip():
+        meas = None
 # %% allocate
     # times = obstime3(fn)
     data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
@@ -35,7 +45,7 @@ def rinexobs3(fn: Path, use: Any,
         assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
 # %% loop
     with opener(fn) as f:
-        hdr = obsheader3(f, use)
+        hdr = obsheader3(f, use, meas)
 # %% process OBS file
         for ln in f:
             if not ln.startswith('>'):  # end of file
@@ -110,15 +120,23 @@ def obstime3(fn: Path) -> xarray.DataArray:
     return timedat
 
 
-def _eachtime(data: xarray.Dataset, raw: str, header: dict, time: datetime, sv: List[str],
-              useindicators: bool, verbose: bool) -> xarray.Dataset:
+def _eachtime(data: xarray.Dataset, raw: str,
+              header: Dict[str, Any],
+              time: datetime,
+              sv: List[str],
+              useindicators: bool,
+              verbose: bool) -> xarray.Dataset:
+
     darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
                                        delimiter=(14, 1, 1)*header['Fmax']))
 # %% assign data for each time step
     for sk in header['fields']:  # for each satellite system type (G,R,S, etc.)
+        # satellite indices "si" to extract from this time's measurements
         si = [i for i, s in enumerate(sv) if s[0] in sk]
         if len(si) == 0:  # no SV of this system "sk" at this time
             continue
+
+        # measurement indices "di" to extract at this time step
 
         garr = darr[si, :]
         gsv = np.array(sv)[si]
@@ -138,7 +156,7 @@ def _eachtime(data: xarray.Dataset, raw: str, header: dict, time: datetime, sv: 
             data = xarray.Dataset(
                 dsf, coords={'time': [time], 'sv': gsv})
         else:
-            if len(header['fields']) == 1:
+            if len(header['fields']) == 1:  # one satellite system selected, faster to process
                 data = xarray.concat((data,
                                       xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})),
                                      dim='time')
@@ -158,7 +176,9 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
     return d
 
 
-def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
+def obsheader3(f: TextIO,
+               use: List[str]=None,
+               meas: List[str]=None) -> Dict[str, Any]:
     """ get RINEX 3 OBS types, for each system type"""
     fields = {}
     Fmax = 0
@@ -218,6 +238,12 @@ def obsheader3(f: TextIO, use: Union[str, list, tuple]= None) -> Dict[str, Any]:
 # %% select specific satellite systems only (optional)
     if use is not None:
         fields = {k: fields[k] for k in use}
+
+    # perhaps this could be done more efficiently, but it's probably low impact on overall program.
+    # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
+    if meas is not None:
+        for sk in fields:  # iterate over each system
+            fields[sk] = np.array(fields[sk])[np.isin(fields[sk], meas)].tolist()
 
     header['fields'] = fields
     header['Fmax'] = Fmax
