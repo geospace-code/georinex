@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import pytest
+from pytest import approx
 import xarray
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
-from numpy.testing import assert_allclose
 #
 R = Path(__file__).parent
 
@@ -47,7 +47,7 @@ def test_one_system():
         obs = gr.rinexobs(R/'demo3.10o', use=u)
         assert obs.equals(truth)
 
-    assert_allclose(obs.position, [4789028.4701, 176610.0133, 4195017.031])
+    assert obs.position == approx([4789028.4701, 176610.0133, 4195017.031])
 
 
 def test_multi_system():
