@@ -145,7 +145,7 @@ def obsheader2(f: TextIO,
             return obsheader2(f)
 
     header: Dict[str, Any] = {}
-    Nobs = None
+    Nobs = 0
 
     for l in f:
         if "END OF HEADER" in l:
@@ -154,7 +154,7 @@ def obsheader2(f: TextIO,
         h = l[60:80].strip()
         c = l[:60]
         if '# / TYPES OF OBSERV' in h:
-            if Nobs is None:
+            if Nobs == 0:
                 Nobs = int(c[:6])
                 c = c[6:].split()
 
