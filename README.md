@@ -16,6 +16,9 @@ for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
 GeoRinex works in Python &ge; 3.6.
 
+Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 500x faster performance than this Python program.
+However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4, where ease of cross-platform install and correctness are primary goals.
+
 ![RINEX plot](tests/example_plot.png)
 
 
@@ -252,6 +255,18 @@ time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
 
 > real 17.6 s
 
+### Profiling
+using
+```sh
+conda install line_profiler
+```
+and `ipython`:
+```ipython
+%load_ext line_profiler
+
+%lprun -f gr.obs3._eachtime gr.load('tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', use='E', meas='C1C')
+```
+shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xarray.concat` and xarray.Dataset` nested inside `concat` takes over 60% of time.
 
 ## Notes
 
