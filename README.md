@@ -238,6 +238,21 @@ Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will res
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 [Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).
 
+## Benchmarks
+Done on 5 year old Haswell laptop:
+```sh
+time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
+```
+
+> real 48.6 s
+
+```sh
+time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
+```
+
+> real 17.6 s
+
+
 ## Notes
 
 RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)

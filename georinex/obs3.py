@@ -63,8 +63,7 @@ def rinexobs3(fn: Path,
             sv = []
             raw = ''
             for i, ln in zip(range(Nsv), f):
-                k = ln[:3].replace(' ', '0')
-                sv.append(k)
+                sv.append(ln[:3].replace(' ', '0'))
                 raw += ln[3:]
 
             if tlim is not None:
