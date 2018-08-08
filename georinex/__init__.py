@@ -15,12 +15,12 @@ from .nav3 import rinexnav3, navheader3, navtime3
 COMPLVL = 1
 
 
-def readrinex(rinexfn: Path, outfn: Path=None,
-              use: List[str]=None,
-              tlim: Tuple[datetime, datetime]=None,
-              useindicators: bool=False,
-              meas: List[str]=None,
-              verbose: bool=True) -> xarray.Dataset:
+def load(rinexfn: Path, outfn: Path=None,
+         use: List[str]=None,
+         tlim: Tuple[datetime, datetime]=None,
+         useindicators: bool=False,
+         meas: List[str]=None,
+         verbose: bool=True) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
     """
@@ -42,8 +42,15 @@ def readrinex(rinexfn: Path, outfn: Path=None,
     else:
         raise ValueError(f"I dont know what type of file you're trying to read: {rinexfn}")
 
-    return obs, nav
-# %% Navigation file
+    if nav is None:
+        return obs
+    elif obs is None:
+        return nav
+    else:
+        return obs, nav
+
+
+readrinex = load  # legacy
 
 
 def rinexnav(fn: Path, ofn: Path=None,

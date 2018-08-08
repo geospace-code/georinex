@@ -82,7 +82,7 @@ This convenience function reads any possible RINEX 2/3 OBS/NAV or .nc
 file:
 
 ```python
-obs,nav = gr.readrinex('tests/demo.10o')
+obs = gr.load('tests/demo.10o')
 ```
 
 
@@ -108,7 +108,7 @@ times = gr.gettimes('~/my.rnx')
 If you desire to specifically read a RINEX 2 or 3 OBS file:
 
 ```python
-obs = gr.rinexobs('tests/demo_MO.rnx')
+obs = gr.load('tests/demo_MO.rnx')
 ```
 
 This returns an
@@ -160,7 +160,7 @@ obs['L1'].dropna(dim='time',how='all')
 Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
 ```python
 import georinex as gr
-obs = gr.rinexobs('myfile.o', use='E')
+obs = gr.load('myfile.o', use='E')
 ```
 would load only Galileo data by the parameter E.
 `ReadRinex` allow this to be specified as the -use command line parameter.
@@ -191,7 +191,7 @@ obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 
 If you desire to specifically read a RINEX 2 or 3 NAV file:
 ```python
-nav = gr.rinexnav('tests/demo_MN.rnx')
+nav = gr.load('tests/demo_MN.rnx')
 ```
 
 This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.

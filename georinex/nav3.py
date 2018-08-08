@@ -49,7 +49,7 @@ def rinexnav3(fn: Path,
                     continue
                 # not break due to non-monotonic NAV files
 
-            sv = line[:3]
+            sv = line[:3].replace(' ', '0')
             if use is not None and not sv[0] in use:
                 _skip(f, Nl[sv[0]])
                 continue
@@ -132,6 +132,7 @@ def rinexnav3(fn: Path,
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes
+    nav.attrs['rinextype'] = 'nav'
 
     return nav
 

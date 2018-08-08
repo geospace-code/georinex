@@ -1,6 +1,9 @@
 import xarray
 import logging
-from matplotlib.pyplot import figure
+try:
+    from matplotlib.pyplot import figure
+except ImportError:
+    figure = None
 try:
     import cartopy
     import cartopy.feature as cpf
@@ -14,8 +17,22 @@ except ImportError:
 from .keplerian import keplerian2ecef
 
 
-def plotnav(nav: xarray.Dataset):
-    if nav is None or pm is None:
+def timeseries(data: xarray.Dataset):
+    if not isinstance(data, xarray.Dataset) or figure is None:
+        return
+
+    if isinstance(data, tuple):
+        obs, nav = data
+        obstimeseries(obs)
+        navtimeseries(nav)
+    elif data.rinextype == 'obs':
+        obstimeseries(data)
+    elif data.rinextype == 'nav':
+        navtimeseries(data)
+
+
+def navtimeseries(nav: xarray.Dataset):
+    if not isinstance(nav, xarray.Dataset) or pm is None or figure is None:
         return
 
     svs = nav.sv.values
@@ -71,8 +88,8 @@ def plotnav(nav: xarray.Dataset):
         ax.plot(lon, lat, label=sv)
 
 
-def plotobs(obs: xarray.Dataset):
-    if obs is None:
+def obstimeseries(obs: xarray.Dataset):
+    if not isinstance(obs, xarray.Dataset) or figure is None:
         return
 
     for p in ('L1', 'L1C'):

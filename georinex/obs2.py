@@ -116,6 +116,7 @@ def rinexobs2(fn: Path,
         data.attrs['filename'] = fn.name
         data.attrs['version'] = hdr['version']
         data.attrs['position'] = hdr['position']
+        data.attrs['rinextype'] = 'obs'
 
         return data
 
@@ -218,7 +219,8 @@ def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
         s = ln[32+i*3:35+i*3].strip()
         if not s.strip():
             raise ValueError(f'did not get satellite names from {ln}')
-        sv.append(s)
+# %% reformat to assure 0
+        sv.append(s.replace(' ', '0'))  # 5x faster than f-string
 
     return sv
 

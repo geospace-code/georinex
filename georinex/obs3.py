@@ -63,7 +63,7 @@ def rinexobs3(fn: Path,
             sv = []
             raw = ''
             for i, ln in zip(range(Nsv), f):
-                k = ln[:3]
+                k = ln[:3].replace(' ', '0')
                 sv.append(k)
                 raw += ln[3:]
 
@@ -81,6 +81,7 @@ def rinexobs3(fn: Path,
     data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
     data.attrs['position'] = hdr['position']
+    data.attrs['rinextype'] = 'obs'
     # data.attrs['toffset'] = toffset
 
     return data

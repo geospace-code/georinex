@@ -57,7 +57,7 @@ def test_one_sv():
 
 def test_all_systems():
     """
-    ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all.nc
+    ./ReadRinex.py -q tests/demo.10o -o r2all.nc
     ./ReadRinex.py -q tests/demo.10n -o r2all.nc
     """
     pytest.importorskip('netCDF4')

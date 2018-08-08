@@ -15,7 +15,7 @@ R = Path(__file__).parent
 def test_netcdf_read():
     pytest.importorskip('netCDF4')
 
-    obs, nav = gr.readrinex(R/'r2all.nc')
+    obs, nav = gr.load(R/'r2all.nc')
     assert isinstance(obs, xarray.Dataset)
 
 
@@ -27,9 +27,9 @@ def test_netcdf_write():
 
     with tempfile.TemporaryDirectory() as D:
         fn = Path(D)/'rw.nc'
-        obs, nav = gr.readrinex(R/'demo.10o', outfn=fn)
+        obs = gr.load(R/'demo.10o', outfn=fn)
 
-        wobs, wnav = gr.readrinex(fn)
+        wobs = gr.load(fn)
 
         # MUST be under context manager for lazy loading
         assert obs.equals(wobs)
@@ -40,7 +40,7 @@ def test_obsdata():
 
     truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
 
-    obs, nav = gr.readrinex(R/'demo.10o')
+    obs = gr.load(R/'demo.10o')
     assert obs.equals(truth)
 
 
@@ -48,7 +48,7 @@ def test_navdata():
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
-    obs, nav = gr.readrinex(R/'demo.10n')
+    nav = gr.load(R/'demo.10n')
 
     assert nav.equals(truth)
 
