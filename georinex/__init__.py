@@ -20,7 +20,7 @@ def load(rinexfn: Path, outfn: Path=None,
          tlim: Tuple[datetime, datetime]=None,
          useindicators: bool=False,
          meas: List[str]=None,
-         verbose: bool=True) -> xarray.Dataset:
+         verbose: bool=False) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2,3.  Plain ASCII text or GZIP .gz.
     """

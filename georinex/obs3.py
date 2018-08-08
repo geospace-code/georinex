@@ -120,11 +120,11 @@ def obstime3(fn: Path) -> xarray.DataArray:
 
 
 def _epoch(data: xarray.Dataset, raw: str,
-              hdr: Dict[str, Any],
-              time: datetime,
-              sv: List[str],
-              useindicators: bool,
-              verbose: bool) -> xarray.Dataset:
+           hdr: Dict[str, Any],
+           time: datetime,
+           sv: List[str],
+           useindicators: bool,
+           verbose: bool) -> xarray.Dataset:
     """
     block processing of each epoch (time step)
     """
@@ -255,9 +255,15 @@ def obsheader3(f: TextIO,
     # perhaps this could be done more efficiently, but it's probably low impact on overall program.
     # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
     sysind = {}
-    if meas is not None:
+    if isinstance(meas, (tuple, list, np.ndarray)):
         for sk in fields:  # iterate over each system
-            ind = np.isin(fields[sk], meas)  # boolean vector
+            # ind = np.isin(fields[sk], meas)  # boolean vector
+            ind = np.zeros(len(fields[sk]), dtype=bool)
+            for m in meas:
+                for i, f in enumerate(fields[sk]):
+                    if f.startswith(m):
+                        ind[i] = True
+
             fields[sk] = np.array(fields[sk])[ind].tolist()
             sysind[sk] = np.empty(Fmax*3, dtype=bool)  # *3 due to LLI, SSI
             for j, i in enumerate(ind):

@@ -2,11 +2,67 @@
 import pytest
 import xarray
 import tempfile
+import numpy as np
+from pytest import approx
 from pathlib import Path
 import georinex as gr
 from datetime import datetime
 #
 R = Path(__file__).parent
+
+
+def test_meas():
+    """
+    test specifying specific measurements (usually only a few of the thirty or so are needed)
+    """
+    fn = R/'demo.10o'
+    obs = gr.load(fn)
+    for v in ['L1', 'L2', 'P1', 'P2', 'C1', 'S1', 'S2']:
+        assert v in obs
+    assert len(obs.data_vars) == 7
+# %% one measurement
+    obs = gr.load(fn, meas='C1')
+    assert 'L1' not in obs
+
+    C1 = obs['C1']
+    assert C1.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
+
+    assert (C1.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
+# %% two NON-SEQUENTIAL measurements
+    obs = gr.load(fn, meas=['L1', 'S1'])
+    assert 'L2' not in obs
+
+    L1 = obs['L1']
+    assert L1.shape == (2, 14)
+    assert (L1.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
+
+    S1 = obs['S1']
+    assert S1.shape == (2, 14)
+
+    assert (S1.sel(sv='R23') == approx([39., 79.])).all()
+
+    assert not C1.equals(L1)
+# %% measurement not in some systems
+    obs = gr.load(fn, meas=['S2'])
+    assert 'L2' not in obs
+
+    S2 = obs['S2']
+    assert S2.shape == (2, 14)
+    assert (S2.sel(sv='G13') == approx([40., 80.])).all()
+    # satellites that don't have a measurement are NaN
+    # either because they weren't visible at that time
+    # or simply do not make that kind of measurement at all
+    R23 = S2.sel(sv='R23')
+    assert np.isnan(R23).all()
+# %% measurement not in any system
+    obs = gr.load(fn, meas='nonsense')
+    assert 'nonsense' not in obs
+
+    assert len(obs.data_vars) == 0
+# %% wildcard
+    obs = gr.load(fn, meas='P')
+    assert 'L1' not in obs
+    assert 'P1' in obs and 'P2' in obs
 
 
 def test_mangled():
@@ -45,7 +101,7 @@ def test_tlim():
 
 
 def test_one_sv():
-    obs = gr.load(R /'rinex2onesat.10o')
+    obs = gr.load(R / 'rinex2onesat.10o')
 
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'

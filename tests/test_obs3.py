@@ -15,12 +15,12 @@ def test_meas():
     test specifying specific measurements (usually only a few of the thirty or so are needed)
     """
     fn = R/'demo3.10o'
-    obs = gr.rinexobs(fn)
+    obs = gr.load(fn)
     for v in ['L1C', 'L2P', 'C1P', 'C2P', 'C1C', 'S1C', 'S1P', 'S2P']:
         assert v in obs
     assert len(obs.data_vars) == 8
 # %% one measurement
-    obs = gr.rinexobs(fn, meas='C1C')
+    obs = gr.load(fn, meas='C1C')
     assert 'L1C' not in obs
 
     C1C = obs['C1C']
@@ -28,7 +28,7 @@ def test_meas():
 
     assert (C1C.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
 # %% two NON-SEQUENTIAL measurements
-    obs = gr.rinexobs(fn, meas=['L1C', 'S1C'])
+    obs = gr.load(fn, meas=['L1C', 'S1C'])
     assert 'L2P' not in obs
 
     L1C = obs['L1C']
@@ -42,7 +42,7 @@ def test_meas():
 
     assert not C1C.equals(L1C)
 # %% measurement not in some systems
-    obs = gr.rinexobs(fn, meas=['S2P'])
+    obs = gr.load(fn, meas=['S2P'])
     assert 'L2P' not in obs
 
     S2P = obs['S2P']
@@ -54,15 +54,19 @@ def test_meas():
     R23 = S2P.sel(sv='R23')
     assert np.isnan(R23).all()
 # %% measurement not in any system
-    obs = gr.rinexobs(fn, meas='nonsense')
+    obs = gr.load(fn, meas='nonsense')
     assert 'nonsense' not in obs
 
     assert len(obs.data_vars) == 0
+# %% wildcard
+    obs = gr.load(fn, meas='C')
+    assert 'L1C' not in obs
+    assert 'C1P' in obs and 'C2P' in obs and 'C1C' in obs
 
 
 def test_zip():
     fn = R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip'
-    obs = gr.rinexobs(fn)
+    obs = gr.load(fn)
 
     assert (obs.sv.values == ['E04', 'E09', 'E12', 'E24', 'G02', 'G05', 'G06', 'G07', 'G09', 'G12', 'G13',
                               'G17', 'G19', 'G25', 'G30', 'R01', 'R02', 'R08', 'R22', 'R23', 'R24', 'S20',
@@ -78,7 +82,7 @@ def test_zip():
 
 def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz'
-    obs = gr.rinexobs(fn, tlim=('2018-07-29T01:17', '2018-07-29T01:18'))
+    obs = gr.load(fn, tlim=('2018-07-29T01:17', '2018-07-29T01:18'))
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
 

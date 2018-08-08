@@ -38,8 +38,7 @@ def rinexobs2(fn: Path,
 # %% start reading
     with opener(fn) as f:
         # Capture header info
-        hdr = obsheader2(f)
-        Nobs = hdr['Nobs']
+        hdr = obsheader2(f, useindicators, meas)
 # %% process data
         data: xarray.Dataset = None
 
@@ -54,7 +53,7 @@ def rinexobs2(fn: Path,
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
                 if time < tlim[0]:
-                    _skip(f, ln, Nobs)
+                    _skip(f, ln, hdr['Nobs'])
                     continue
                 elif time > tlim[1]:
                     break
@@ -82,8 +81,9 @@ def rinexobs2(fn: Path,
 
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
-            darr = np.empty((len(sv), Nobs*3))
-            Nl_sv = ceil(Nobs/5)
+            Nl_sv = ceil(hdr['Nobs']/5)
+
+            darr = np.empty((len(sv), hdr['Nobsused']))
 
             for i, s in enumerate(sv):
                 raw = ''
@@ -97,14 +97,18 @@ def rinexobs2(fn: Path,
                 # some files truncate and put \n in data space.
                 raw = raw.replace('\n', ' ')
 
-                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*Nobs)
+                # can't use "usecols" with "delimiter"
+                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*hdr['Nobs'])[hdr['fields_ind']]
 # % select only "used" satellites
             garr = darr[iuse, :]
+
             dsf: Dict[str, tuple] = {}
             for i, k in enumerate(hdr['fields']):
-                dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
                 if useindicators:
+                    dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
                     dsf = _indicators(dsf, k, garr[:, i*3+1:i*3+3])
+                else:
+                    dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i]))
 
             if data is None:
                 data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})
@@ -131,7 +135,10 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
     return d
 
 
-def obsheader2(f: TextIO) -> Dict[str, Any]:
+def obsheader2(f: TextIO,
+               useindicators: bool=False,
+               meas: List[str]=None) -> Dict[str, Any]:
+
     if isinstance(f, Path):
         fn = f
         with opener(fn) as f:
@@ -166,12 +173,41 @@ def obsheader2(f: TextIO) -> Dict[str, Any]:
     header['Nobs'] = Nobs
     # list with x,y,z cartesian
     header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
-    # observation types
+# %% observation types
     header['fields'] = header['# / TYPES OF OBSERV']
-
     if Nobs != len(header['fields']):
         raise ValueError(f'{f.name} header read incorrectly')
 
+    if isinstance(meas, (tuple, list, np.ndarray)):
+        ind = np.zeros(len(header['fields']), dtype=bool)
+        for m in meas:
+            for i, f in enumerate(header['fields']):
+                if f.startswith(m):
+                    ind[i] = True
+
+        # zeros, NOT empty!
+        sysind = np.zeros(Nobs*3, dtype=bool)  # *3 due to LLI, SSI
+        if useindicators:
+            for j, i in enumerate(ind):
+                sysind[j*3:j*3+3] = i
+        else:
+            sysind[::3] = ind
+
+        header['fields_ind'] = sysind
+    else:
+        ind = slice(None)
+        header['fields_ind'] = ind if useindicators else np.arange(0, Nobs*3, 3)
+
+    header['fields'] = np.array(header['fields'])[ind].tolist()
+
+    if isinstance(header['fields_ind'], slice):
+        Nobsused = header['Nobs']*3
+    elif header['fields_ind'].dtype == bool:
+        Nobsused = np.count_nonzero(header['fields_ind'])
+    else:
+        Nobsused = header['fields_ind'].size
+    header['Nobsused'] = Nobsused
+# %%
     if '# OF SATELLITES' in header:
         header['# OF SATELLITES'] = int(header['# OF SATELLITES'][:6])
 # %% time

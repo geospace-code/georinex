@@ -127,8 +127,8 @@ def test_large():
 def test_mixed():
     fn = R/'ELKO00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn,
-                      tlim=(datetime(2018, 7, 28, 21),
-                            datetime(2018, 7, 28, 23)))
+                  tlim=(datetime(2018, 7, 28, 21),
+                        datetime(2018, 7, 28, 23)))
 
     assert isinstance(nav, xarray.Dataset)
     assert sorted(nav.svtype) == ['C', 'E', 'G', 'R']
