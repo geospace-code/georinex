@@ -12,7 +12,7 @@ R = Path(__file__).parent
 def test_mangled():
     fn = R/'14601736.18o'
 
-    obs = gr.rinexobs(fn)
+    obs = gr.load(fn)
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
 
@@ -24,7 +24,7 @@ def test_Z_lzw():
 
     fn = R/'ac660270.18o.Z'
 
-    obs = gr.rinexobs(fn)
+    obs = gr.load(fn)
 
     hdr = gr.rinexheader(fn)
 
@@ -34,7 +34,7 @@ def test_Z_lzw():
 def test_tlim():
     pytest.importorskip('unlzw')
 
-    obs = gr.rinexobs(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
+    obs = gr.load(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
 
@@ -45,7 +45,7 @@ def test_tlim():
 
 
 def test_one_sv():
-    obs = gr.rinexobs(R/'rinex2onesat.10o')
+    obs = gr.load(R /'rinex2onesat.10o')
 
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'
@@ -66,7 +66,7 @@ def test_all_systems():
 # %% test reading all satellites
     for u in (None, ' ', '', ['G', 'R', 'S']):
         print('use', u)
-        obs = gr.rinexobs(R/'demo.10o', use=u)
+        obs = gr.load(R/'demo.10o', use=u)
         assert obs.equals(truth)
 
     assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
@@ -75,7 +75,9 @@ def test_all_systems():
     assert obs.equals(truth)
 # %% test write .nc
     with tempfile.TemporaryDirectory() as d:
+        ofn = Path(d)/'testout.nc'
         obs = gr.rinexobs(R/'demo.10o', ofn=Path(d)/'testout.nc')
+        assert ofn.is_file() and 50000 > ofn.stat().st_size > 30000
 
 
 def test_one_system():
@@ -86,7 +88,7 @@ def test_one_system():
     truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
-        obs = gr.rinexobs(R/'demo.10o', use=u)
+        obs = gr.load(R/'demo.10o', use=u)
         assert obs.equals(truth)
 
 
@@ -97,7 +99,7 @@ def test_multi_system():
 
     truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS', autoclose=True)
 
-    obs = gr.rinexobs(R/'demo.10o', use=('G', 'R'))
+    obs = gr.load(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)
 
 
@@ -107,7 +109,7 @@ def tests_all_indicators():
     """
     pytest.importorskip('netCDF4')
 
-    obs = gr.rinexobs(R/'demo.10o', useindicators=True)
+    obs = gr.load(R/'demo.10o', useindicators=True)
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)

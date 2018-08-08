@@ -98,9 +98,13 @@ def obstimeseries(obs: xarray.Dataset):
 
         dat = obs[p].dropna(how='all', dim='time')
 
+        time = dat.time.values
+        if time.size == 0:
+            continue
+
         ax = figure().gca()
 
-        ax.plot(dat.time, dat)
+        ax.plot(time, dat)
 
         ax.set_title(obs.filename)
         ax.set_xlabel('time [UTC]')

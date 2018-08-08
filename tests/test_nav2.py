@@ -18,7 +18,7 @@ def test_time():
 def test_mangled():
     fn = R/'14601736.18n'
 
-    nav = gr.rinexnav(fn)
+    nav = gr.load(fn)
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
@@ -26,13 +26,13 @@ def test_mangled():
 
 
 def test_tlim():
-    nav = gr.rinexnav(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
+    nav = gr.load(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
     assert (times == [datetime(2018, 7, 29, 11, 50), datetime(2018, 7, 29, 12)]).all()
 # %% past end of file
-    nav = gr.rinexnav(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
+    nav = gr.load(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
@@ -43,7 +43,7 @@ def test_gps():
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
-    nav = gr.rinexnav(R/'demo.10n')
+    nav = gr.load(R/'demo.10n')
 
     assert nav.equals(truth)
 

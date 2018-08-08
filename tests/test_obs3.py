@@ -86,6 +86,14 @@ def test_tlim():
                       datetime(2018, 7, 29, 1, 17, 45), datetime(2018, 7, 29, 1, 18)]).all()
 
 
+def test_bad_system():
+    with pytest.raises(KeyError):
+        gr.load(R/'demo3.10o', use='Z')
+
+    with pytest.raises(KeyError):
+        gr.load(R/'demo3.10o', use=['Z', 'Y'])
+
+
 def test_one_system():
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
@@ -95,7 +103,7 @@ def test_one_system():
     truth = xarray.open_dataset(R/'r3G.nc', group='OBS', autoclose=True)
 
     for u in ('G', ['G']):
-        obs = gr.rinexobs(R/'demo3.10o', use=u)
+        obs = gr.load(R/'demo3.10o', use=u)
         assert obs.equals(truth)
 
     assert obs.position == approx([4789028.4701, 176610.0133, 4195017.031])
@@ -109,7 +117,7 @@ def test_multi_system():
 
     use = ('G', 'R')
 
-    obs = gr.rinexobs(R/'demo3.10o', use=use)
+    obs = gr.load(R/'demo3.10o', use=use)
     truth = xarray.open_dataset(R/'r3GR.nc', group='OBS', autoclose=True)
 
     assert obs.equals(truth)
@@ -121,7 +129,7 @@ def test_all_system():
     """
     pytest.importorskip('netCDF4')
 
-    obs = gr.rinexobs(R/'demo3.10o')
+    obs = gr.load(R/'demo3.10o')
     truth = gr.rinexobs(R/'r3all.nc', group='OBS')
 
     assert obs.equals(truth)
@@ -133,7 +141,7 @@ def tests_all_indicators():
     """
     pytest.importorskip('netCDF4')
 
-    obs = gr.rinexobs(R/'demo3.10o', useindicators=True)
+    obs = gr.load(R/'demo3.10o', useindicators=True)
     truth = gr.rinexobs(R/'r3all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)

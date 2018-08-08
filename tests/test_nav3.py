@@ -17,13 +17,13 @@ def test_time():
 
 def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, tlim=('2018-07-29T08', '2018-07-29T09'))
+    nav = gr.load(fn, tlim=('2018-07-29T08', '2018-07-29T09'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
     assert (times == [datetime(2018, 7, 29, 8, 20), datetime(2018, 7, 29, 8, 50)]).all()
 # %% beyond end of file
-    nav = gr.rinexnav(fn, tlim=('2018-07-29T23', '2018-07-29T23:30'))
+    nav = gr.load(fn, tlim=('2018-07-29T23', '2018-07-29T23:30'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
@@ -33,14 +33,14 @@ def test_tlim():
 def test_qzss():
     """./ReadRinex.py -q tests/qzss3.14n -o r3qzss.nc
     """
-    truth = gr.rinexnav(R/'r3qzss.nc')
-    nav = gr.rinexnav(R/'qzss3.14n')
+    truth = gr.load(R/'r3qzss.nc')
+    nav = gr.load(R/'qzss3.14n')
     assert nav.equals(truth)
 
 
 def test_large_galileo():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, use='E')
+    nav = gr.load(fn, use='E')
 
     assert nav.svtype[0] == 'E' and len(nav.svtype) == 1
 
@@ -53,7 +53,7 @@ def test_large_galileo():
 
 def test_large_beidou():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, use='C')
+    nav = gr.load(fn, use='C')
 
     assert nav.svtype[0] == 'C' and len(nav.svtype) == 1
 
@@ -66,7 +66,7 @@ def test_large_beidou():
 
 def test_large_gps():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, use='G')
+    nav = gr.load(fn, use='G')
 
     assert nav.svtype[0] == 'G' and len(nav.svtype) == 1
 
@@ -79,7 +79,7 @@ def test_large_gps():
 
 def test_large_sbas():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, use='S')
+    nav = gr.load(fn, use='S')
 
     assert nav.svtype[0] == 'S' and len(nav.svtype) == 1
 
@@ -92,7 +92,7 @@ def test_large_sbas():
 
 def test_large_glonass():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn, use='R')
+    nav = gr.load(fn, use='R')
 
     assert nav.svtype[0] == 'R' and len(nav.svtype) == 1
 
@@ -105,7 +105,7 @@ def test_large_glonass():
 
 def test_large():
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn)
+    nav = gr.load(fn)
     assert sorted(nav.svtype) == ['C', 'E', 'G', 'R', 'S']
 
     C05 = nav.sel(sv='C05').dropna(how='all', dim='time').to_dataframe()
@@ -126,7 +126,7 @@ def test_large():
 
 def test_mixed():
     fn = R/'ELKO00USA_R_20182100000_01D_MN.rnx.gz'
-    nav = gr.rinexnav(fn,
+    nav = gr.load(fn,
                       tlim=(datetime(2018, 7, 28, 21),
                             datetime(2018, 7, 28, 23)))
 
@@ -137,7 +137,7 @@ def test_mixed():
 
     assert times.size == 15
 # %% full flle test
-    nav = gr.rinexnav(fn)
+    nav = gr.load(fn)
     assert (nav.sv.values == ['C06', 'C07', 'C08', 'C11', 'C12', 'C14', 'C16', 'C20', 'C21',
                               'C22', 'C27', 'C29', 'C30', 'E01', 'E02', 'E03', 'E04', 'E05',
                               'E07', 'E08', 'E09', 'E11', 'E12', 'E14', 'E18', 'E19', 'E21',
@@ -162,7 +162,7 @@ def test_sbas():
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV', autoclose=True)
-    nav = gr.rinexnav(R/'demo3.10n')
+    nav = gr.load(R/'demo3.10n')
 
     assert nav.equals(truth)
 
@@ -173,7 +173,7 @@ def test_gps():
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r3gps.nc', group='NAV', autoclose=True)
-    nav = gr.rinexnav(R/'demo.17n')
+    nav = gr.load(R/'demo.17n')
 
     assert nav.equals(truth)
 
@@ -185,7 +185,7 @@ def test_galileo():
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV', autoclose=True)
-    nav = gr.rinexnav(R/'galileo3.15n')
+    nav = gr.load(R/'galileo3.15n')
 
     assert nav.equals(truth)
 

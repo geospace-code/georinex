@@ -264,7 +264,7 @@ and `ipython`:
 ```ipython
 %load_ext line_profiler
 
-%lprun -f gr.obs3._eachtime gr.load('tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', use='E', meas='C1C')
+%lprun -f gr.obs3._epoch gr.load('tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', use='E', meas='C1C')
 ```
 shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xarray.concat` and xarray.Dataset` nested inside `concat` takes over 60% of time.
 

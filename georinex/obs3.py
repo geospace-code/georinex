@@ -75,7 +75,7 @@ def rinexobs3(fn: Path,
             if verbose:
                 print(time, end="\r")
 
-            data = _eachtime(data, raw, hdr, time, sv, useindicators, verbose)
+            data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
     data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
@@ -87,13 +87,12 @@ def rinexobs3(fn: Path,
 
 
 def _timeobs(ln: str, fn: Path) -> datetime:
-
+    """
+    convert time from RINEX 3 OBS text to datetime
+    """
     if not ln.startswith('>'):  # pg. A13
         raise ValueError(f'RINEX 3 line beginning > is not present in {fn}')
-    """
-    Python >=merge 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
-    Python < 3.7 supports microseconds.
-    """
+
     return datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
                     hour=int(ln[13:15]), minute=int(ln[16:18]),
                     second=int(ln[19:21]),
@@ -120,13 +119,15 @@ def obstime3(fn: Path) -> xarray.DataArray:
     return timedat
 
 
-def _eachtime(data: xarray.Dataset, raw: str,
+def _epoch(data: xarray.Dataset, raw: str,
               hdr: Dict[str, Any],
               time: datetime,
               sv: List[str],
               useindicators: bool,
               verbose: bool) -> xarray.Dataset:
-
+    """
+    block processing of each epoch (time step)
+    """
     darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
                                        delimiter=(14, 1, 1) * hdr['Fmax']))
 # %% assign data for each time step
@@ -169,6 +170,9 @@ def _eachtime(data: xarray.Dataset, raw: str,
 
 
 def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
+    """
+    handle LLI (loss of lock) and SSI (signal strength)
+    """
     if k.startswith(('L1', 'L2')):
         d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, 0]))
 
@@ -180,7 +184,11 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 def obsheader3(f: TextIO,
                use: List[str]=None,
                meas: List[str]=None) -> Dict[str, Any]:
-    """ get RINEX 3 OBS types, for each system type"""
+    """
+    get RINEX 3 OBS types, for each system type
+    optionally, select system type and/or measurement type to greatly
+    speed reading and save memory (RAM, disk)
+    """
     fields = {}
     Fmax = 0
 
@@ -239,7 +247,10 @@ def obsheader3(f: TextIO,
         header['interval'] = None
 # %% select specific satellite systems only (optional)
     if use is not None:
-        fields = {k: fields[k] for k in use}
+        if not set(fields.keys()).intersection(use):
+            raise KeyError(f'system type {use} not found in RINEX file')
+
+        fields = {k: fields[k] for k in use if k in fields}
 
     # perhaps this could be done more efficiently, but it's probably low impact on overall program.
     # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!

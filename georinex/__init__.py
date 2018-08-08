@@ -31,7 +31,7 @@ def load(rinexfn: Path, outfn: Path=None,
     rtype = rinextype(rinexfn)
 
     if rtype == 'nav':
-        nav = rinexnav(rinexfn, outfn, tlim=tlim)
+        nav = rinexnav(rinexfn, outfn, use=use, tlim=tlim)
     elif rtype == 'obs':
         obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                        useindicators=useindicators, meas=meas,
