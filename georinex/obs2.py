@@ -147,7 +147,7 @@ def obsheader2(f: TextIO,
             return obsheader2(f)
 
     header: Dict[str, Any] = {}
-    Nobs = 0
+    Nobs = 0  # not None due to type checking
 
     for l in f:
         if "END OF HEADER" in l:
@@ -155,11 +155,13 @@ def obsheader2(f: TextIO,
 
         h = l[60:80].strip()
         c = l[:60]
+# %% measurement types
         if '# / TYPES OF OBSERV' in h:
             if Nobs == 0:
                 Nobs = int(c[:6])
-                c = c[6:].split()
 
+            c = c[6:].split()  # NOT within "if Nobs"
+# %%
         if h not in header:  # Header label
             header[h] = c  # string with info
         else:  # concatenate

@@ -11,6 +11,22 @@ from datetime import datetime
 R = Path(__file__).parent
 
 
+def test_meas_continuation():
+    """
+    tests OBS2 files with more than 10 types of observations
+    """
+    fn = R/'ab430140.18o.zip'
+    obs = gr.load(fn)
+
+    assert len(obs.data_vars) == 20
+    for v in ['L1', 'L2', 'C1', 'P2', 'P1', 'S1', 'S2', 'C2', 'L5', 'C5', 'S5',
+              'L6', 'C6', 'S6', 'L7', 'C7', 'S7', 'L8', 'C8', 'S8']:
+        assert v in obs
+
+    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    assert times.size == 9
+
+
 def test_meas():
     """
     test specifying specific measurements (usually only a few of the thirty or so are needed)
