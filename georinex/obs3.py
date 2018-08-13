@@ -77,6 +77,9 @@ def rinexobs3(fn: Path,
 
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
+    if data is None:  # all outside time bounds, etc.
+        return
+
     data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
     data.attrs['position'] = hdr['position']

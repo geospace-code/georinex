@@ -62,6 +62,7 @@ def test_meas():
     obs = gr.load(fn, meas='C')
     assert 'L1C' not in obs
     assert 'C1P' in obs and 'C2P' in obs and 'C1C' in obs
+    assert len(obs.data_vars) == 3
 
 
 def test_zip():

@@ -63,6 +63,7 @@ def test_meas():
     obs = gr.load(fn, meas='P')
     assert 'L1' not in obs
     assert 'P1' in obs and 'P2' in obs
+    assert len(obs.data_vars) == 2
 
 
 def test_mangled():

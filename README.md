@@ -31,6 +31,7 @@ However, the initial goal of this Python program was to be for one-time offline 
   * `.gz` GZIP
   * `.Z` LZW
   * `.zip`
+* Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
 
 ## Output
 
@@ -56,6 +57,11 @@ cd georinex
 python -m pip install -e .
 ```
 
+### Optional Hatanaka
+If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code by:
+```sh
+make -C rnxcmp
+```
 
 ## Usage
 
@@ -306,6 +312,6 @@ Likewise here's a bunch of RINEX 2 data:
 * NAV: ftp://data-out.unavco.org/pub/rinex/nav/
 
 
-### Hatanaka compressed RINEX .crx not supported
-The compressed Hatanaka `.crx` or `.crx.gz` files are not yet supported.
+### Hatanaka compressed RINEX .crx
+The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx` as noted in the Install section.
 There are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
