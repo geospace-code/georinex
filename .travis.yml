@@ -29,7 +29,9 @@ before_install:
 - conda create -n test python=$TRAVIS_PYTHON_VERSION
 - source activate test
 
-install: pip install -e .[tests,io]
+install: 
+- pip install -e .[tests,io]
+- export PATH=$PATH:$HOME/.local/bin
 
 script:
 - make install -C rnxcmp
