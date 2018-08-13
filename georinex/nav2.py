@@ -77,7 +77,7 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
                 elif time > tlim[1]:
                     break
 # %% format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
-            svs.append(f'{svtype}{ln[:2].replace(" ","0")}')  # 5x faster than f-strings
+            svs.append(f'{svtype}{ln[:2]}')
 
             times.append(time)
             """
@@ -118,7 +118,9 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
                                 xarray.Dataset(dsf,
                                                coords={'time': t[svi],
                                                        'sv': [sv]})))
-
+# %% patch SV names in case of "G 7" => "G07"
+    nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
+# %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
     nav.attrs['rinextype'] = 'nav'

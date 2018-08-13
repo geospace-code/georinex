@@ -49,7 +49,7 @@ def rinexnav3(fn: Path,
                     continue
                 # not break due to non-monotonic NAV files
 
-            sv = line[:3].replace(' ', '0')
+            sv = line[:3]
             if use is not None and not sv[0] in use:
                 _skip(f, Nl[sv[0]])
                 continue
@@ -128,7 +128,9 @@ def rinexnav3(fn: Path,
         else:
             nav = xarray.merge((nav,
                                 xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
-
+# %% patch SV names in case of "G 7" => "G07"
+    nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
+# %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes

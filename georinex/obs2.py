@@ -116,13 +116,15 @@ def rinexobs2(fn: Path,
                 data = xarray.concat((data,
                                       xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})),
                                      dim='time')
+# %% patch SV names in case of "G 7" => "G07"
+    data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
+# %% other attributes
+    data.attrs['filename'] = fn.name
+    data.attrs['version'] = hdr['version']
+    data.attrs['position'] = hdr['position']
+    data.attrs['rinextype'] = 'obs'
 
-        data.attrs['filename'] = fn.name
-        data.attrs['version'] = hdr['version']
-        data.attrs['position'] = hdr['position']
-        data.attrs['rinextype'] = 'obs'
-
-        return data
+    return data
 
 
 def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
@@ -244,19 +246,16 @@ def _getsvind(f: TextIO, ln: str) -> List[str]:
     while n > 0:
         sv = _getSVlist(f.readline(), min(12, n), sv)
         n -= 12
-    assert Nsv == len(sv), 'satellite list read incorrectly'
+
+    if Nsv != len(sv):
+        raise LookupError('satellite list read incorrectly')
 
     return sv
 
 
 def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     """ parse a line of text from RINEX2 SV list"""
-    for i in range(N):
-        s = ln[32+i*3:35+i*3].strip()
-        if not s.strip():
-            raise ValueError(f'did not get satellite names from {ln}')
-# %% reformat to assure 0
-        sv.append(s.replace(' ', '0'))  # 5x faster than f-string
+    sv.extend([ln[32+i*3:35+i*3] for i in range(N)])
 
     return sv
 

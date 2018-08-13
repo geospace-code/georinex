@@ -63,7 +63,7 @@ def rinexobs3(fn: Path,
             sv = []
             raw = ''
             for i, ln in zip(range(Nsv), f):
-                sv.append(ln[:3].replace(' ', '0'))
+                sv.append(ln[:3])
                 raw += ln[3:]
 
             if tlim is not None:
@@ -79,7 +79,9 @@ def rinexobs3(fn: Path,
 
     if data is None:  # all outside time bounds, etc.
         return
-
+# %% patch SV names in case of "G 7" => "G07"
+    data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
+# %% other attributes
     data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
     data.attrs['position'] = hdr['position']
