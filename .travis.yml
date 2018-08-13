@@ -32,7 +32,7 @@ before_install:
 install: pip install -e .[tests,io]
 
 script:
-- make -C rnxcmp
+- make install -C rnxcmp
 
 - pytest -xrsv
 - flake8

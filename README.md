@@ -60,7 +60,7 @@ python -m pip install -e .
 ### Optional Hatanaka
 If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code by:
 ```sh
-make -C rnxcmp
+make install -C rnxcmp
 ```
 
 ## Usage
