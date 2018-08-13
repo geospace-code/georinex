@@ -14,5 +14,5 @@ crx2rnx: source/crx2rnx.c
 .PHONY: install
 install: crx2rnx rnx2crx
 	mkdir -p $(PREFIX)/bin
-	cp $^ -t $(PREFIX)/bin
+	cp $^ $(PREFIX)/bin
 

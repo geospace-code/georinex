@@ -10,7 +10,7 @@ try:
     # capture_output is py >= 3.7
     ret = subprocess.run(['crx2rnx', '-h'], stderr=subprocess.PIPE, universal_newlines=True)  # -h returncode == 1
     nocrx = False if ret.stderr.startswith('Usage') else True
-except FileNotFoundError:
+except (FileNotFoundError, PermissionError):
     nocrx = True
 
 
