@@ -32,6 +32,8 @@ before_install:
 install: pip install -e .[tests,io]
 
 script:
+- make -C rnxcmp
+
 - pytest -xrsv
 - flake8
 - mypy . --ignore-missing-imports
