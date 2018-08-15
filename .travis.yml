@@ -42,7 +42,7 @@ script:
 
 after_success:
 - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux ]]; then
-  pytest --cov;
+  pytest --cov --cov-config=setup.cfg;
   coveralls;
   fi
 
