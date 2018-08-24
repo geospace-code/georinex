@@ -35,8 +35,7 @@ def main():
     p.add_argument('rinexfn', help='path to RINEX 2 or RINEX 3 file')
     p.add_argument('-g', '--glob', help='file glob pattern', default='*')
     p.add_argument('-o', '--outfn', help='write data as NetCDF4 file')
-    p.add_argument('-q', '--quiet', help='do not generate plots or print unneeded text (for HPC/cloud)',
-                   action='store_true')
+    p.add_argument('-v', '--verbose', action='store_true')
     p.add_argument('-u', '--use', help='select which GNSS system(s) to use', nargs='+')
     p.add_argument('-m', '--meas', help='select which GNSS measurement(s) to use', nargs='+')
     p.add_argument('-t', '--tlim', help='specify time limits (process part of file)', nargs=2)
@@ -44,7 +43,7 @@ def main():
                    action='store_true')
     P = p.parse_args()
 
-    verbose = not P.quiet
+    verbose = P.verbose
 
     fn = Path(P.rinexfn).expanduser()
 

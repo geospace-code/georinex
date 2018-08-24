@@ -72,6 +72,8 @@ The simplest command-line use is through the top-level `ReadRinex` script.
       ```
 -   Read NetCDF converted RINEX data: `ReadRinex myrinex.nc`
 
+By default all plots and status messages are off, unless using the `-v --verbose` option to save processing time.
+
 It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
 as NetCDF4 is also human-readable, yet say 1000x faster to load than RINEX.
 
@@ -81,6 +83,16 @@ the following examples. Each example assumes you have first done:
 ```python
 import georinex as gr
 ```
+
+
+
+### Benchmark
+
+An Intel Haswell i7-3770 CPU with plain uncompressed RINEX 2 OBS processes in about:
+* [6 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab140210.18o.Z): 5 seconds
+* [13 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab180210.18o.Z): 10 seconds
+
+This processing speed is about within a factor of 5 of compiled RINEX parsers, with the convenience of Python, Xarray, Pandas and HDF5 / NetCDF4.
 
 
 ### read RINEX

@@ -4,12 +4,15 @@ from pathlib import Path
 import subprocess
 from contextlib import contextmanager
 import io
+import os
 from typing.io import TextIO
 from typing import Union, Dict
 try:
     import unlzw
 except ImportError:
     unlzw = None
+
+R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
@@ -54,11 +57,15 @@ def _opencrx(f: TextIO) -> str:
 
     Nbytes is used to read first line.
     """
+    exe = './crx2rnx'
+    if os.name == 'nt':
+        exe = exe[2:]
     try:
         In = f.read()
-        ret = subprocess.check_output(['crx2rnx', '-'], input=In, universal_newlines=True)
-    except subprocess.CalledProcessError as e:
-        raise OSError(f'trouble converting Hatanka file, did you compile the crx2rnx program?   {e}')
+        ret = subprocess.check_output([exe, '-'], input=In,
+                                      universal_newlines=True, cwd=R/'rnxcmp')
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f'trouble converting Hatanka file, did you compile the crx2rnx program?   {e}')
 
     return ret
 
