@@ -4,7 +4,6 @@ import numpy as np
 import logging
 from math import ceil
 from datetime import datetime
-from io import BytesIO
 import xarray
 from typing import List, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
@@ -117,7 +116,7 @@ def rinexsystem2(fn: Path,
 
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
-            raws = ''
+            raws = []
             for i, s in enumerate(sv):
                 # don't process discarded satellites
                 if not s[0] == system:
@@ -127,32 +126,53 @@ def rinexsystem2(fn: Path,
                 # .rstrip() necessary to handle variety of files and Windows vs. Unix
                 raw = ''
                 for _ in range(Nl_sv):
-                    raw += f.readline()[:80].rstrip()
+                    raw += f'{f.readline()[:80].rstrip():80s}'
 
-                raws += raw + '\n'
+                raws.append(raw)
             """
             it is about 5x faster to call np.genfromtxt() for all sats and then index,
             vs. calling np.genfromtxt() for each sat.
             """
             # can't use "usecols" with "delimiter"
-            darr = np.genfromtxt(BytesIO(raws.encode('ascii')), delimiter=[Lf, 1, 1]*hdr['Nobs'])
-            darr = np.atleast_2d(darr)
-            assert darr.shape[0] == len(gsv)
+            darr = np.empty((len(raws), hdr['Nobsused']))
+            darr.fill(np.nan)
+            for i, r in enumerate(raws):
+                for k in range(hdr['Nobs']):
+                    v = r[k*(Lf+2):(k+1)*(Lf+2)]
+
+                    if useindicators:
+                        if v[:-2].strip():
+                            darr[i, k*3] = float(v[:-2])
+
+                        if v[-2].strip():
+                            darr[i, k*3+1] = float(v[-2])
+
+                        if v[-1].strip():
+                            darr[i, k*3+2] = float(v[-1])
+                    else:
+                        if v[:-2].strip():
+                            darr[i, k] = float(v[:-2])
+
+            assert darr.shape[0] == gsv.size
 
 # %% select only "used" satellites
+            isv = [int(s[1:])-1 for s in gsv]
             for i, k in enumerate(hdr['fields_ind']):
-                isv = [int(s[1:])-1 for s in gsv]
                 if useindicators:
                     data[i*3, j, isv] = darr[:, k*3]
                     # FIXME which other should be excluded?
-                    if hdr['fields'][k] not in ('S1', 'S2'):
-                        if hdr['fields'][k] in ('L1', 'L2'):
+                    ind = i if meas is not None else k
+                    if hdr['fields'][ind] not in ('S1', 'S2'):
+                        if hdr['fields'][ind] in ('L1', 'L2'):
                             data[i*3+1, j, isv] = darr[:, k*3+1]
 
                         data[i*3+2, j, isv] = darr[:, k*3+2]
                 else:
                     data[i, j, isv] = darr[:, k]
 # %% output gathering
+    if np.isnan(data).all():
+        return
+
     fields = []
     for field in hdr['fields']:
         fields.append(field)
@@ -165,9 +185,6 @@ def rinexsystem2(fn: Path,
                 fields.append(f'{field}ssi')
             else:
                 fields.extend([None, None])
-
-    if np.isnan(data).all():
-        return
 
     obs = xarray.Dataset(coords={'time': times,
                                  'sv': [f'{system}{i:02d}' for i in range(1, Nsvmax+1)]})
@@ -251,28 +268,17 @@ def obsheader2(f: TextIO,
                 if f.startswith(m):
                     ind[i] = True
 
-        # zeros, NOT empty!
-        sysind = np.zeros(Nobs*3, dtype=bool)  # *3 due to LLI, SSI
-        if useindicators:
-            for j, i in enumerate(ind):
-                sysind[j*3:j*3+3] = i
-        else:
-            sysind[::3] = ind
-
-        header['fields_ind'] = np.nonzero(sysind)[0]
+        header['fields_ind'] = np.nonzero(ind)[0]
     else:
         ind = slice(None)
-        header['fields_ind'] = np.arange(Nobs) if useindicators else np.arange(0, Nobs*3, 3)
+        header['fields_ind'] = np.arange(Nobs)
 
     header['fields'] = np.array(header['fields'])[ind].tolist()
 
-    if isinstance(header['fields_ind'], slice):
-        Nobsused = header['Nobs']*3
-    elif header['fields_ind'].dtype == bool:
-        Nobsused = np.count_nonzero(header['fields_ind'])
-    else:
-        Nobsused = header['fields_ind'].size
-    header['Nobsused'] = Nobsused
+    header['Nobsused'] = header['Nobs']
+    if useindicators:
+        header['Nobsused'] *= 3
+
 # %%
     if '# OF SATELLITES' in header:
         header['# OF SATELLITES'] = int(header['# OF SATELLITES'][:6])

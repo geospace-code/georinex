@@ -10,11 +10,11 @@ R = Path(__file__).parent
 
 
 def test_convenience():
-    subprocess.check_call(['ReadRinex', '-q', str(R / 'demo.10o')])
+    subprocess.check_call(['ReadRinex', str(R / 'demo.10o')])
 
 
 def test_time():
-    subprocess.check_call(['TimeRinex', '-q', str(R)])
+    subprocess.check_call(['TimeRinex', str(R)])
 
 
 if __name__ == '__main__':

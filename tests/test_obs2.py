@@ -27,7 +27,7 @@ def test_meas_continuation():
     assert times.size == 9
 
 
-def test_meas():
+def test_meas_one():
     """
     test specifying specific measurements (usually only a few of the thirty or so are needed)
     """
@@ -43,7 +43,7 @@ def test_meas():
               'G12', 'G26', 'G09', 'G21', 'G15', 'S24']:
         assert s in sv
 
-
+    assert obs['C1'].sel(sv='G07').values == approx([22227666.76, 25342359.37])
 # %% one measurement
     obs = gr.load(fn, meas='C1')
     assert 'L1' not in obs
@@ -51,13 +51,19 @@ def test_meas():
     C1 = obs['C1']
     assert C1.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
     assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
+
+
+def test_meas_two():
+    fn = R/'demo.10o'
+
+    C1 = gr.load(fn, meas='C1')['C1']
 # %% two NON-SEQUENTIAL measurements
     obs = gr.load(fn, meas=['L1', 'S1'])
     assert 'L2' not in obs
 
     L1 = obs['L1']
     assert L1.shape == (2, 14)
-    assert (L1.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
+    assert L1.sel(sv='G07').values == approx([118767195.32608, 133174968.81808])
 
     S1 = obs['S1']
     assert S1.shape == (2, 14)
@@ -65,6 +71,10 @@ def test_meas():
     assert (S1.sel(sv='R23') == approx([39., 79.])).all()
 
     assert not C1.equals(L1)
+
+
+def test_meas_miss():
+    fn = R/'demo.10o'
 # %% measurement not in some systems
     obs = gr.load(fn, meas=['S2'])
     assert 'L2' not in obs
@@ -133,8 +143,8 @@ def test_one_sv():
 
 def test_all_systems():
     """
-    ./ReadRinex.py -q tests/demo.10o -o r2all.nc
-    ./ReadRinex.py -q tests/demo.10n -o r2all.nc
+    ./ReadRinex.py tests/demo.10o -o r2all.nc
+    ./ReadRinex.py tests/demo.10n -o r2all.nc
     """
     pytest.importorskip('netCDF4')
 
@@ -157,7 +167,7 @@ def test_all_systems():
 
 
 def test_one_system():
-    """./ReadRinex.py -q tests/demo.10o -u G -o r2G.nc
+    """./ReadRinex.py tests/demo.10o -u G -o r2G.nc
     """
     pytest.importorskip('netCDF4')
 
@@ -169,7 +179,7 @@ def test_one_system():
 
 
 def test_multi_system():
-    """./ReadRinex.py -q tests/demo.10o -u G R -o r2GR.nc
+    """./ReadRinex.py tests/demo.10o -u G R -o r2GR.nc
     """
     pytest.importorskip('netCDF4')
 
@@ -179,9 +189,9 @@ def test_multi_system():
     assert obs.equals(truth)
 
 
-def tests_all_indicators():
+def test_all_indicators():
     """
-    ./ReadRinex.py -q tests/demo.10o -useindicators  -o r2all_indicators.nc
+    ./ReadRinex.py tests/demo.10o -useindicators  -o r2all_indicators.nc
     """
     pytest.importorskip('netCDF4')
 
@@ -189,6 +199,26 @@ def tests_all_indicators():
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)
+
+
+def test_meas_indicators():
+    """
+    ./ReadRinex.py tests/demo.10o -useindicators -m C1 -o r2_C1_indicators.nc
+    """
+    pytest.importorskip('netCDF4')
+
+    obs = gr.load(R/'demo.10o', meas='C1', useindicators=True)
+    truth = gr.rinexobs(R/'r2_C1_indicators.nc', group='OBS')
+
+    assert obs.equals(truth)
+
+
+def test_meas_onesys_indicators():
+    obs = gr.load(R/'demo.10o', use='G', meas='C1', useindicators=True)
+
+    C1 = obs['C1']
+
+    assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
 
 
 if __name__ == '__main__':
