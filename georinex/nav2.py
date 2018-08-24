@@ -177,7 +177,7 @@ def _skip(f: TextIO, Nl: int):
 
 def navtime2(fn: Path) -> xarray.DataArray:
     """
-    read all times in RINEX2 OBS file
+    read all times in RINEX 2 NAV file
     """
     times = []
     with opener(fn) as f:

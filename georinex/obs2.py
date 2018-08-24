@@ -6,65 +6,102 @@ from math import ceil
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Union, List, Any, Dict, Tuple
+from typing import List, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
 
 
 def rinexobs2(fn: Path,
-              use: List[str]=None,
+              use: Sequence[str]=None,
               tlim: Tuple[datetime, datetime]=None,
               useindicators: bool=False,
-              meas: List[str]=None,
+              meas: Sequence[str]=None,
               verbose: bool=False) -> xarray.Dataset:
-    """
-     procss RINEX OBS data
-    use: 'G'  or ['G', 'R'] or similar
-    meas:  'L1C'  or  ['L1C', 'C1C'] or similar
-    """
-    Lf = 14
-# %% selection
+
     if isinstance(use, str):
         use = [use]
 
-    if isinstance(meas, str):
-        meas = [meas]
+    if use is None or not use[0].strip():
+        use = ('C', 'E', 'G', 'J', 'R', 'S')
 
-    if not use or not use[0].strip():
-        use = None
+    obs = None
+    for u in use:
+        o = rinexsystem2(fn, u, tlim, useindicators, meas, verbose)
+        if o is not None:
+            if obs is None:
+                attrs = o.attrs
+                obs = o
+            else:
+                obs = xarray.merge((obs, o))
 
-    if not meas or not meas[0].strip():
-        meas = None
+    if obs is not None:
+        obs.attrs = attrs
+
+    return obs
+
+
+def rinexsystem2(fn: Path,
+                 system: str,
+                 tlim: Tuple[datetime, datetime]=None,
+                 useindicators: bool=False,
+                 meas: Sequence[str]=None,
+                 verbose: bool=False) -> xarray.Dataset:
+    """
+    procss RINEX OBS data
+    fn: RINEX OBS 2 filename
+    system: 'G', 'R', or similar
+    meas:  'L1C'  or  ['L1C', 'C1C'] or similar
+    """
+    Lf = 14
+    assert isinstance(system, str)
+# %% allocation
+    Nsvmax = 32  # FIXME
+    times = obstime2(fn)  # < 10 ms for 24 hour 15 second cadence
+    hdr = obsheader2(fn, useindicators, meas)
+
+    if hdr['systems'] != 'M' and system != hdr['systems']:
+        return
+
+    Nl_sv = ceil(hdr['Nobs']/5)
+
+    Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
+    data = np.empty((Npages, times.size, Nsvmax))
+    if data.size == 0:
+        return
+
+    data.fill(np.nan)
+
 
 # %% start reading
     with opener(fn) as f:
-        # Capture header info
-        hdr = obsheader2(f, useindicators, meas)
-# %% process data
-        data: xarray.Dataset = None
-
+        # skip header
         for ln in f:
-            # %% time
-            try:
-                time = _timeobs(ln)
-            except ValueError:  # garbage between header and RINEX data
-                logging.error(f'garbage detected in {fn}, trying to parse at next time step')
+            if 'END OF HEADER' in ln:
+                break
+
+# %% process data
+        j = -1  # not enumerate in case of time error
+        for ln in f:
+            time_epoch = _timeobs(ln)
+            if time_epoch is None:
                 continue
+
+            j += 1
 
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
-                if time < tlim[0]:
+                if time_epoch < tlim[0]:
                     _skip(f, ln, hdr['Nobs'])
                     continue
-                elif time > tlim[1]:
+                elif time_epoch > tlim[1]:
                     break
 # %%
             eflag = int(ln[28])
             if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
-                logging.info(f'{time}: epoch flag {eflag}')
+                logging.info(f'{time_epoch}: epoch flag {eflag}')
                 continue
 
             if verbose:
-                print(time, end="\r")
+                print(time_epoch, end="\r")
 
             try:
                 toffset = ln[68:80]
@@ -73,79 +110,103 @@ def rinexobs2(fn: Path,
 # %% get SV indices
             sv = _getsvind(f, ln)
 # %% select one, a few, or all satellites
-            iuse: Union[List[int], slice]
-            if use is not None:
-                iuse = [i for i, s in enumerate(sv) if s[0] in use]
-            else:
-                iuse = slice(None)
+            iuse = [i for i, s in enumerate(sv) if s[0] == system]
+            if len(iuse) == 0:
+                _skip(f, ln, hdr['Nobs'], sv)
+                continue
 
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
-            Nl_sv = ceil(hdr['Nobs']/5)
-
-            darr = np.empty((len(sv), hdr['Nobsused']))
-
+            raws = ''
             for i, s in enumerate(sv):
+                # don't process discarded satellites
+                if not s[0] == system:
+                    for _ in range(Nl_sv):
+                        f.readline()
+                    continue
+                # .rstrip() necessary to handle variety of files and Windows vs. Unix
                 raw = ''
                 for _ in range(Nl_sv):
-                    raw += f.readline()[:80]
+                    raw += f.readline()[:80].rstrip()
 
-                # save a lot of time by not processing discarded satellites
-                if use is not None and not s[0] in use:
-                    continue
+                raws += raw + '\n'
+            """
+            it is about 5x faster to call np.genfromtxt() for all sats and then index,
+            vs. calling np.genfromtxt() for each sat.
+            """
+            # can't use "usecols" with "delimiter"
+            darr = np.genfromtxt(BytesIO(raws.encode('ascii')), delimiter=[Lf, 1, 1]*hdr['Nobs'])
+            darr = np.atleast_2d(darr)
+            assert darr.shape[0] == len(gsv)
 
-                # some files truncate and put \n in data space.
-                raw = raw.replace('\n', ' ')
-
-                # can't use "usecols" with "delimiter"
-                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')),
-                                           delimiter=[Lf, 1, 1]*hdr['Nobs'])[hdr['fields_ind']]
-# % select only "used" satellites
-            garr = darr[iuse, :]
-
-            dsf: Dict[str, tuple] = {}
-            for i, k in enumerate(hdr['fields']):
+# %% select only "used" satellites
+            for i, k in enumerate(hdr['fields_ind']):
+                isv = [int(s[1:])-1 for s in gsv]
                 if useindicators:
-                    dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
-                    dsf = _indicators(dsf, k, garr[:, i*3+1:i*3+3])
+                    data[i*3, j, isv] = darr[:, k*3]
+                    # FIXME which other should be excluded?
+                    if hdr['fields'][k] not in ('S1', 'S2'):
+                        if hdr['fields'][k] in ('L1', 'L2'):
+                            data[i*3+1, j, isv] = darr[:, k*3+1]
+
+                        data[i*3+2, j, isv] = darr[:, k*3+2]
                 else:
-                    dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i]))
-
-            if data is None:
-                data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})
+                    data[i, j, isv] = darr[:, k]
+# %% output gathering
+    fields = []
+    for field in hdr['fields']:
+        fields.append(field)
+        if useindicators:
+            if field not in ('S1', 'S2'):
+                if field in ('L1', 'L2'):
+                    fields.append(f'{field}lli')
+                else:
+                    fields.append(None)
+                fields.append(f'{field}ssi')
             else:
-                data = xarray.concat((data,
-                                      xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv}, attrs={'toffset': toffset})),
-                                     dim='time')
-# %% patch SV names in case of "G 7" => "G07"
-    data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
-# %% other attributes
-    data.attrs['filename'] = fn.name
-    data.attrs['version'] = hdr['version']
-    data.attrs['position'] = hdr['position']
-    data.attrs['rinextype'] = 'obs'
+                fields.extend([None, None])
 
-    return data
+    if np.isnan(data).all():
+        return
 
+    obs = xarray.Dataset(coords={'time': times,
+                                 'sv': [f'{system}{i:02d}' for i in range(1, Nsvmax+1)]})
 
-def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
-    if k not in ('S1', 'S2'):  # FIXME which other should be excluded?
-        if k in ('L1', 'L2'):
-            d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, 0]))
+    for i, k in enumerate(fields):
+        # FIXME: for limited time span reads, this drops unused data variables
+        # if np.isnan(data[i, ...]).all():
+            # continue
+        if k is None:
+            continue
+        obs[k] = (('time', 'sv'), data[i, :, :])
 
-        d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, 1]))
+    obs = obs.dropna(dim='sv', how='all')
+    obs = obs.dropna(dim='time', how='all')  # when tlim specified
+# %% attributes
+    obs.attrs['filename'] = fn.name
+    obs.attrs['version'] = hdr['version']
+    obs.attrs['position'] = hdr['position']
+    obs.attrs['rinextype'] = 'obs'
+    obs.attrs['toffset'] = toffset
 
-    return d
+    return obs
 
 
 def obsheader2(f: TextIO,
                useindicators: bool=False,
-               meas: List[str]=None) -> Dict[str, Any]:
+               meas: Sequence[str]=None) -> Dict[str, Any]:
 
     if isinstance(f, Path):
         fn = f
         with opener(fn) as f:
-            return obsheader2(f)
+            return obsheader2(f, useindicators, meas)
+
+# %% selection
+    if isinstance(meas, str):
+        meas = [meas]
+
+    if not meas or not meas[0].strip():
+        meas = None
 
     header: Dict[str, Any] = {}
     Nobs = 0  # not None due to type checking
@@ -198,10 +259,10 @@ def obsheader2(f: TextIO,
         else:
             sysind[::3] = ind
 
-        header['fields_ind'] = sysind
+        header['fields_ind'] = np.nonzero(sysind)[0]
     else:
         ind = slice(None)
-        header['fields_ind'] = ind if useindicators else np.arange(0, Nobs*3, 3)
+        header['fields_ind'] = np.arange(Nobs) if useindicators else np.arange(0, Nobs*3, 3)
 
     header['fields'] = np.array(header['fields'])[ind].tolist()
 
@@ -273,28 +334,30 @@ def obstime2(fn: Path) -> xarray.DataArray:
         header = obsheader2(f)
         Nobs = header['Nobs']
 
-        while True:
-            ln = f.readline()
-            if not ln:
-                break
+        for ln in f:
+            time_epoch = _timeobs(ln)
+            if time_epoch is None:
+                continue
 
-            times.append(_timeobs(ln))
+            times.append(time_epoch)
 
             _skip(f, ln, Nobs)
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
-                               attrs={'filename': fn,
+                               attrs={'filename': fn.name,
                                       'interval': header['interval']})
 
     return timedat
 
 
-def _skip(f: TextIO, ln: str, Nobs: int):
+def _skip(f: TextIO, ln: str, Nobs: int, sv: Sequence[str]=None):
     """
     skip ahead to next time step
     """
-    sv = _getsvind(f, ln)
+    if sv is None:
+        sv = _getsvind(f, ln)
+
     Nl_sv = ceil(Nobs/5)
 
     # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
@@ -302,25 +365,26 @@ def _skip(f: TextIO, ln: str, Nobs: int):
         f.readline()
 
 
-def _timeobs(ln: str) -> datetime:
+def _timeobs(ln: str) -> Optional[datetime]:
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
     """
+    try:
+        year = int(ln[1:3])
+        if year < 80:
+            year += 2000
+        else:
+            year += 1900
 
-    year = int(ln[1:3])
-    if 80 <= year <= 99:
-        year += 1900
-    elif year < 80:  # because we might pass in four-digit year
-        year += 2000
-    else:
-        raise ValueError(f'unknown year format {year}')
-
-    return datetime(year=year,
-                    month=int(ln[4:6]),
-                    day=int(ln[7:9]),
-                    hour=int(ln[10:12]),
-                    minute=int(ln[13:15]),
-                    second=int(ln[16:18]),
-                    microsecond=int(float(ln[16:26]) % 1 * 1000000)
-                    )
+        return datetime(year=year,
+                        month=int(ln[4:6]),
+                        day=int(ln[7:9]),
+                        hour=int(ln[10:12]),
+                        minute=int(ln[13:15]),
+                        second=int(ln[16:18]),
+                        microsecond=int(float(ln[16:26]) % 1 * 1000000)
+                        )
+    except ValueError:  # garbage between header and RINEX data
+        logging.warning(f'garbage detected in RINEX file')
+        return None

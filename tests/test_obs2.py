@@ -2,7 +2,6 @@
 import pytest
 import xarray
 import tempfile
-import numpy as np
 from pytest import approx
 from pathlib import Path
 import georinex as gr
@@ -17,6 +16,7 @@ def test_meas_continuation():
     """
     fn = R/'ab430140.18o.zip'
     obs = gr.load(fn)
+    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
 
     assert len(obs.data_vars) == 20
     for v in ['L1', 'L2', 'C1', 'P2', 'P1', 'S1', 'S2', 'C2', 'L5', 'C5', 'S5',
@@ -36,14 +36,21 @@ def test_meas():
     for v in ['L1', 'L2', 'P1', 'P2', 'C1', 'S1', 'S2']:
         assert v in obs
     assert len(obs.data_vars) == 7
+
+    sv = obs.sv.values
+    assert len(sv) == 14
+    for s in ['G13', 'R19', 'G32', 'G07', 'R23', 'G31', 'G20', 'R11',
+              'G12', 'G26', 'G09', 'G21', 'G15', 'S24']:
+        assert s in sv
+
+
 # %% one measurement
     obs = gr.load(fn, meas='C1')
     assert 'L1' not in obs
 
     C1 = obs['C1']
     assert C1.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
-
-    assert (C1.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
+    assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
 # %% two NON-SEQUENTIAL measurements
     obs = gr.load(fn, meas=['L1', 'S1'])
     assert 'L2' not in obs
@@ -63,18 +70,14 @@ def test_meas():
     assert 'L2' not in obs
 
     S2 = obs['S2']
-    assert S2.shape == (2, 14)
+    assert S2.shape == (2, 10)  # all NaN SVs are dropped
     assert (S2.sel(sv='G13') == approx([40., 80.])).all()
-    # satellites that don't have a measurement are NaN
-    # either because they weren't visible at that time
-    # or simply do not make that kind of measurement at all
-    R23 = S2.sel(sv='R23')
-    assert np.isnan(R23).all()
+
+    with pytest.raises(KeyError):
+        S2.sel(sv='R23')
 # %% measurement not in any system
     obs = gr.load(fn, meas='nonsense')
-    assert 'nonsense' not in obs
-
-    assert len(obs.data_vars) == 0
+    assert obs is None
 # %% wildcard
     obs = gr.load(fn, meas='P')
     assert 'L1' not in obs
@@ -109,12 +112,12 @@ def test_tlim():
 
     obs = gr.load(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = obs.time.values.astype('datetime64[us]').astype(datetime).tolist()
 
-    assert (times == [datetime(2018, 1, 27, 0, 19),
-                      datetime(2018, 1, 27, 0, 19, 15),
-                      datetime(2018, 1, 27, 0, 19, 30),
-                      datetime(2018, 1, 27, 0, 19, 45)]).all()
+    assert times == [datetime(2018, 1, 27, 0, 19),
+                     datetime(2018, 1, 27, 0, 19, 15),
+                     datetime(2018, 1, 27, 0, 19, 30),
+                     datetime(2018, 1, 27, 0, 19, 45)]
 
 
 def test_one_sv():
@@ -189,4 +192,4 @@ def tests_all_indicators():
 
 
 if __name__ == '__main__':
-    pytest.main(['-x', __file__])
+    pytest.main(['-xrsv', __file__])
