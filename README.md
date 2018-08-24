@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/34296204.svg)](https://zenodo.org/badge/latestdoi/34296204)
 [![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
 [![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
 [![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
@@ -9,8 +10,7 @@
 
 # GeoRinex
 
-RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data
-into
+RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
@@ -37,9 +37,7 @@ However, the initial goal of this Python program was to be for one-time offline 
 
 * File: NetCDF4 (subset of HDF5), with `zlib` compression.
 This yields orders of magnitude speedup in reading/converting RINEX data and allows filtering/processing of gigantic files too large to fit into RAM.
-* In-memory: Xarray. This allows all the database-like indexing power of Pandas to be unleashed.
-
-
+* In-memory: Xarray.Dataset. This allows all the database-like indexing power of Pandas to be unleashed.
 
 ## Install
 

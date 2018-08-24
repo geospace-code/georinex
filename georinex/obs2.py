@@ -98,7 +98,8 @@ def rinexobs2(fn: Path,
                 raw = raw.replace('\n', ' ')
 
                 # can't use "usecols" with "delimiter"
-                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')), delimiter=[Lf, 1, 1]*hdr['Nobs'])[hdr['fields_ind']]
+                darr[i, :] = np.genfromtxt(BytesIO(raw.encode('ascii')),
+                                           delimiter=[Lf, 1, 1]*hdr['Nobs'])[hdr['fields_ind']]
 # % select only "used" satellites
             garr = darr[iuse, :]
 
