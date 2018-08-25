@@ -139,11 +139,12 @@ def rinexobs(fn: Path, ofn: Path=None,
         enc = {k: {'zlib': True, 'complevel': COMPLVL, 'fletcher32': True}
                for k in obs.data_vars}
         if ofn.is_file():
-            pass
+            ofn = ofn
         else:
             obsname = Path(fn).name
             ofn = ofn / obsname
             ofn = ofn.with_suffix('.nc')
+        
         if os.path.exists(ofn):
             os.remove(ofn)
         # Write OBS to NETCDF4
@@ -153,8 +154,10 @@ def rinexobs(fn: Path, ofn: Path=None,
                        dtype=float32)
         # Write RX position into the NC4 file
         writeXYX2NC4(ofn,rx_xyz)
-
-    return obs
+        
+        return 
+    else:
+        return obs
 
 
 def gettime(fn: Path) -> xarray.DataArray:
