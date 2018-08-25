@@ -15,7 +15,7 @@ from .nav3 import rinexnav3, navheader3, navtime3
 COMPLVL = 1
 
 
-def load(rinexfn: Path, outfn: Path=None,
+def load(rinexfn: Path, ofn: Path=None,
          use: List[str]=None,
          tlim: Tuple[datetime, datetime]=None,
          useindicators: bool=False,
@@ -32,9 +32,9 @@ def load(rinexfn: Path, outfn: Path=None,
     rtype = rinextype(rinexfn)
 
     if rtype == 'nav':
-        nav = rinexnav(rinexfn, outfn, use=use, tlim=tlim)
+        nav = rinexnav(rinexfn, ofn, use=use, tlim=tlim)
     elif rtype == 'obs':
-        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim,
+        obs = rinexobs(rinexfn, ofn, use=use, tlim=tlim,
                        useindicators=useindicators, meas=meas,
                        verbose=verbose)
     elif rtype == 'nc':
@@ -81,6 +81,11 @@ def rinexnav(fn: Path, ofn: Path=None,
         ofn = Path(ofn).expanduser()
         print('saving NAV data to', ofn)
         wmode = 'a' if ofn.is_file() else 'w'
+        if ofn.is_file():
+            pass
+        else:
+            ofn = Path(ofn).with_suffix('nc')
+        print (ofn)
         nav.to_netcdf(ofn, group=group, mode=wmode)
 
     return nav
@@ -130,6 +135,13 @@ def rinexobs(fn: Path, ofn: Path=None,
 
         enc = {k: {'zlib': True, 'complevel': COMPLVL, 'fletcher32': True}
                for k in obs.data_vars}
+        if ofn.is_file():
+            pass
+        else:
+            obsname = Path(fn).name
+            ofn = ofn / obsname
+            ofn = ofn.with_suffix('.nc')
+
         obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
 
     return obs
