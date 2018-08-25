@@ -54,7 +54,7 @@ def rinexsystem2(fn: Path,
     assert isinstance(system, str)
 # %% allocation
     Nsvmax = 32  # FIXME
-    times = obstime2(fn)  # < 10 ms for 24 hour 15 second cadence
+    times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
@@ -80,7 +80,7 @@ def rinexsystem2(fn: Path,
 # %% process data
         j = -1  # not enumerate in case of time error
         for ln in f:
-            time_epoch = _timeobs(ln)
+            time_epoch = _timeobs(ln, verbose=verbose)
             if time_epoch is None:
                 continue
 
@@ -330,7 +330,7 @@ def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     return sv
 
 
-def obstime2(fn: Path) -> xarray.DataArray:
+def obstime2(fn: Path, verbose: bool) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
@@ -341,7 +341,7 @@ def obstime2(fn: Path) -> xarray.DataArray:
         Nobs = header['Nobs']
 
         for ln in f:
-            time_epoch = _timeobs(ln)
+            time_epoch = _timeobs(ln, verbose=verbose)
             if time_epoch is None:
                 continue
 
@@ -371,7 +371,7 @@ def _skip(f: TextIO, ln: str, Nobs: int, sv: Sequence[str]=None):
         f.readline()
 
 
-def _timeobs(ln: str) -> Optional[datetime]:
+def _timeobs(ln: str, verbose: bool=False) -> Optional[datetime]:
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
@@ -392,5 +392,8 @@ def _timeobs(ln: str) -> Optional[datetime]:
                         microsecond=int(float(ln[16:26]) % 1 * 1000000)
                         )
     except ValueError:  # garbage between header and RINEX data
-        logging.warning(f'garbage detected in RINEX file')
+        if verbose:
+            logging.warning(f'garbage detected in RINEX file')
+        else:
+            pass
         return None
