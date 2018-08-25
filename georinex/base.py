@@ -2,9 +2,11 @@ from pathlib import Path
 import os
 import logging
 import xarray
+from numpy import array, float32
 from typing import Union, Tuple, Dict, Any, Optional, List
 from datetime import datetime
 from dateutil.parser import parse
+import netCDF4 as nc4
 
 from .io import rinexinfo
 from .obs2 import rinexobs2, obsheader2, obstime2
@@ -144,7 +146,13 @@ def rinexobs(fn: Path, ofn: Path=None,
             ofn = ofn.with_suffix('.nc')
         if os.path.exists(ofn):
             os.remove(ofn)
+        # Write OBS to NETCDF4
         obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
+        # Get Receiver position from OBS header:
+        rx_xyz = array(rinexheader(fn).get('APPROX POSITION XYZ').lstrip().rstrip().split(' '),
+                       dtype=float32)
+        # Write RX position into the NC4 file
+        writeXYX2NC4(ofn,rx_xyz)
 
     return obs
 
@@ -229,6 +237,13 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
 
     return hdr
 
+def writeXYX2NC4(ofn,rx_xyz):
+    F = nc4.Dataset(ofn, 'a')
+    fgr = F.createGroup('POSITION')
+    fgr.createDimension('ecef', 3)
+    xyz = fgr.createVariable('XYZ', 'f4', 'ecef')
+    xyz[:] = rx_xyz
+    F.close()
 
 def _tlim(tlim: Optional[Tuple[datetime, datetime]]) -> Optional[Tuple[datetime, datetime]]:
     if tlim is None:
