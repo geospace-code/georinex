@@ -133,7 +133,6 @@ def rinexobs(fn: Path, ofn: Path=None,
 # %% optional output write
     if ofn:
         ofn = Path(ofn).expanduser()
-        print('saving OBS data to', ofn)
         wmode = 'a' if ofn.is_file() else 'w'
 
         enc = {k: {'zlib': True, 'complevel': COMPLVL, 'fletcher32': True}
@@ -150,9 +149,10 @@ def rinexobs(fn: Path, ofn: Path=None,
         # Write OBS to NETCDF4
         obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
         # Get Receiver position from OBS header:
-        rx_xyz = array(rinexheader(fn).get('APPROX POSITION XYZ').lstrip().rstrip().split(' '),
+        rx_xyz = array(rinexheader(fn).get('APPROX POSITION XYZ').lstrip().rstrip().replace('  ', ' ').split(' '),
                        dtype=float32)
         # Write RX position into the NC4 file
+        print('saving OBS data to: ', ofn)
         writeXYX2NC4(ofn,rx_xyz)
         
         return 
