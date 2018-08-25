@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import logging
 import xarray
 from typing import Union, Tuple, Dict, Any, Optional, List
@@ -141,7 +142,8 @@ def rinexobs(fn: Path, ofn: Path=None,
             obsname = Path(fn).name
             ofn = ofn / obsname
             ofn = ofn.with_suffix('.nc')
-
+        if os.path.exists(ofn):
+            os.remove(ofn)
         obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
 
     return obs
