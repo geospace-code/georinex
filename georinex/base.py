@@ -1,9 +1,12 @@
 from pathlib import Path
+import os
 import logging
 import xarray
+from numpy import array, float32
 from typing import Union, Tuple, Dict, Any, Optional, List
 from datetime import datetime
 from dateutil.parser import parse
+import netCDF4 as nc4
 
 from .io import rinexinfo
 from .obs2 import rinexobs2, obsheader2, obstime2
@@ -15,7 +18,7 @@ from .nav3 import rinexnav3, navheader3, navtime3
 COMPLVL = 1
 
 
-def load(rinexfn: Path, outfn: Path=None,
+def load(rinexfn: Path, ofn: Path=None,
          use: List[str]=None,
          tlim: Tuple[datetime, datetime]=None,
          useindicators: bool=False,
@@ -32,9 +35,9 @@ def load(rinexfn: Path, outfn: Path=None,
     rtype = rinextype(rinexfn)
 
     if rtype == 'nav':
-        nav = rinexnav(rinexfn, outfn, use=use, tlim=tlim)
+        nav = rinexnav(rinexfn, ofn, use=use, tlim=tlim)
     elif rtype == 'obs':
-        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim,
+        obs = rinexobs(rinexfn, ofn, use=use, tlim=tlim,
                        useindicators=useindicators, meas=meas,
                        verbose=verbose)
     elif rtype == 'nc':
@@ -81,6 +84,11 @@ def rinexnav(fn: Path, ofn: Path=None,
         ofn = Path(ofn).expanduser()
         print('saving NAV data to', ofn)
         wmode = 'a' if ofn.is_file() else 'w'
+        if ofn.is_file():
+            pass
+        else:
+            ofn = Path(ofn).with_suffix('nc')
+        print (ofn)
         nav.to_netcdf(ofn, group=group, mode=wmode)
 
     return nav
@@ -125,14 +133,31 @@ def rinexobs(fn: Path, ofn: Path=None,
 # %% optional output write
     if ofn:
         ofn = Path(ofn).expanduser()
-        print('saving OBS data to', ofn)
         wmode = 'a' if ofn.is_file() else 'w'
 
         enc = {k: {'zlib': True, 'complevel': COMPLVL, 'fletcher32': True}
                for k in obs.data_vars}
+        if ofn.is_file():
+            ofn = ofn
+        else:
+            obsname = Path(fn).name
+            ofn = ofn / obsname
+            ofn = ofn.with_suffix('.nc')
+        
+        if os.path.exists(ofn):
+            os.remove(ofn)
+        # Write OBS to NETCDF4
         obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
-
-    return obs
+        # Get Receiver position from OBS header:
+        rx_xyz = array(rinexheader(fn).get('APPROX POSITION XYZ').lstrip().rstrip().replace('  ', ' ').split(' '),
+                       dtype=float32)
+        # Write RX position into the NC4 file
+        print('saving OBS data to: ', ofn)
+        writeXYX2NC4(ofn,rx_xyz)
+        
+        return 
+    else:
+        return obs
 
 
 def gettime(fn: Path) -> xarray.DataArray:
@@ -215,6 +240,13 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
 
     return hdr
 
+def writeXYX2NC4(ofn,rx_xyz):
+    F = nc4.Dataset(ofn, 'a')
+    fgr = F.createGroup('POSITION')
+    fgr.createDimension('ecef', 3)
+    xyz = fgr.createVariable('XYZ', 'f4', 'ecef')
+    xyz[:] = rx_xyz
+    F.close()
 
 def _tlim(tlim: Optional[Tuple[datetime, datetime]]) -> Optional[Tuple[datetime, datetime]]:
     if tlim is None:
