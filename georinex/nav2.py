@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any, Tuple
+from typing import Dict, Any, Tuple
 from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
-from io import BytesIO
 from .io import opener, rinexinfo
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
-Nl = {'G': 7, 'R': 3}   # number of additional SV lines
+Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
 def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """
-    Reads RINEX 2.11 NAV files
+    Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.
     SciVision, Inc.
 
@@ -27,7 +26,7 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     Lf = 19  # string length per field
 
     svs = []
-    times: List[datetime] = []
+    times = []
     raws = []
 
     with opener(fn) as f:
@@ -36,7 +35,6 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 
         if header['filetype'] == 'N':
             svtype = 'G'
-            Nl = 7  # number of additional lines per record, for RINEX 2 NAV
             fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                       'IODE', 'Crs', 'DeltaN', 'M0',
                       'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
@@ -47,14 +45,12 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
                       'TransTime', 'FitIntvl']
         elif header['filetype'] == 'G':
             svtype = 'R'  # GLONASS
-            Nl = 7
             fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                       'X', 'dX', 'dX2', 'health',
                       'Y', 'dY', 'dY2', 'FreqNum',
                       'Z', 'dZ', 'dZ2', 'AgeOpInfo']
         elif header['filetype'] == 'E':
             svtype = 'E'  # Galileo
-            Nl = 7
             fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                       'IODnav', 'Crs', 'DeltaN', 'M0',
                       'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
@@ -71,7 +67,7 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 
             if tlim is not None:
                 if time < tlim[0]:
-                    for _, ln in zip(range(Nl), f):
+                    for _, ln in zip(range(Nl[header['systems']]), f):
                         pass
                     continue
                 elif time > tlim[1]:
@@ -84,42 +80,39 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
             now get the data as one big long string per SV
             """
             raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
-            for i, ln in zip(range(Nl), f):
+            for i, ln in zip(range(Nl[header['systems']]), f):
                 raw += ln[STARTCOL2:79]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 # %% parse
-    # NOTE: must be 'ns' or .to_netcdf will fail!
-    t = np.array([np.datetime64(t, 'ns') for t in times])
-    nav: xarray.Dataset = None
+    svs = [s.replace(' ', '0') for s in svs]
     svu = sorted(set(svs))
 
-    for sv in svu:
-        svi = [i for i, s in enumerate(svs) if s == sv]
+    atimes = np.asarray(times)
+    timesu = np.unique(atimes)
+    data = np.empty((len(fields), timesu.size, len(svu)))
+    data.fill(np.nan)
 
-        tu = np.unique(t[svi])
-        if tu.size != t[svi].size:
+    for j, sv in enumerate(svu):  # for each SV, across all values and times...
+        svi = [i for i, s in enumerate(svs) if s == sv]  # these rows are for this SV
+
+        tu = np.unique(atimes[svi])  # this SV was seen at these times
+        if tu.size != atimes[svi].size:
             logging.warning(f'duplicate times detected, skipping SV {sv}')
             continue
 
-        darr = np.empty((len(svi), len(fields)))
+        for i in svi:
+            it = np.nonzero(timesu == times[i])[0][0]  # int by defn
+            data[:, it, j] = [float(raws[i][k*Lf:(k+1)*Lf]) for k in range(len(fields))]
 
-        for j, i in enumerate(svi):
-            darr[j, :] = [float(raws[i][k*Lf:(k+1)*Lf]) for k in range(len(fields))]
+# %% assemble output
+    # NOTE: time must be datetime64[ns] or .to_netcdf will fail
+    nav = xarray.Dataset(coords={'time': timesu.astype('datetime64[ns]'), 'sv': svu})
 
-
-        dsf = {f: (('time', 'sv'), d[:, None])
-               for (f, d) in zip(fields, darr.T)}
-
-        if nav is None:
-            nav = xarray.Dataset(dsf, coords={'time': t[svi], 'sv': [sv]})
-        else:
-            nav = xarray.merge((nav,
-                                xarray.Dataset(dsf,
-                                               coords={'time': t[svi],
-                                                       'sv': [sv]})))
-# %% patch SV names in case of "G 7" => "G07"
-    nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
+    for i, k in enumerate(fields):
+        if k is None:
+            continue
+        nav[k] = (('time', 'sv'), data[i, :, :])
 # %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
@@ -136,7 +129,8 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
 
 # %%verify RINEX version, and that it's NAV
     hdr = rinexinfo(f)
-    assert int(hdr['version']) == 2, 'see rinexnav3() for RINEX 3.0 files'
+    if int(hdr['version']) != 2:
+        raise ValueError('see rinexnav3() for RINEX 3.0 files')
 
     for ln in f:
         if 'END OF HEADER' in ln:

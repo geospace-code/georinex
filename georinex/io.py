@@ -93,8 +93,11 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
                 'systems': line[40],
                 'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
-        if info['filetype'] == 'N' and int(info['version']) == 2 and info['systems'] == ' ':
-            info['systems'] = 'G'
+        if info['systems'] == ' ':
+            if info['filetype'] == 'N' and int(info['version']) == 2:
+                info['systems'] = 'G'
+            else:
+                info['systems'] = info['filetype']
 
     except (ValueError, UnicodeDecodeError) as e:
         raise OSError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')

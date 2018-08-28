@@ -53,7 +53,7 @@ def rinexsystem2(fn: Path,
     Lf = 14
     assert isinstance(system, str)
 # %% allocation
-    Nsvmax = 32  # FIXME
+    Nsvmax = 32  # FIXME per each system.
     times = obstime2(fn)  # < 10 ms for 24 hour 15 second cadence
     hdr = obsheader2(fn, useindicators, meas)
 
