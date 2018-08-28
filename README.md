@@ -61,6 +61,22 @@ If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code 
 make install -C rnxcmp
 ```
 
+#### Windows
+Windows as usual is more difficult to compile code on.
+For optional Hatanaka converter, here are some tips.
+
+> cc -O2 source/rnx2crx.c -o rnx2crx
+process_begin: CreateProcess(NULL, cc -O2 source/rnx2crx.c -o rnx2crx, ...) failed.
+make (e=2): The system cannot find the file specified.
+
+Assuming you have 
+[installed MinGW compiler on Windows](https://www.scivision.co/windows-gcc-gfortran-cmake-make-install/):
+```posh
+set CC=gcc
+mingw32-make -C rnxcmp
+```
+
+
 ## Usage
 
 The simplest command-line use is through the top-level `ReadRinex` script.

@@ -10,6 +10,8 @@ R = Path(__file__).parent
 
 
 def test_time():
+    pytest.importorskip('unlzw')
+
     times = gr.gettime(R/'ab422100.18n.Z').values.astype('datetime64[us]').astype(datetime)
 
     assert times[0] == datetime(2018, 7, 29, 1, 59, 44)
@@ -17,6 +19,8 @@ def test_time():
 
 
 def test_data():
+    pytest.importorskip('unlzw')
+
     nav = gr.load(R/'ab422100.18n.Z')
 
     nav0 = nav.sel(time='2018-07-29T03:59:44').dropna(dim='sv', how='all')
@@ -43,6 +47,8 @@ def test_mangled():
 
 
 def test_tlim():
+    pytest.importorskip('unlzw')
+
     nav = gr.load(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
@@ -57,6 +63,8 @@ def test_tlim():
 
 
 def test_galileo():
+    pytest.importorskip('unlzw')
+
     nav = gr.load(R/'ceda2100.18e.Z')
 
     E18 = nav.sel(sv='E18').dropna(dim='time', how='all')
@@ -72,6 +80,8 @@ def test_galileo():
 
 
 def test_gps():
+    pytest.importorskip('unlzw')
+
     nav = gr.load(R/'brdc2800.15n.Z')
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime).tolist()

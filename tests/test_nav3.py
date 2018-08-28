@@ -33,6 +33,8 @@ def test_tlim():
 def test_qzss():
     """./ReadRinex.py -q tests/qzss3.14n -o r3qzss.nc
     """
+    pytest.importorskip('netCDF4')
+
     truth = gr.load(R/'r3qzss.nc')
     nav = gr.load(R/'qzss3.14n')
     assert nav.equals(truth)

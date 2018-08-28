@@ -58,12 +58,15 @@ def _opencrx(f: TextIO) -> str:
     Nbytes is used to read first line.
     """
     exe = './crx2rnx'
+    shell = False
     if os.name == 'nt':
         exe = exe[2:]
+        shell = True
+
     try:
         In = f.read()
         ret = subprocess.check_output([exe, '-'], input=In,
-                                      universal_newlines=True, cwd=R/'rnxcmp')
+                                      universal_newlines=True, cwd=R/'rnxcmp', shell=shell)
     except FileNotFoundError as e:
         raise FileNotFoundError(f'trouble converting Hatanka file, did you compile the crx2rnx program?   {e}')
 

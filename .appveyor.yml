@@ -5,6 +5,7 @@ image:
 stack: python 3
 
 environment:
+  MINGW_DIR: C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin
   PY_DIR: C:\Python37-x64
 
 clone_depth: 3
@@ -12,9 +13,15 @@ clone_depth: 3
 build: off
 
 init:
+- cmd: set PATH=%MINGW_DIR%;%PATH%
 - cmd: set PATH=%PY_DIR%;%PY_DIR%\Scripts;%PATH%
+- cmd: set CC=gcc
 
-install: pip install -e .[tests,io]
+install:
+- cmd: mingw32-make -C rnxcmp
+- sh: make -C rnxcmp
+
+- pip install -e .[tests,io]
 
 test_script: pytest -xrsv
 
