@@ -10,13 +10,14 @@
 
 # GeoRinex
 
-RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data into
+RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python.
+Batch converts NAV and OBS GPS RINEX data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
 GeoRinex works in Python &ge; 3.6.
 
-Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 500x faster performance than this Python program.
+Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 2x faster performance than this Python program--that's pretty good for a scripted language like Python!
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4, where ease of cross-platform install and correctness are primary goals.
 
 ![RINEX plot](tests/example_plot.png)
@@ -84,8 +85,9 @@ The simplest command-line use is through the top-level `ReadRinex` script.
   ```
 * Batch convert RINEX to NetCDF4 / HDF5 (this example for RINEX 2 OBS):
   ```sh
-  ./rnx2hdf5.py -o ~/data -g "*.*o"
+  rnx2hdf5 ~/data "*o" -o ~/data
   ```
+  in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
 
 By default all plots and status messages are off, unless using the `-v --verbose` option to save processing time.
 

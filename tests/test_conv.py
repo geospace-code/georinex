@@ -8,10 +8,13 @@ import pytest
 import xarray
 from pathlib import Path
 import georinex as gr
+import os
+WIN32 = os.name == 'nt'
 #
 R = Path(__file__).parent
 
 
+@pytest.mark.xfail(WIN32, reason='Windows PermissionError for missing files')
 def test_bad_files():
     with pytest.raises(ValueError):
         with tempfile.NamedTemporaryFile() as f:

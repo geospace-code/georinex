@@ -36,7 +36,7 @@ install:
 script:
 - make install -C rnxcmp
 
-- pytest -xrsv
+- pytest -rsv
 - flake8
 - mypy . --ignore-missing-imports
 

@@ -23,5 +23,5 @@ install:
 
 - pip install -e .[tests,io]
 
-test_script: pytest -xrsv
+test_script: pytest -rsv
 
