@@ -1,61 +1,100 @@
 from pathlib import Path
-import logging
 import xarray
-from typing import Union, Tuple, Dict, Any, Optional, List
+from typing import Union, Tuple, Dict, Sequence
 from datetime import datetime
-from dateutil.parser import parse
-
+import logging
 from .io import rinexinfo
-from .obs2 import rinexobs2, obsheader2, obstime2
-from .obs3 import rinexobs3, obsheader3, obstime3
-from .nav2 import rinexnav2, navheader2, navtime2
-from .nav3 import rinexnav3, navheader3, navtime3
+from .obs2 import rinexobs2
+from .obs3 import rinexobs3
+from .nav2 import rinexnav2
+from .nav3 import rinexnav3
+from .utils import rinextype, _tlim
 
 # for NetCDF compression. too high slows down with little space savings.
-COMPLVL = 1
+ENC = {'zlib': True, 'complevel': 1, 'fletcher32': True}
 
 
-def load(rinexfn: Path, outfn: Path=None,
-         use: List[str]=None,
+def load(rinexfn: Path,
+         out: Path=None,
+         use: Sequence[str]=None,
          tlim: Tuple[datetime, datetime]=None,
          useindicators: bool=False,
-         meas: List[str]=None,
-         verbose: bool=False) -> xarray.Dataset:
+         meas: Sequence[str]=None,
+         verbose: bool=False) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
     """
-    nav = None
-    obs = None
+
     rinexfn = Path(rinexfn).expanduser()
 # %% detect type of Rinex file
     rtype = rinextype(rinexfn)
-
+# %% determine if/where to write NetCDF4/HDF5 output
+    outfn = None
+    if out:
+        out = Path(out).expanduser()
+        if out.is_dir():
+            outfn = out / (rinexfn.name + '.nc')  # not with_suffix to keep unique RINEX 2 filenames
+        elif out.suffix == '.nc':
+            outfn = out
+        else:
+            raise ValueError(f'not sure what output is wanted: {out}')
+# %% main program
     if rtype == 'nav':
-        nav = rinexnav(rinexfn, outfn, use=use, tlim=tlim)
+        return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
     elif rtype == 'obs':
-        obs = rinexobs(rinexfn, outfn, use=use, tlim=tlim,
-                       useindicators=useindicators, meas=meas,
-                       verbose=verbose)
+        return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
+                        useindicators=useindicators, meas=meas,
+                        verbose=verbose)
     elif rtype == 'nc':
-        nav = rinexnav(rinexfn)
-        obs = rinexobs(rinexfn)
+        # outfn not used here, because we already have the converted file!
+        try:
+            nav = rinexnav(rinexfn)
+        except LookupError:
+            nav = None
+
+        try:
+            obs = rinexobs(rinexfn)
+        except LookupError:
+            obs = None
+
+        if nav is not None and obs is not None:
+            return {'nav': nav, 'obs': rinexobs(rinexfn)}
+        elif nav is not None:
+            return nav
+        elif obs is not None:
+            return obs
+        else:
+            raise ValueError(f'No data of known format found in {rinexfn}')
     else:
-        raise ValueError(f"I dont know what type of file you're trying to read: {rinexfn}")
-
-    if nav is None:
-        return obs
-    elif obs is None:
-        return nav
-    else:
-        return obs, nav
+        raise ValueError(f"What kind of RINEX file is: {rinexfn}")
 
 
-readrinex = load  # legacy
+def batch_convert(path: Path, glob: str, out: Path,
+                  use: Sequence[str]=None,
+                  tlim: Tuple[datetime, datetime]=None,
+                  useindicators: bool=False,
+                  meas: Sequence[str]=None,
+                  verbose: bool=False):
+
+    path = Path(path).expanduser()
+
+    flist = [f for f in path.glob(glob) if f.is_file()]
+
+    if len(flist) == 0:
+        raise FileNotFoundError(f'No files to convert in {path}')
+
+    for fn in flist:
+        try:
+            load(fn, out, use=use, tlim=tlim,
+                 useindicators=useindicators, meas=meas, verbose=verbose)
+        except Exception as e:
+            logging.error(f'{fn.name}: {e}')
 
 
-def rinexnav(fn: Path, ofn: Path=None,
-             use: Union[str, list, tuple]=None,
+def rinexnav(fn: Path,
+             outfn: Path=None,
+             use: Sequence[str]=None,
              group: str='NAV',
              tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
     """ Read RINEX 2 or 3  NAV files"""
@@ -64,8 +103,7 @@ def rinexnav(fn: Path, ofn: Path=None,
         try:
             return xarray.open_dataset(fn, group=group, autoclose=True)
         except OSError as e:
-            logging.error(f'Group {group} not found in {fn}    {e}')
-            return None
+            raise LookupError(f'Group {group} not found in {fn}    {e}')
 
     tlim = _tlim(tlim)
 
@@ -75,25 +113,27 @@ def rinexnav(fn: Path, ofn: Path=None,
     elif int(info['version']) == 3:
         nav = rinexnav3(fn, use=use, tlim=tlim)
     else:
-        raise ValueError(f'unknown RINEX  {info}  {fn}')
+        raise LookupError(f'unknown RINEX  {info}  {fn}')
 
-    if ofn:
-        ofn = Path(ofn).expanduser()
-        print('saving NAV data to', ofn)
-        wmode = 'a' if ofn.is_file() else 'w'
-        nav.to_netcdf(ofn, group=group, mode=wmode)
+    if outfn:
+        outfn = Path(outfn).expanduser()
+        wmode = _groupexists(outfn, group)
+
+        enc = {k: ENC for k in nav.data_vars}
+        nav.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
 
     return nav
 
 # %% Observation File
 
 
-def rinexobs(fn: Path, ofn: Path=None,
-             use: List[str]=None,
+def rinexobs(fn: Path,
+             outfn: Path=None,
+             use: Sequence[str]=None,
              group: str='OBS',
              tlim: Tuple[datetime, datetime]=None,
              useindicators: bool=False,
-             meas: List[str]=None,
+             meas: Sequence[str]=None,
              verbose: bool=False) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
@@ -105,8 +145,7 @@ def rinexobs(fn: Path, ofn: Path=None,
         try:
             return xarray.open_dataset(fn, group=group, autoclose=True)
         except OSError as e:
-            logging.error(f'Group {group} not found in {fn}   {e}')
-            return
+            raise LookupError(f'Group {group} not found in {fn}   {e}')
 
     tlim = _tlim(tlim)
 # %% version selection
@@ -123,107 +162,26 @@ def rinexobs(fn: Path, ofn: Path=None,
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 # %% optional output write
-    if ofn:
-        ofn = Path(ofn).expanduser()
-        print('saving OBS data to', ofn)
-        wmode = 'a' if ofn.is_file() else 'w'
+    if outfn:
+        outfn = Path(outfn).expanduser()
+        wmode = _groupexists(outfn, group)
 
-        enc = {k: {'zlib': True, 'complevel': COMPLVL, 'fletcher32': True}
-               for k in obs.data_vars}
-        obs.to_netcdf(ofn, group=group, mode=wmode, encoding=enc)
+        enc = {k: ENC for k in obs.data_vars}
+        obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
 
     return obs
 
 
-def gettime(fn: Path) -> xarray.DataArray:
-    """
-    get times in RINEX 2/3 file
-    Note: in header,
-        * TIME OF FIRST OBS is mandatory
-        * TIME OF LAST OBS is optional
-    """
-    fn = Path(fn).expanduser()
+def _groupexists(fn: Path, group: str) -> str:
+    print(f'saving {group}:', fn)
+    if not fn.is_file():
+        return 'w'
 
-    info = rinexinfo(fn)
-    assert int(info['version']) in (2, 3)
-
-    rtype = rinextype(fn)
-
-    if rtype not in ('nav', 'obs'):
-        raise NotImplementedError('per-observation time is in NAV, OBS files')
-# %% select function
-    if rtype == 'obs':
-        if int(info['version']) == 2:
-            times = obstime2(fn)
-        elif int(info['version']) == 3:
-            times = obstime3(fn)
-    elif rtype == 'nav':
-        if int(info['version']) == 2:
-            times = navtime2(fn)
-        elif int(info['version']) == 3:
-            times = navtime3(fn)
-    else:
-        raise ValueError(f'unknown RINEX {info}  {fn}')
-
-    return times
-
-
-def rinextype(fn: Path) -> str:
-    """
-    based on file extension only, does not actually inspect the file--that comes later
-    """
-    if fn.suffix in ('.gz', '.zip', '.Z'):
-        fnl = fn.stem.lower()
-    else:
-        fnl = fn.name.lower()
-
-    if fnl.endswith(('o', 'o.rnx', 'o.crx')):
-        return 'obs'
-    elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
-        return 'nav'
-    elif fn.suffix.endswith('.nc'):
-        return 'nc'
-    else:
-        raise ValueError(f"I dont know what type of file you're trying to read: {fn}")
-
-
-def rinexheader(fn: Path) -> Dict[str, Any]:
-    """
-    retrieve RINEX 2/3 header as unparsed dict()
-    """
-    fn = Path(fn).expanduser()
-
-    info = rinexinfo(fn)
-    rtype = rinextype(fn)
-
-    if int(info['version']) == 2:
-        if rtype == 'obs':
-            hdr = obsheader2(fn)
-        elif rtype == 'nav':
-            hdr = navheader2(fn)
-        else:
-            raise ValueError(f'Unknown rinex type in {fn}')
-    elif int(info['version']) == 3:
-        if rtype == 'obs':
-            hdr = obsheader3(fn)
-        elif rtype == 'nav':
-            hdr = navheader3(fn)
-        else:
-            raise ValueError(f'Unknown rinex type in {fn}')
-    else:
-        raise ValueError(f'unknown RINEX {info}  {fn}')
-
-    return hdr
-
-
-def _tlim(tlim: Optional[Tuple[datetime, datetime]]) -> Optional[Tuple[datetime, datetime]]:
-    if tlim is None:
+    # be sure there isn't already NAV in it
+    try:
+        xarray.open_dataset(fn, group=group)
+        raise ValueError(f'{group} already in {fn}')
+    except OSError:
         pass
-    elif len(tlim) == 2 and isinstance(tlim[0], datetime):
-        pass
-    elif len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = tuple(map(parse, tlim))
-    else:
-        raise ValueError(f'Not sure what time limits are: {tlim}')
 
-    return tlim
+    return 'a'

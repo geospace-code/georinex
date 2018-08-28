@@ -323,7 +323,8 @@ def _getsvind(f: TextIO, ln: str) -> List[str]:
     return sv
 
 
-def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
+def _getSVlist(ln: str, N: int,
+               sv: List[str]) -> List[str]:
     """ parse a line of text from RINEX2 SV list"""
     sv.extend([ln[32+i*3:35+i*3] for i in range(N)])
 
@@ -357,7 +358,9 @@ def obstime2(fn: Path) -> xarray.DataArray:
     return timedat
 
 
-def _skip(f: TextIO, ln: str, Nobs: int, sv: Sequence[str]=None):
+def _skip(f: TextIO, ln: str,
+          Nobs: int,
+          sv: Sequence[str]=None):
     """
     skip ahead to next time step
     """
@@ -392,5 +395,5 @@ def _timeobs(ln: str) -> Optional[datetime]:
                         microsecond=int(float(ln[16:26]) % 1 * 1000000)
                         )
     except ValueError:  # garbage between header and RINEX data
-        logging.warning(f'garbage detected in RINEX file')
+        logging.info(f'garbage detected in RINEX file')
         return None

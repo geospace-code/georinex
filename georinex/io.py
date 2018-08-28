@@ -103,6 +103,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
                 info['systems'] = info['filetype']
 
     except (ValueError, UnicodeDecodeError) as e:
-        raise OSError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
+        # keep ValueError for consistent user error handling
+        raise ValueError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
 
     return info

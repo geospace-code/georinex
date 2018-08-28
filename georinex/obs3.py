@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 import xarray
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Sequence
 from typing.io import TextIO
 #
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
@@ -16,10 +16,10 @@ BEIDOU = 0
 
 
 def rinexobs3(fn: Path,
-              use: List[str]=None,
+              use: Sequence[str]=None,
               tlim: Tuple[datetime, datetime]=None,
               useindicators: bool=False,
-              meas: List[str]=None,
+              meas: Sequence[str]=None,
               verbose: bool=False) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
@@ -187,8 +187,8 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 
 
 def obsheader3(f: TextIO,
-               use: List[str]=None,
-               meas: List[str]=None) -> Dict[str, Any]:
+               use: Sequence[str]=None,
+               meas: Sequence[str]=None) -> Dict[str, Any]:
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly

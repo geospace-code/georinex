@@ -12,27 +12,99 @@ import georinex as gr
 R = Path(__file__).parent
 
 
+def test_bad_files():
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile() as f:
+            gr.load(f.name)
+
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile(suffix='.18o') as f:
+            fn = f.name
+            gr.load(f.name)
+
+    with pytest.raises(FileNotFoundError):
+        gr.load(fn)
+
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile(suffix='.nc') as f:
+            gr.load(f.name)
+
+
 def test_netcdf_read():
     pytest.importorskip('netCDF4')
 
-    obs, nav = gr.load(R/'r2all.nc')
-    assert isinstance(obs, xarray.Dataset)
+    dat = gr.load(R/'r2all.nc')
+
+    assert isinstance(dat, dict), f'{type(dat)}'
+    assert isinstance(dat['obs'], xarray.Dataset)
 
 
 def test_netcdf_write():
     """
-    NetCDF4 is fuzzy about filenames, it doesn't like arbitrary tempfile.NamedTemporaryFile names
+    NetCDF4 wants suffix .nc -- arbitrary tempfile.NamedTemporaryFile names do NOT work!
     """
     pytest.importorskip('netCDF4')
 
     with tempfile.TemporaryDirectory() as D:
         fn = Path(D)/'rw.nc'
-        obs = gr.load(R/'demo.10o', outfn=fn)
+        obs = gr.load(R/'demo.10o', out=fn)
 
         wobs = gr.load(fn)
 
         # MUST be under context manager for lazy loading
         assert obs.equals(wobs)
+
+
+def test_batch_convert_obs():
+    pytest.importorskip('netCDF4')
+    pat = '*o'
+
+    flist = R.glob(pat)  # all OBS 2 files
+
+    with tempfile.TemporaryDirectory() as outdir:
+        gr.batch_convert(R, pat, outdir)
+
+        for fn in flist:
+            outfn = Path(outdir) / (fn.name + '.nc')
+            assert outfn.is_file(), f'{outfn}'
+            assert outfn.stat().st_size > 30000, f'{outfn}'
+
+            truth = gr.load(fn)
+            obs = gr.load(outfn)
+
+            assert obs.equals(truth), f'{outfn}  {fn}'
+
+
+def test_batch_convert_nav():
+    pytest.importorskip('netCDF4')
+    pat = '*n'
+
+    flist = R.glob(pat)  # all OBS 2 files
+
+    with tempfile.TemporaryDirectory() as outdir:
+        gr.batch_convert(R, pat, outdir)
+
+        for fn in flist:
+            outfn = Path(outdir) / (fn.name + '.nc')
+            assert outfn.is_file(), f'{outfn}'
+            assert outfn.stat().st_size > 15000, f'{outfn}'
+
+            truth = gr.load(fn)
+            nav = gr.load(outfn)
+
+            assert nav.equals(truth), f'{outfn}  {fn}'
+
+
+def test_batch_convert_bad():
+    pat = '*o'
+
+    with pytest.raises(TypeError):
+        with tempfile.TemporaryDirectory() as baddir:
+            gr.batch_convert(baddir, pat)
+
+    with pytest.raises(FileNotFoundError):
+        with tempfile.TemporaryDirectory() as outdir:
+            gr.batch_convert(outdir, pat, outdir)
 
 
 def test_obsdata():

@@ -161,9 +161,9 @@ def test_all_systems():
     assert obs.equals(truth)
 # %% test write .nc
     with tempfile.TemporaryDirectory() as d:
-        ofn = Path(d)/'testout.nc'
-        obs = gr.rinexobs(R/'demo.10o', ofn=Path(d)/'testout.nc')
-        assert ofn.is_file() and 50000 > ofn.stat().st_size > 30000
+        outfn = Path(d)/'testout.nc'
+        obs = gr.rinexobs(R/'demo.10o', outfn=Path(d)/'testout.nc')
+        assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
 
 
 def test_one_system():

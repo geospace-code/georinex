@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Sequence
 from typing.io import TextIO
 import xarray
 import numpy as np
@@ -12,7 +12,8 @@ STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
-def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
+def rinexnav2(fn: Path,
+              tlim: Sequence[datetime]=None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.
@@ -67,8 +68,7 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
 
             if tlim is not None:
                 if time < tlim[0]:
-                    for _, ln in zip(range(Nl[header['systems']]), f):
-                        pass
+                    _skip(f, Nl[header['systems']])
                     continue
                 elif time > tlim[1]:
                     break
