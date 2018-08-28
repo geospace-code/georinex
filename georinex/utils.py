@@ -59,6 +59,8 @@ def gettime(fn: Path) -> xarray.DataArray:
 def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
     """
     retrieve locations of GNSS receivers
+
+    Requires pymap3d.ecef2geodetic
     """
     if isinstance(flist, Path):
         flist = [flist]
