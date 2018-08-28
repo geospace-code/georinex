@@ -1,13 +1,26 @@
 from pathlib import Path
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, Sequence, List
 from datetime import datetime
 from dateutil.parser import parse
 import xarray
+import pandas
 from .io import rinexinfo
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
 from .nav2 import navtime2, navheader2
 from .nav3 import navtime3, navheader3
+
+
+def globber(path: Path, glob: Sequence[str]) -> List[Path]:
+
+    if isinstance(glob, str):
+        glob = [glob]
+
+    flist: List[Path] = []
+    for g in glob:
+        flist += [f for f in path.glob(g) if f.is_file()]
+
+    return flist
 
 
 def gettime(fn: Path) -> xarray.DataArray:
@@ -41,6 +54,32 @@ def gettime(fn: Path) -> xarray.DataArray:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 
     return times
+
+
+def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
+    """
+    retrieve locations of GNSS receivers
+    """
+    if isinstance(flist, Path):
+        flist = [flist]
+
+    locs = pandas.DataFrame(index=[f.name for f in flist],
+                            columns=['lat', 'lon', 'interval'])
+
+    for f in flist:
+        try:
+            hdr = rinexheader(f)
+        except ValueError:
+            continue
+
+        locs.loc[f.name, 'lat'] = hdr['position_geodetic'][0]
+        locs.loc[f.name, 'lon'] = hdr['position_geodetic'][1]
+        if 'interval' in hdr and hdr['interval'] is not None:
+            locs.loc[f.name, 'interval'] = hdr['interval']
+
+    locs = locs.dropna(axis='index', how='any')
+
+    return locs
 
 
 def rinextype(fn: Path) -> str:

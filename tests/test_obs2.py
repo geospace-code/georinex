@@ -156,6 +156,10 @@ def test_all_systems():
         assert obs.equals(truth)
 
     assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
+    try:
+        assert obs.position_geodetic == approx([41.38871005, 2.11199932, 166.25085213])
+    except AttributeError:  # no pymap3d
+        pass
 # %% test read .nc
     obs = gr.rinexobs(R / 'r2all.nc')
     assert obs.equals(truth)

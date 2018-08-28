@@ -7,6 +7,10 @@ from datetime import datetime
 import xarray
 from typing import List, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
+try:
+    from pymap3d import ecef2geodetic
+except ImportError:
+    ecef2geodetic = None
 
 
 def rinexobs2(fn: Path,
@@ -24,7 +28,8 @@ def rinexobs2(fn: Path,
 
     obs = None
     for u in use:
-        o = rinexsystem2(fn, u, tlim, useindicators, meas, verbose)
+        o = rinexsystem2(fn, system=u, tlim=tlim,
+                         useindicators=useindicators, meas=meas, verbose=verbose)
         if o is not None:
             if obs is None:
                 attrs = o.attrs
@@ -54,7 +59,7 @@ def rinexsystem2(fn: Path,
     assert isinstance(system, str)
 # %% allocation
     Nsvmax = 32  # FIXME per each system.
-    times = obstime2(fn)  # < 10 ms for 24 hour 15 second cadence
+    times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
@@ -71,7 +76,7 @@ def rinexsystem2(fn: Path,
 
 
 # %% start reading
-    with opener(fn) as f:
+    with opener(fn, verbose=verbose) as f:
         # skip header
         for ln in f:
             if 'END OF HEADER' in ln:
@@ -202,9 +207,14 @@ def rinexsystem2(fn: Path,
 # %% attributes
     obs.attrs['filename'] = fn.name
     obs.attrs['version'] = hdr['version']
-    obs.attrs['position'] = hdr['position']
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['toffset'] = toffset
+
+    try:
+        obs.attrs['position'] = hdr['position']
+        obs.attrs['position_geodetic'] = hdr['position_geodetic']
+    except KeyError:
+        pass
 
     return obs
 
@@ -215,7 +225,7 @@ def obsheader2(f: TextIO,
 
     if isinstance(f, Path):
         fn = f
-        with opener(fn) as f:
+        with opener(fn, header=True) as f:
             return obsheader2(f, useindicators, meas)
 
 # %% selection
@@ -225,7 +235,7 @@ def obsheader2(f: TextIO,
     if not meas or not meas[0].strip():
         meas = None
 
-    header: Dict[str, Any] = {}
+    hdr: Dict[str, Any] = {}
     Nobs = 0  # not None due to type checking
 
     for l in f:
@@ -241,69 +251,75 @@ def obsheader2(f: TextIO,
 
             c = c[6:].split()  # NOT within "if Nobs"
 # %%
-        if h not in header:  # Header label
-            header[h] = c  # string with info
+        if h not in hdr:  # Header label
+            hdr[h] = c  # string with info
         else:  # concatenate
-            if isinstance(header[h], str):
-                header[h] += " " + c
-            elif isinstance(header[h], list):
-                header[h] += c
+            if isinstance(hdr[h], str):
+                hdr[h] += " " + c
+            elif isinstance(hdr[h], list):
+                hdr[h] += c
             else:
                 raise ValueError(f'not sure what {c} is')
 # %% useful values
-    header['version'] = float(header['RINEX VERSION / TYPE'][:9])  # %9.2f
-    header['systems'] = header['RINEX VERSION / TYPE'][40]
-    header['Nobs'] = Nobs
-    # list with x,y,z cartesian
-    header['position'] = [float(j) for j in header['APPROX POSITION XYZ'].split()]
+    hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
+    hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+    hdr['Nobs'] = Nobs
+
+# %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
+    try:
+        hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
+        if ecef2geodetic is not None:
+            hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
+    except KeyError:
+        pass
 # %% observation types
-    header['fields'] = header['# / TYPES OF OBSERV']
-    if Nobs != len(header['fields']):
+    hdr['fields'] = hdr['# / TYPES OF OBSERV']
+    if Nobs != len(hdr['fields']):
         raise ValueError(f'{f.name} header read incorrectly')
 
     if isinstance(meas, (tuple, list, np.ndarray)):
-        ind = np.zeros(len(header['fields']), dtype=bool)
+        ind = np.zeros(len(hdr['fields']), dtype=bool)
         for m in meas:
-            for i, f in enumerate(header['fields']):
+            for i, f in enumerate(hdr['fields']):
                 if f.startswith(m):
                     ind[i] = True
 
-        header['fields_ind'] = np.nonzero(ind)[0]
+        hdr['fields_ind'] = np.nonzero(ind)[0]
     else:
         ind = slice(None)
-        header['fields_ind'] = np.arange(Nobs)
+        hdr['fields_ind'] = np.arange(Nobs)
 
-    header['fields'] = np.array(header['fields'])[ind].tolist()
+    hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
 
-    header['Nobsused'] = header['Nobs']
+    hdr['Nobsused'] = hdr['Nobs']
     if useindicators:
-        header['Nobsused'] *= 3
+        hdr['Nobsused'] *= 3
 
 # %%
-    if '# OF SATELLITES' in header:
-        header['# OF SATELLITES'] = int(header['# OF SATELLITES'][:6])
+    if '# OF SATELLITES' in hdr:
+        hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
 # %% time
-    t0s = header['TIME OF FIRST OBS']
+    t0s = hdr['TIME OF FIRST OBS']
     # NOTE: must do second=int(float()) due to non-conforming files
-    header['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                            hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                            microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                         hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                         microsecond=int(float(t0s[30:43]) % 1 * 1000000))
 
     try:
-        t0s = header['TIME OF LAST OBS']
+        t0s = hdr['TIME OF LAST OBS']
         # NOTE: must do second=int(float()) due to non-conforming files
-        header['t1'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                                hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                                microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+        hdr['t1'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                             hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                             microsecond=int(float(t0s[30:43]) % 1 * 1000000))
     except KeyError:
         pass
 
     try:  # This key is OPTIONAL
-        header['interval'] = float(header['INTERVAL'][:10])
+        hdr['interval'] = float(hdr['INTERVAL'][:10])
     except KeyError:
-        header['interval'] = None
+        hdr['interval'] = None
 
-    return header
+    return hdr
 
 
 def _getsvind(f: TextIO, ln: str) -> List[str]:
@@ -331,15 +347,15 @@ def _getSVlist(ln: str, N: int,
     return sv
 
 
-def obstime2(fn: Path) -> xarray.DataArray:
+def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
     times = []
-    with opener(fn) as f:
+    with opener(fn, verbose=verbose) as f:
         # Capture header info
-        header = obsheader2(f)
-        Nobs = header['Nobs']
+        hdr = obsheader2(f)
+        Nobs = hdr['Nobs']
 
         for ln in f:
             time_epoch = _timeobs(ln)
@@ -353,7 +369,7 @@ def obstime2(fn: Path) -> xarray.DataArray:
     timedat = xarray.DataArray(times,
                                dims=['time'],
                                attrs={'filename': fn.name,
-                                      'interval': header['interval']})
+                                      'interval': hdr['interval']})
 
     return timedat
 

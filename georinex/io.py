@@ -16,19 +16,31 @@ R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def opener(fn: Path) -> TextIO:
+def opener(fn: Path, header: bool=False, verbose: bool=False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
     if fn.is_dir():
         raise FileNotFoundError(f'{fn} is a directory; I need a file')
 
+    if verbose:
+        if fn.stat().st_size > 100e6:
+            print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
+
     if fn.suffixes == ['.crx', '.gz']:
-        with gzip.open(fn, 'rt') as g:
-            f: TextIO = io.StringIO(_opencrx(g))
-            yield f
+        if header:
+            with gzip.open(fn, 'rt') as f:
+                yield f
+        else:
+            with gzip.open(fn, 'rt') as g:
+                f = io.StringIO(_opencrx(g))
+                yield f
     elif fn.suffix == '.crx':
-        with fn.open('r') as g:
-            f = io.StringIO(_opencrx(g))
-            yield f
+        if header:
+            with fn.open('r') as f:
+                yield f
+        else:
+            with fn.open('r') as g:
+                f = io.StringIO(_opencrx(g))
+                yield f
     elif fn.suffix == '.gz':
         with gzip.open(fn, 'rt') as f:
             yield f

@@ -271,6 +271,12 @@ you can try the more general:
 obs = xarray.merge((obs1, obs2))
 ```
 
+### Receiver location
+While `APPROX LOCATION XYZ` gives ECEF location in RINEX OBS files, this is OPTIONAL for moving platforms.
+If available, the `location` is written to the NetCDF4 / HDF5 output file on conversion.
+To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use 
+[PyMap3d](https://github.com/scivision/pymap3d).
+
 ## Converting to Pandas DataFrames
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
