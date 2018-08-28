@@ -105,8 +105,8 @@ def rinexnav2(fn: Path, tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
         darr = np.empty((len(svi), len(fields)))
 
         for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(
-                BytesIO(raws[i].encode('ascii')), delimiter=[Lf]*len(fields))
+            darr[j, :] = [float(raws[i][k*Lf:(k+1)*Lf]) for k in range(len(fields))]
+
 
         dsf = {f: (('time', 'sv'), d[:, None])
                for (f, d) in zip(fields, darr.T)}
