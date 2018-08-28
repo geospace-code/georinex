@@ -46,14 +46,14 @@ def receiver_locations(locs: pandas.DataFrame):
         ax = figure().gca()
 
     for name, loc in locs.iterrows():
-        if loc.interval >= 30:
-            c = 'b'
-        elif 15 <= loc.interval < 30:
+        if 15 <= loc.interval < 30:
             c = 'g'
         elif 5 <= loc.interval < 15:
-            c = 'y'
-        else:
+            c = 'o'
+        elif loc.interval < 5:
             c = 'r'
+        else:  # large or undefined interval
+            c = 'b'
 
         ax.scatter(loc.lon, loc.lat, s=1000*1/loc.interval, c=c, label=name)
 

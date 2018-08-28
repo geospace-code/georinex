@@ -77,7 +77,7 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
         if 'interval' in hdr and hdr['interval'] is not None:
             locs.loc[f.name, 'interval'] = hdr['interval']
 
-    locs = locs.dropna(axis='index', how='any')
+    locs = locs.loc[locs.loc[:, ['lat', 'lon']].notna().all(axis=1), :]
 
     return locs
 
