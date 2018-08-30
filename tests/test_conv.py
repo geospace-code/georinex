@@ -6,33 +6,71 @@ for OBS RINEX reader
 import tempfile
 import pytest
 import xarray
+from pytest import approx
 from pathlib import Path
 import georinex as gr
+import os
+WIN32 = os.name == 'nt'
 #
 R = Path(__file__).parent
+
+
+@pytest.mark.xfail(WIN32, reason='Windows PermissionError for missing files')
+def test_bad_files():
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile() as f:
+            gr.load(f.name)
+
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile(suffix='.18o') as f:
+            fn = f.name
+            gr.load(f.name)
+
+    with pytest.raises(FileNotFoundError):
+        gr.load(fn)
+
+    with pytest.raises(ValueError):
+        with tempfile.NamedTemporaryFile(suffix='.nc') as f:
+            gr.load(f.name)
 
 
 def test_netcdf_read():
     pytest.importorskip('netCDF4')
 
-    obs, nav = gr.load(R/'r2all.nc')
-    assert isinstance(obs, xarray.Dataset)
+    dat = gr.load(R/'r2all.nc')
+
+    assert isinstance(dat, dict), f'{type(dat)}'
+    assert isinstance(dat['obs'], xarray.Dataset)
 
 
 def test_netcdf_write():
     """
-    NetCDF4 is fuzzy about filenames, it doesn't like arbitrary tempfile.NamedTemporaryFile names
+    NetCDF4 wants suffix .nc -- arbitrary tempfile.NamedTemporaryFile names do NOT work!
     """
     pytest.importorskip('netCDF4')
 
     with tempfile.TemporaryDirectory() as D:
         fn = Path(D)/'rw.nc'
-        obs = gr.load(R/'demo.10o', outfn=fn)
+        obs = gr.load(R/'demo.10o', out=fn)
 
         wobs = gr.load(fn)
 
         # MUST be under context manager for lazy loading
         assert obs.equals(wobs)
+
+
+def test_locs():
+    pytest.importorskip('pymap3d')
+
+    pat = ['*o',
+           '*O.rnx', '*O.rnx.gz',
+           '*O.crx', '*O.crx.gz']
+
+    flist = gr.globber(R, pat)
+
+    locs = gr.getlocations(flist)
+
+    assert locs.loc['demo.10o'].values == approx([41.3887, 2.112, 30])
 
 
 def test_obsdata():
@@ -76,4 +114,4 @@ def test_navheader():
 
 
 if __name__ == '__main__':
-    pytest.main(['-x', __file__])
+    pytest.main(['-xrsv', __file__])

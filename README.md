@@ -10,13 +10,14 @@
 
 # GeoRinex
 
-RINEX 3 and RINEX 2 reader in Python -- reads NAV and OBS GPS RINEX data into
+RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python.
+Batch converts NAV and OBS GPS RINEX data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
 GeoRinex works in Python &ge; 3.6.
 
-Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 500x faster performance than this Python program.
+Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 2x faster performance than this Python program--that's pretty good for a scripted language like Python!
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4, where ease of cross-platform install and correctness are primary goals.
 
 ![RINEX plot](tests/example_plot.png)
@@ -61,16 +62,32 @@ If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code 
 make install -C rnxcmp
 ```
 
+#### Windows
+Windows as usual is more difficult to compile code on.
+For optional Hatanaka converter on Windows, assuming you have
+[installed MinGW compiler on Windows](https://www.scivision.co/windows-gcc-gfortran-cmake-make-install/):
+```posh
+set CC=gcc
+mingw32-make -C rnxcmp
+```
+
 ## Usage
 
 The simplest command-line use is through the top-level `ReadRinex` script.
 
--   Read RINEX3 or RINEX 2 Obs or Nav file: `ReadRinex myrinex.XXx`
-    * you can read multiple files bounded by `--tlim` like
-      ```sh
-      ReadRinex ~/data/ --tlim 2017-01-02-T21 2017-01-03T01
-      ```
--   Read NetCDF converted RINEX data: `ReadRinex myrinex.nc`
+* Read single RINEX3 or RINEX 2 Obs or Nav file:
+  ```sh
+  ReadRinex myrinex.XXx
+  ```
+* Read NetCDF converted RINEX data:
+  ```sh
+  ReadRinex myrinex.nc
+  ```
+* Batch convert RINEX to NetCDF4 / HDF5 (this example for RINEX 2 OBS):
+  ```sh
+  rnx2hdf5 ~/data "*o" -o ~/data
+  ```
+  in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
 
 By default all plots and status messages are off, unless using the `-v --verbose` option to save processing time.
 
@@ -84,21 +101,36 @@ the following examples. Each example assumes you have first done:
 import georinex as gr
 ```
 
+### Time limits
+Time bounds can be set for reading -- load only data between those time bounds with the
+```sh
+--tlim start stop
+```
+option, where `start` and `stop` are formatted like `2017-02-23T12:00`
+
+```python
+dat = gr.load('my.rnx', tlim=['2017-02-23T12:59', '2017-02-23T13:13'])
+```
+
+### Measurement selection
+Further speed increase can arise from reading only wanted measurements:
+```sh
+--meas C1C L1C
+```
 
 
-### Benchmark
+```python
+dat = gr.load('my.rnx', meas=['C1C', 'L1C'])
+```
 
-An Intel Haswell i7-3770 CPU with plain uncompressed RINEX 2 OBS processes in about:
-* [6 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab140210.18o.Z): 5 seconds
-* [13 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab180210.18o.Z): 10 seconds
-
-This processing speed is about within a factor of 5 of compiled RINEX parsers, with the convenience of Python, Xarray, Pandas and HDF5 / NetCDF4.
+### Use Signal and Loss of Lock indicators
+By default, the SSI and LLI (loss of lock indicators) are not loaded to speed up the program and save memory.
+If you need them, the `-useindicators` option loads SSI and LLI for OBS 2/3 files.
 
 
-### read RINEX
+## read RINEX
 
-This convenience function reads any possible RINEX 2/3 OBS/NAV or .nc
-file:
+This convenience function reads any possible format (including compressed, Hatanaka) RINEX 2/3 OBS/NAV or `.nc` file:
 
 ```python
 obs = gr.load('tests/demo.10o')
@@ -122,7 +154,7 @@ times = gr.gettimes('~/my.rnx')
 ```
 
 
-### read Obs
+## read Obs
 
 If you desire to specifically read a RINEX 2 or 3 OBS file:
 
@@ -143,26 +175,13 @@ Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
 
-
-
-#### Time limits
-For very large files, time bounds can be set -- load only data between those time bounds with the
-```python
---tlim start stop
-```
-option, where `start` and `stop` are formatted like `2017-02-23T12:00`
-
-#### Use Signal and Loss of Lock indicators
-By default, the SSI and LLI (loss of lock indicators) are not loaded to speed up the program and save memory.
-If you need them, the `-useindicators` option loads SSI and LLI.
-
-#### get OBS header
+### read OBS header
 To get a `dict()` of the RINEX file header:
 ```python
 hdr = gr.rinexheader('myfile.rnx')
 ```
 
-#### Index OBS data
+### Index OBS data
 
 assume the OBS data from a file is loaded in variable `obs`.
 
@@ -190,7 +209,7 @@ Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy Boolean 1
 Edata = obs.isel(sv=Eind)  # any combination of other indices at same time or before/after also possible
 ```
 
-####  Plot OBS data
+###  Plot OBS data
 
 Plot for all satellites L1C:
 ```python
@@ -205,7 +224,7 @@ Suppose L1C pseudorange plot is desired for `G13`:
 obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 ```
 
-### read Nav
+## read Nav
 
 
 If you desire to specifically read a RINEX 2 or 3 NAV file:
@@ -217,7 +236,7 @@ This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navig
 Indexed by time x quantity
 
 
-#### Index NAV data
+### Index NAV data
 
 assume the NAV data from a file is loaded in variable `nav`.
 Select satellite(s) (here, `G13`) by
@@ -252,12 +271,30 @@ you can try the more general:
 obs = xarray.merge((obs1, obs2))
 ```
 
+### Receiver location
+While `APPROX LOCATION XYZ` gives ECEF location in RINEX OBS files, this is OPTIONAL for moving platforms.
+If available, the `location` is written to the NetCDF4 / HDF5 output file on conversion.
+To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use 
+[PyMap3d](https://github.com/scivision/pymap3d).
+
 ## Converting to Pandas DataFrames
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 [Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).
 
-## Benchmarks
+## Benchmark
+
+An Intel Haswell i7-3770 CPU with plain uncompressed RINEX 2 OBS processes in about:
+* [6 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab140210.18o.Z): 5 seconds
+* [13 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab180210.18o.Z): 10 seconds
+
+This processing speed is about within a factor of 2 of compiled RINEX parsers, with the convenience of Python, Xarray, Pandas and HDF5 / NetCDF4.
+
+OBS2 and NAV2 currently have the fast pure Python read that has C-like speed.
+
+### Obs3
+OBS3 / NAV3 are not yet updated to new fast pure Python method.
+
 Done on 5 year old Haswell laptop:
 ```sh
 time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
@@ -283,6 +320,8 @@ and `ipython`:
 %lprun -f gr.obs3._epoch gr.load('tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', use='E', meas='C1C')
 ```
 shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xarray.concat` and xarray.Dataset` nested inside `concat` takes over 60% of time.
+
+
 
 ## Notes
 

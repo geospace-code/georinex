@@ -1,14 +1,14 @@
 import xarray
+import pandas
 import logging
-try:
-    from matplotlib.pyplot import figure
-except ImportError:
-    figure = None
+from matplotlib.pyplot import figure
+
 try:
     import cartopy
     import cartopy.feature as cpf
 except ImportError:
     cartopy = None
+
 try:
     import pymap3d as pm
 except ImportError:
@@ -18,7 +18,7 @@ from .keplerian import keplerian2ecef
 
 
 def timeseries(data: xarray.Dataset):
-    if not isinstance(data, xarray.Dataset) or figure is None:
+    if not isinstance(data, xarray.Dataset):
         return
 
     if isinstance(data, tuple):
@@ -31,8 +31,35 @@ def timeseries(data: xarray.Dataset):
         navtimeseries(data)
 
 
+def receiver_locations(locs: pandas.DataFrame):
+    if not isinstance(locs, pandas.DataFrame):
+        return
+
+    if cartopy is not None:
+        ax = figure().gca(projection=cartopy.crs.PlateCarree())
+
+        ax.add_feature(cpf.LAND)
+        ax.add_feature(cpf.OCEAN)
+        ax.add_feature(cpf.COASTLINE)
+        ax.add_feature(cpf.BORDERS, linestyle=':')
+    else:
+        ax = figure().gca()
+
+    for name, loc in locs.iterrows():
+        if 15 <= loc.interval < 30:
+            c = 'g'
+        elif 5 <= loc.interval < 15:
+            c = 'o'
+        elif loc.interval < 5:
+            c = 'r'
+        else:  # large or undefined interval
+            c = 'b'
+
+        ax.scatter(loc.lon, loc.lat, s=1000*1/loc.interval, c=c, label=name)
+
+
 def navtimeseries(nav: xarray.Dataset):
-    if not isinstance(nav, xarray.Dataset) or pm is None or figure is None:
+    if not isinstance(nav, xarray.Dataset):
         return
 
     svs = nav.sv.values
@@ -89,7 +116,7 @@ def navtimeseries(nav: xarray.Dataset):
 
 
 def obstimeseries(obs: xarray.Dataset):
-    if not isinstance(obs, xarray.Dataset) or figure is None:
+    if not isinstance(obs, xarray.Dataset):
         return
 
     for p in ('L1', 'L1C'):

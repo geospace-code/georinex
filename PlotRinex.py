@@ -23,7 +23,7 @@ def main():
 
     rinexfn = Path(P.rinexfn).expanduser()
 
-    obs, nav = gr.load(rinexfn, use='G')
+    obs = gr.load(rinexfn, use='G')
 
 # %% optional time indexing demo
     # can use datetime or string

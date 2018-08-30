@@ -16,19 +16,31 @@ R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def opener(fn: Path) -> TextIO:
+def opener(fn: Path, header: bool=False, verbose: bool=False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
     if fn.is_dir():
         raise FileNotFoundError(f'{fn} is a directory; I need a file')
 
+    if verbose:
+        if fn.stat().st_size > 100e6:
+            print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
+
     if fn.suffixes == ['.crx', '.gz']:
-        with gzip.open(fn, 'rt') as g:
-            f: TextIO = io.StringIO(_opencrx(g))
-            yield f
+        if header:
+            with gzip.open(fn, 'rt') as f:
+                yield f
+        else:
+            with gzip.open(fn, 'rt') as g:
+                f = io.StringIO(_opencrx(g))
+                yield f
     elif fn.suffix == '.crx':
-        with fn.open('r') as g:
-            f = io.StringIO(_opencrx(g))
-            yield f
+        if header:
+            with fn.open('r') as f:
+                yield f
+        else:
+            with fn.open('r') as g:
+                f = io.StringIO(_opencrx(g))
+                yield f
     elif fn.suffix == '.gz':
         with gzip.open(fn, 'rt') as f:
             yield f
@@ -58,12 +70,15 @@ def _opencrx(f: TextIO) -> str:
     Nbytes is used to read first line.
     """
     exe = './crx2rnx'
+    shell = False
     if os.name == 'nt':
         exe = exe[2:]
+        shell = True
+
     try:
         In = f.read()
         ret = subprocess.check_output([exe, '-'], input=In,
-                                      universal_newlines=True, cwd=R/'rnxcmp')
+                                      universal_newlines=True, cwd=R/'rnxcmp', shell=shell)
     except FileNotFoundError as e:
         raise FileNotFoundError(f'trouble converting Hatanka file, did you compile the crx2rnx program?   {e}')
 
@@ -93,10 +108,14 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
                 'systems': line[40],
                 'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
-        if info['filetype'] == 'N' and int(info['version']) == 2 and info['systems'] == ' ':
-            info['systems'] = 'G'
+        if info['systems'] == ' ':
+            if info['filetype'] == 'N' and int(info['version']) == 2:
+                info['systems'] = 'G'
+            else:
+                info['systems'] = info['filetype']
 
     except (ValueError, UnicodeDecodeError) as e:
-        raise OSError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
+        # keep ValueError for consistent user error handling
+        raise ValueError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
 
     return info

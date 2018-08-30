@@ -4,17 +4,26 @@ import pytest
 from pathlib import Path
 import georinex as gr
 from datetime import datetime
-R = Path(__file__).parent
+import os
 
-try:
-    # capture_output is py >= 3.7
-    ret = subprocess.run(['crx2rnx', '-h'], stderr=subprocess.PIPE, universal_newlines=True)  # -h returncode == 1
+R = Path(__file__).parent
+Rexe = Path(__file__).resolve().parents[1] / 'rnxcmp'
+exe = './crx2rnx'
+shell = False
+if os.name == 'nt':
+    exe = exe[2:]
+    shell = True
+
+try:  # capture_output is py >= 3.7
+    ret = subprocess.run([exe, '-h'], stderr=subprocess.PIPE,
+                         universal_newlines=True, cwd=Rexe, shell=shell)  # -h returncode == 1
     nocrx = False if ret.stderr.startswith('Usage') else True
-except (FileNotFoundError, PermissionError):
+except (FileNotFoundError, PermissionError) as e:
+    print(e)
     nocrx = True
 
 
-@pytest.mark.skipif(nocrx, reason='crx2rnx not found')
+@pytest.mark.skipif(nocrx, reason=f'crx2rnx not found in {Rexe}')
 @pytest.mark.timeout(30)
 def test_obs3():
     fn = R / 'CEBR00ESP_R_20182000000_01D_30S_MO.crx.gz'
