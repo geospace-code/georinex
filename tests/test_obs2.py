@@ -5,9 +5,39 @@ import tempfile
 from pytest import approx
 from pathlib import Path
 import georinex as gr
+import numpy as np
 from datetime import datetime
 #
 R = Path(__file__).parent
+
+
+def test_blank():
+    fn = R/'blank.10o'
+    obs = gr.load(fn)
+    assert obs is None
+
+    with tempfile.TemporaryDirectory() as outdir:
+        gr.load(fn, outdir)
+
+    times = gr.gettime(fn)
+    assert times is None
+
+
+def test_minimal():
+    fn = R/'minimal.10o'
+    obs = gr.load(fn)
+    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
+
+    with tempfile.TemporaryDirectory() as outdir:
+        outdir = Path(outdir)
+        gr.load(fn, outdir)
+
+        outfn = (outdir / (fn.name + '.nc'))
+        assert outfn.is_file()
+        assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
+
+    times = gr.gettime(fn)
+    assert np.isnan(times.interval)
 
 
 def test_meas_continuation():
@@ -16,7 +46,6 @@ def test_meas_continuation():
     """
     fn = R/'ab430140.18o.zip'
     obs = gr.load(fn)
-    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
 
     assert len(obs.data_vars) == 20
     for v in ['L1', 'L2', 'C1', 'P2', 'P1', 'S1', 'S2', 'C2', 'L5', 'C5', 'S5',

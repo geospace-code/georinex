@@ -74,6 +74,7 @@ mingw32-make -C rnxcmp
 ## Usage
 
 The simplest command-line use is through the top-level `ReadRinex` script.
+Normally you'd use the `-p` option with single files to plot, if not converting.
 
 * Read single RINEX3 or RINEX 2 Obs or Nav file:
   ```sh

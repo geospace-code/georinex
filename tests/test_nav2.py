@@ -5,8 +5,36 @@ import xarray
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
+import tempfile
 #
 R = Path(__file__).parent
+
+
+def test_blank():
+    fn = R/'blank.10n'
+    nav = gr.load(fn)
+    assert nav is None
+
+    with tempfile.TemporaryDirectory() as outdir:
+        gr.load(fn, outdir)
+
+    times = gr.gettime(fn)
+    assert times is None
+
+
+def test_minimal():
+    fn = R/'minimal.10n'
+
+    nav = gr.load(fn)
+    assert isinstance(nav, xarray.Dataset)
+
+    with tempfile.TemporaryDirectory() as outdir:
+        outdir = Path(outdir)
+        gr.load(fn, outdir)
+        outfn = (outdir / (fn.name + '.nc'))
+        assert outfn.is_file()
+
+        assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
 
 
 def test_time():

@@ -6,8 +6,38 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
+import tempfile
 #
 R = Path(__file__).parent
+
+
+def test_blank():
+    fn = R/'blank3.10o'
+    obs = gr.load(fn)
+    assert obs is None
+
+    with tempfile.TemporaryDirectory() as outdir:
+        gr.load(fn, outdir)
+
+    times = gr.gettime(fn)
+    assert times is None
+
+
+def test_minimal():
+    fn = R/'minimal3.10o'
+    obs = gr.load(fn)
+    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
+
+    with tempfile.TemporaryDirectory() as outdir:
+        outdir = Path(outdir)
+        gr.load(fn, outdir)
+
+        outfn = (outdir / (fn.name + '.nc'))
+        assert outfn.is_file()
+        assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
+
+    times = gr.gettime(fn)
+    assert np.isnan(times.interval)
 
 
 def test_meas():

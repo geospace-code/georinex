@@ -60,6 +60,9 @@ def rinexsystem2(fn: Path,
 # %% allocation
     Nsvmax = 32  # FIXME per each system.
     times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+    if times is None:
+        return
+
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
@@ -316,8 +319,8 @@ def obsheader2(f: TextIO,
 
     try:  # This key is OPTIONAL
         hdr['interval'] = float(hdr['INTERVAL'][:10])
-    except KeyError:
-        hdr['interval'] = None
+    except (KeyError, ValueError):
+        hdr['interval'] = np.nan  # do NOT set it to None or it breaks NetCDF writing
 
     return hdr
 
@@ -365,6 +368,9 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
             times.append(time_epoch)
 
             _skip(f, ln, Nobs)
+
+    if not times:
+        return None
 
     timedat = xarray.DataArray(times,
                                dims=['time'],

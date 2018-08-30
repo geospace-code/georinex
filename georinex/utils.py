@@ -74,6 +74,9 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
         except ValueError:
             continue
 
+        if 'position_geodetic' not in hdr:
+            continue
+
         locs.loc[f.name, 'lat'] = hdr['position_geodetic'][0]
         locs.loc[f.name, 'lon'] = hdr['position_geodetic'][1]
         if 'interval' in hdr and hdr['interval'] is not None:

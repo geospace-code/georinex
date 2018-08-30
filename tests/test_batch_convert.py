@@ -18,8 +18,10 @@ def test_obs():
 
         for fn in flist:
             outfn = Path(outdir) / (fn.name + '.nc')
+            if outfn.name.startswith('blank'):
+                continue
+
             assert outfn.is_file(), f'{outfn}'
-            assert outfn.stat().st_size > 30000, f'{outfn}'
 
             truth = gr.load(fn)
             obs = gr.load(outfn)
@@ -38,6 +40,9 @@ def test_nav():
 
         for fn in flist:
             outfn = Path(outdir) / (fn.name + '.nc')
+            if outfn.name.startswith('blank'):
+                continue
+
             assert outfn.is_file(), f'{outfn}'
             assert outfn.stat().st_size > 15000, f'{outfn}'
 

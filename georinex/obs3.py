@@ -127,6 +127,9 @@ def obstime3(fn: Path, verbose: bool=False) -> xarray.DataArray:
             if ln.startswith('>'):
                 times.append(_timeobs(ln, fn))
 
+    if not times:
+        return None
+
     timedat = xarray.DataArray(times,
                                dims=['time'],
                                attrs={'filename': fn,
@@ -264,7 +267,7 @@ def obsheader3(f: TextIO,
     try:
         hdr['interval'] = float(hdr['INTERVAL'][:10])
     except KeyError:
-        hdr['interval'] = None
+        hdr['interval'] = np.nan  # not None or write will fail
 # %% select specific satellite systems only (optional)
     if use is not None:
         if not set(fields.keys()).intersection(use):

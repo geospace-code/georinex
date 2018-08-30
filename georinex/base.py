@@ -115,6 +115,9 @@ def rinexnav(fn: Path,
     else:
         raise LookupError(f'unknown RINEX  {info}  {fn}')
 
+    if nav is None:
+        return None
+# %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
         wmode = _groupexists(outfn, group)
@@ -161,6 +164,9 @@ def rinexobs(fn: Path,
                         verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
+
+    if obs is None:
+        return None
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
