@@ -31,14 +31,14 @@ before_install:
 
 install: 
 - pip install -e .[tests,io]
-- export PATH=$PATH:$HOME/.local/bin
+- if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then pip install -e .[cov]; fi
 
 script:
 - make install -C rnxcmp
 
 - pytest -rsv
-- flake8
-- mypy . --ignore-missing-imports
+- if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then flake8; fi
+- if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then mypy . --ignore-missing-imports; fi
 
 after_success:
 - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux ]]; then

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Sequence
+from typing import Dict, Any, Sequence, Optional
 from typing.io import TextIO
 import xarray
 import numpy as np
@@ -65,6 +65,8 @@ def rinexnav2(fn: Path,
 # %% read data
         for ln in f:
             time = _timenav(ln)
+            if time is None:  # blank or garbage line
+                continue
 
             if tlim is not None:
                 if time < tlim[0]:
@@ -84,6 +86,9 @@ def rinexnav2(fn: Path,
                 raw += ln[STARTCOL2:79]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
+
+    if not raws:
+        return None
 # %% parse
     svs = [s.replace(' ', '0') for s in svs]
     svu = sorted(set(svs))
@@ -141,27 +146,30 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
     return hdr
 
 
-def _timenav(ln: str) -> datetime:
+def _timenav(ln: str) -> Optional[datetime]:
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
     """
-    year = int(ln[3:5])
-    if 80 <= year <= 99:
-        year += 1900
-    elif year < 80:  # because we might pass in four-digit year
-        year += 2000
-    else:
-        raise ValueError(f'unknown year format {year}')
+    try:
+        year = int(ln[3:5])
+        if 80 <= year <= 99:
+            year += 1900
+        elif year < 80:  # because we might pass in four-digit year
+            year += 2000
+        else:
+            raise ValueError(f'unknown year format {year}')
 
-    return datetime(year=year,
-                    month=int(ln[6:8]),
-                    day=int(ln[9:11]),
-                    hour=int(ln[12:14]),
-                    minute=int(ln[15:17]),
-                    second=int(float(ln[17:20])),
-                    microsecond=int(float(ln[17:22]) % 1 * 1000000)
-                    )
+        return datetime(year=year,
+                        month=int(ln[6:8]),
+                        day=int(ln[9:11]),
+                        hour=int(ln[12:14]),
+                        minute=int(ln[15:17]),
+                        second=int(float(ln[17:20])),
+                        microsecond=int(float(ln[17:22]) % 1 * 1000000)
+                        )
+    except ValueError:
+        return None
 
 
 def _skip(f: TextIO, Nl: int):
@@ -182,15 +190,21 @@ def navtime2(fn: Path) -> xarray.DataArray:
             if not ln:
                 break
 
-            times.append(_timenav(ln))
+            time = _timenav(ln)
+            if time is None:
+                continue
+
+            times.append(time)
 
             _skip(f, Nl[hdr['systems']])
+
+    if not times:
+        return None
 
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
-                               attrs={'filename': fn,
-                                      'interval': ''})
+                               attrs={'filename': fn})
 
     return timedat

@@ -1,91 +1,91 @@
      3.01           OBSERVATION DATA    M (MIXED)           RINEX VERSION / TYPE
-BLANK OR G = GPS,  R = GLONASS,  E = GALILEO,  M = MIXED    COMMENT             
-gLAB                gAGE                20100317 121400 UTC PGM / RUN BY / DATE 
-EXAMPLE OF A MIXED RINEX FILE                               COMMENT             
-MRKR                                                        MARKER NAME         
-9080.1.34                                                   MARKER NUMBER       
-GEODETIC                                                    MARKER TYPE         
-gAGE                UPC: Technical University of Catalonia  OBSERVER / AGENCY   
-THIS FILE IS PART OF THE gLAB TOOL SUITE                    COMMENT             
-FILE PREPARED BY: ADRIA ROVIRA GARCIA                       COMMENT             
-PLEASE EMAIL ANY COMMENT OR REQUEST TO: glab.gage @ upc.edu COMMENT             
-IR2200716006        ASHTECH UZ-12       CQ00                REC # / TYPE / VERS 
-482                 AOAD/M_T        NONE                    ANT # / TYPE        
-   4789028.4701    176610.0133   4195017.0310               APPROX POSITION XYZ 
+BLANK OR G = GPS,  R = GLONASS,  E = GALILEO,  M = MIXED    COMMENT
+gLAB                gAGE                20100317 121400 UTC PGM / RUN BY / DATE
+EXAMPLE OF A MIXED RINEX FILE                               COMMENT
+MRKR                                                        MARKER NAME
+9080.1.34                                                   MARKER NUMBER
+GEODETIC                                                    MARKER TYPE
+gAGE                UPC: Technical University of Catalonia  OBSERVER / AGENCY
+THIS FILE IS PART OF THE gLAB TOOL SUITE                    COMMENT
+FILE PREPARED BY: ADRIA ROVIRA GARCIA                       COMMENT
+PLEASE EMAIL ANY COMMENT OR REQUEST TO: glab.gage @ upc.edu COMMENT
+IR2200716006        ASHTECH UZ-12       CQ00                REC # / TYPE / VERS
+482                 AOAD/M_T        NONE                    ANT # / TYPE
+   4789028.4701    176610.0133   4195017.0310               APPROX POSITION XYZ
          0.9030         0.0000         0.0000               ANTENNA: DELTA H/E/N
          0.0000         0.0000         0.0000               ANTENNA: DELTA X/Y/Z
 G C1C    0.9030         0.0000         0.0000               ANTENNA: PHASECENTER
          0.0000         0.0000         0.0000               ANTENNA: B.SIGHT XYZ
          0.0000                                             ANTENNA: ZERODIR AZI
          0.0000         0.0000         0.0000               ANTENNA: ZERODIR XYZ
-         0.0000         0.0000         0.0000               CENTER OF MASS: XYZ 
-G    7 L1C L2P C1P C2P C1C S1P S2P                          SYS / # / OBS TYPES 
-R    3 L1C C1C S1C                                          SYS / # / OBS TYPES 
-S    3 L1C C1C S1C                                          SYS / # / OBS TYPES 
+         0.0000         0.0000         0.0000               CENTER OF MASS: XYZ
+G    7 L1C L2P C1P C2P C1C S1P S2P                          SYS / # / OBS TYPES
+R    3 L1C C1C S1C                                          SYS / # / OBS TYPES
+S    3 L1C C1C S1C                                          SYS / # / OBS TYPES
 DBHZ                                                        SIGNAL STRENGTH UNIT
-    30.000                                                  INTERVAL            
-  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS   
-  2010     3     5    23    59    30.0000000     GPS        TIME OF LAST OBS    
-     1                                                      RCV CLOCK OFFS APPL 
-G CC2NONCC          p1c1bias.hist @ goby.nrl.navy.mil       SYS / DCBS APPLIED  
-G PAGES             igs05.atx @ igscb.jpl.nasa.gov          SYS / PCVS APPLIED  
-G 0001  12 L1C S1C L2P S2D C1P S1P C2P S2P C1C S1C D1C D2P  SYS / SCALE FACTOR  
-R 0001   4 L1C S1C C1C S1C                                  SYS / SCALE FACTOR  
-S 0001   4 L1C S1C C1C S1C                                  SYS / SCALE FACTOR  
-G L1C  0.00000   9 G07 G09 G12 G13 G15 G20 G21 G26 G31 G32  SYS / PHASE SHIFTS  
-G L2P  0.00000   9 G07 G09 G12 G13 G15 G20 G21 G26 G31 G32  SYS / PHASE SHIFTS  
-R L1C  0.00000   3 R11 R19 R23                              SYS / PHASE SHIFTS  
-S L1C  0.00000   1 S24                                      SYS / PHASE SHIFTS  
+    30.000                                                  INTERVAL
+  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS
+  2010     3     5    23    59    30.0000000     GPS        TIME OF LAST OBS
+     1                                                      RCV CLOCK OFFS APPL
+G CC2NONCC          p1c1bias.hist @ goby.nrl.navy.mil       SYS / DCBS APPLIED
+G PAGES             igs05.atx @ igscb.jpl.nasa.gov          SYS / PCVS APPLIED
+G 0001  12 L1C S1C L2P S2D C1P S1P C2P S2P C1C S1C D1C D2P  SYS / SCALE FACTOR
+R 0001   4 L1C S1C C1C S1C                                  SYS / SCALE FACTOR
+S 0001   4 L1C S1C C1C S1C                                  SYS / SCALE FACTOR
+G L1C  0.00000   9 G07 G09 G12 G13 G15 G20 G21 G26 G31 G32  SYS / PHASE SHIFTS
+G L2P  0.00000   9 G07 G09 G12 G13 G15 G20 G21 G26 G31 G32  SYS / PHASE SHIFTS
+R L1C  0.00000   3 R11 R19 R23                              SYS / PHASE SHIFTS
+S L1C  0.00000   1 S24                                      SYS / PHASE SHIFTS
   3 R11 -5R19 +3R23 -6                                      GLONASS SLOT / FRQ #
-    15    15  1573    64                                    LEAP SECONDS        
-    14                                                      # OF SATELLITES     
-   G07   815   815   815   815   815   815   815   815   815PRN / # OF OBS      
-         815   815   815                                    PRN / # OF OBS      
-   G09   246   246   246   246   246   246   246   246   246PRN / # OF OBS      
-         246   246   246                                    PRN / # OF OBS      
-   G12   687   687   687   687   687   687   687   687   687PRN / # OF OBS      
-         687   687   687                                    PRN / # OF OBS      
-   G13   762   762   762   762   762   762   762   762   762PRN / # OF OBS      
-         762   762   762                                    PRN / # OF OBS      
-   G15   454   454   454   454   454   454   454   454   454PRN / # OF OBS      
-         454   454   454                                    PRN / # OF OBS      
-   G20   599   599   599   599   599   599   599   599   599PRN / # OF OBS      
-         599   599   599                                    PRN / # OF OBS      
-   G21   636   636   636   636   636   636   636   636   636PRN / # OF OBS      
-         636   636   636                                    PRN / # OF OBS      
-   G26   210   210   210   210   210   210   210   210   210PRN / # OF OBS      
-         210   210   210                                    PRN / # OF OBS      
-   G31   874   874   874   874   874   874   874   874   874PRN / # OF OBS      
-         874   874   874                                    PRN / # OF OBS      
-   G32   457   457   457   457   457   457   457   457   457PRN / # OF OBS      
-         457   457   457                                    PRN / # OF OBS      
-   R11   907   907   907   907                              PRN / # OF OBS      
-   R19   348   348   348   348                              PRN / # OF OBS      
-   R23   936   936   936   936                              PRN / # OF OBS      
-   S24   198   198   198   198                              PRN / # OF OBS      
-                                                            END OF HEADER       
-> 2010 03 05 00 00 00.0000000  0 14      -0.123456789012                        
-G13 121367582.20508  94572134.49208  23095489.677 9  23095481.949 9  23095483.463 7        42.000          40.000  
-R19 134357446.85408  23095483.463 7        51.000                                                                  
-G32  34357446.85408 104694102.10708  25567381.585 9  25567371.841 9  25567379.659 7        76.000          84.000  
-G 7 118767195.32608  91018570.22508  22600658.277 9  22600648.232 9  22227666.760 7        57.000          32.000  
-R23 132798887.20808  22600648.288 7        39.000                                                                  
-G31 130586522.29708 101755719.98608  24849779.954 9  24849799.921 9  24849797.341 7        56.000          24.000  
-G20 135891004.29908 105889081.83208  25859215.981 9  25859207.736 9  25859205.875 7        44.000          46.000  
-R11 132678281.64008  25247845.883 7        38.000                                                                  
-G12 106712807.73208  83152833.16108  20306772.310 9  20306771.779 9  20306772.510 7        44.000          46.000  
-G26 116571368.18108  90834826.58108  22182792.370 9  22182793.119 9  22182794.240 7        35.000          27.000  
-G09 132197034.89008 103010636.32308  25156289.677 9  25156300.244 9  25156289.059 7        51.000          40.000  
-G21 119360658.19908  93008298.09808  22713580.654 9  22713581.674 9  22713580.663 7        78.000          35.000  
-G15 117320174.24208  91418311.51708  22325286.941 9  22325287.194 9  22325287.806 7        63.000          65.000  
-S24 195486861.41208  37199916.954 7        45.000                                                                  
-> 2010 03 05 00 00 30.0000000  0 8      -0.123456789012                        
-G13 130321269.80108 101549030.34908  24799319.672 9  24799319.752 9  24799318.768 7        62.000          80.000  
-R19 129262004.57708  24597748.629 7        47.000                                                                  
-G32 133135049.38708 103741584.18208  25334766.349 9  25334768.879 9  25334766.309 7        75.000          83.000  
-G 7 133174968.81808 103772690.97708  25342359.815 9  25342359.952 9  25342359.370 7        65.000          45.000  
-R23 119323293.47908  22706470.024 7        79.000                                                                  
-G31 114311363.56508  92979182.85108  21752728.352 9  21752728.204 9  21752729.338 7        72.000          63.000  
-G20 135891004.29908 105889081.83208  25859215.981 9  25859207.736 9  25859205.875 7        44.000          46.000  
-R11 131986783.86108  25116253.066 7        38.000                                                                  
+    15    15  1573    64                                    LEAP SECONDS
+    14                                                      # OF SATELLITES
+   G07   815   815   815   815   815   815   815   815   815PRN / # OF OBS
+         815   815   815                                    PRN / # OF OBS
+   G09   246   246   246   246   246   246   246   246   246PRN / # OF OBS
+         246   246   246                                    PRN / # OF OBS
+   G12   687   687   687   687   687   687   687   687   687PRN / # OF OBS
+         687   687   687                                    PRN / # OF OBS
+   G13   762   762   762   762   762   762   762   762   762PRN / # OF OBS
+         762   762   762                                    PRN / # OF OBS
+   G15   454   454   454   454   454   454   454   454   454PRN / # OF OBS
+         454   454   454                                    PRN / # OF OBS
+   G20   599   599   599   599   599   599   599   599   599PRN / # OF OBS
+         599   599   599                                    PRN / # OF OBS
+   G21   636   636   636   636   636   636   636   636   636PRN / # OF OBS
+         636   636   636                                    PRN / # OF OBS
+   G26   210   210   210   210   210   210   210   210   210PRN / # OF OBS
+         210   210   210                                    PRN / # OF OBS
+   G31   874   874   874   874   874   874   874   874   874PRN / # OF OBS
+         874   874   874                                    PRN / # OF OBS
+   G32   457   457   457   457   457   457   457   457   457PRN / # OF OBS
+         457   457   457                                    PRN / # OF OBS
+   R11   907   907   907   907                              PRN / # OF OBS
+   R19   348   348   348   348                              PRN / # OF OBS
+   R23   936   936   936   936                              PRN / # OF OBS
+   S24   198   198   198   198                              PRN / # OF OBS
+                                                            END OF HEADER
+> 2010 03 05 00 00 00.0000000  0 14      -0.123456789012
+G13 121367582.20508  94572134.49208  23095489.677 9  23095481.949 9  23095483.463 7        42.000          40.000
+R19 134357446.85408  23095483.463 7        51.000
+G32  34357446.85408 104694102.10708  25567381.585 9  25567371.841 9  25567379.659 7        76.000          84.000
+G 7 118767195.32608  91018570.22508  22600658.277 9  22600648.232 9  22227666.760 7        57.000          32.000
+R23 132798887.20808  22600648.288 7        39.000
+G31 130586522.29708 101755719.98608  24849779.954 9  24849799.921 9  24849797.341 7        56.000          24.000
+G20 135891004.29908 105889081.83208  25859215.981 9  25859207.736 9  25859205.875 7        44.000          46.000
+R11 132678281.64008  25247845.883 7        38.000
+G12 106712807.73208  83152833.16108  20306772.310 9  20306771.779 9  20306772.510 7        44.000          46.000
+G26 116571368.18108  90834826.58108  22182792.370 9  22182793.119 9  22182794.240 7        35.000          27.000
+G09 132197034.89008 103010636.32308  25156289.677 9  25156300.244 9  25156289.059 7        51.000          40.000
+G21 119360658.19908  93008298.09808  22713580.654 9  22713581.674 9  22713580.663 7        78.000          35.000
+G15 117320174.24208  91418311.51708  22325286.941 9  22325287.194 9  22325287.806 7        63.000          65.000
+S24 195486861.41208  37199916.954 7        45.000
+> 2010 03 05 00 00 30.0000000  0 8      -0.123456789012
+G13 130321269.80108 101549030.34908  24799319.672 9  24799319.752 9  24799318.768 7        62.000          80.000
+R19 129262004.57708  24597748.629 7        47.000
+G32 133135049.38708 103741584.18208  25334766.349 9  25334768.879 9  25334766.309 7        75.000          83.000
+G 7 133174968.81808 103772690.97708  25342359.815 9  25342359.952 9  25342359.370 7        65.000          45.000
+R23 119323293.47908  22706470.024 7        79.000
+G31 114311363.56508  92979182.85108  21752728.352 9  21752728.204 9  21752729.338 7        72.000          63.000
+G20 135891004.29908 105889081.83208  25859215.981 9  25859207.736 9  25859205.875 7        44.000          46.000
+R11 131986783.86108  25116253.066 7        38.000
 

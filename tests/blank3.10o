@@ -1,0 +1,7 @@
+     3.01           OBSERVATION DATA    M (MIXED)           RINEX VERSION / TYPE
+G    7 L1C L2P C1P C2P C1C S1P S2P                          SYS / # / OBS TYPES
+R    3 L1C C1C S1C                                          SYS / # / OBS TYPES
+S    3 L1C C1C S1C                                          SYS / # / OBS TYPES
+  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS
+                                                            END OF HEADER
+ 

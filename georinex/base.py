@@ -19,7 +19,8 @@ def load(rinexfn: Path,
          tlim: Tuple[datetime, datetime]=None,
          useindicators: bool=False,
          meas: Sequence[str]=None,
-         verbose: bool=False) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
+         verbose: bool=False,
+         fast: bool=True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
@@ -45,7 +46,7 @@ def load(rinexfn: Path,
     elif rtype == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose)
+                        verbose=verbose, fast=fast)
     elif rtype == 'nc':
         # outfn not used here, because we already have the converted file!
         try:
@@ -115,6 +116,9 @@ def rinexnav(fn: Path,
     else:
         raise LookupError(f'unknown RINEX  {info}  {fn}')
 
+    if nav is None:
+        return None
+# %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
         wmode = _groupexists(outfn, group)
@@ -134,7 +138,8 @@ def rinexobs(fn: Path,
              tlim: Tuple[datetime, datetime]=None,
              useindicators: bool=False,
              meas: Sequence[str]=None,
-             verbose: bool=False) -> xarray.Dataset:
+             verbose: bool=False,
+             fast: bool=True) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
     """
@@ -154,13 +159,16 @@ def rinexobs(fn: Path,
     if int(info['version']) == 2:
         obs = rinexobs2(fn, use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose)
+                        verbose=verbose, fast=fast)
     elif int(info['version']) == 3:
         obs = rinexobs3(fn, use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
                         verbose=verbose)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
+
+    if obs is None:
+        return None
 # %% optional output write
 
     if outfn:

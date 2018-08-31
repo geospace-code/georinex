@@ -6,7 +6,7 @@ import numpy as np
 from io import BytesIO
 from datetime import datetime
 from .io import opener, rinexinfo
-from typing import Dict, List, Any, Sequence
+from typing import Dict, List, Any, Sequence, Optional
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
@@ -42,6 +42,8 @@ def rinexnav3(fn: Path,
                 break
 
             time = _time(line)
+            if time is None:  # blank or garbage line
+                continue
 
             if tlim is not None:
                 if time < tlim[0] or time > tlim[1]:
@@ -74,6 +76,9 @@ def rinexnav3(fn: Path,
                 raw += line[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
+
+    if not raws:
+        return None
 # %% parse
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, 'ns') for t in times])
@@ -144,14 +149,17 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def _time(ln: str) -> datetime:
+def _time(ln: str) -> Optional[datetime]:
 
-    return datetime(year=int(ln[4:8]),
-                    month=int(ln[9:11]),
-                    day=int(ln[12:14]),
-                    hour=int(ln[15:17]),
-                    minute=int(ln[18:20]),
-                    second=int(ln[21:23]))
+    try:
+        return datetime(year=int(ln[4:8]),
+                        month=int(ln[9:11]),
+                        day=int(ln[12:14]),
+                        hour=int(ln[15:17]),
+                        minute=int(ln[18:20]),
+                        second=int(ln[21:23]))
+    except ValueError:
+        return None
 
 
 def _newnav(ln: str, sv: str) -> List[str]:
@@ -240,14 +248,20 @@ def navtime3(fn: Path) -> xarray.DataArray:
         navheader3(f)  # skip header
 
         for line in f:
-            times.append(_time(line))
+            time = _time(line)
+            if not time:
+                continue
+
+            times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
+
+    if not times:
+        return None
 
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
-                               attrs={'filename': fn,
-                                      'interval': ''})
+                               attrs={'filename': fn})
 
     return timedat

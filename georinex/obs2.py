@@ -18,7 +18,8 @@ def rinexobs2(fn: Path,
               tlim: Tuple[datetime, datetime]=None,
               useindicators: bool=False,
               meas: Sequence[str]=None,
-              verbose: bool=False) -> xarray.Dataset:
+              verbose: bool=False,
+              fast: bool=True) -> xarray.Dataset:
 
     if isinstance(use, str):
         use = [use]
@@ -29,7 +30,8 @@ def rinexobs2(fn: Path,
     obs = None
     for u in use:
         o = rinexsystem2(fn, system=u, tlim=tlim,
-                         useindicators=useindicators, meas=meas, verbose=verbose)
+                         useindicators=useindicators, meas=meas,
+                         verbose=verbose, fast=fast)
         if o is not None:
             if obs is None:
                 attrs = o.attrs
@@ -48,19 +50,35 @@ def rinexsystem2(fn: Path,
                  tlim: Tuple[datetime, datetime]=None,
                  useindicators: bool=False,
                  meas: Sequence[str]=None,
-                 verbose: bool=False) -> xarray.Dataset:
+                 verbose: bool=False,
+                 fast: bool=True) -> xarray.Dataset:
     """
     procss RINEX OBS data
     fn: RINEX OBS 2 filename
     system: 'G', 'R', or similar
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
+
+    fast: speculative preallocation based on minimum SV assumption and file size.
+          Avoids double-reading file and more complicated linked lists.
+          Believed that Numpy array should be faster than lists anyway.
+          Reduce Nsvmin if error (let us know)
     """
     Lf = 14
     assert isinstance(system, str)
 # %% allocation
+    Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
+    Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
-    Nsvmax = 32  # FIXME per each system.
-    times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+    if fast:
+        times: List[datetime] = []
+        Nt = max(100, fn.stat().st_size // 80 // Nsvmin)  # estimated number of times in file
+    else:  # strict preallocation by double-reading file, OK for < 100 MB files
+        times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+        if times is None:
+            return
+
+        Nt = len(times)
+
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
@@ -69,18 +87,17 @@ def rinexsystem2(fn: Path,
     Nl_sv = ceil(hdr['Nobs']/5)
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
-    data = np.empty((Npages, times.size, Nsvmax))
+
+    data = np.empty((Npages, Nt, Nsvsys))
     if data.size == 0:
         return
 
     data.fill(np.nan)
-
-
 # %% start reading
     with opener(fn, verbose=verbose) as f:
         # skip header
         for ln in f:
-            if 'END OF HEADER' in ln:
+            if 'END OF HEADER' in ln[60:80]:
                 break
 
 # %% process data
@@ -90,7 +107,8 @@ def rinexsystem2(fn: Path,
             if time_epoch is None:
                 continue
 
-            j += 1
+            if not fast:
+                j += 1
 
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
@@ -99,6 +117,9 @@ def rinexsystem2(fn: Path,
                     continue
                 elif time_epoch > tlim[1]:
                     break
+
+            if fast:
+                j += 1
 # %%
             eflag = int(ln[28])
             if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
@@ -107,6 +128,9 @@ def rinexsystem2(fn: Path,
 
             if verbose:
                 print(time_epoch, end="\r")
+
+            if fast:
+                times.append(time_epoch)
 
             try:
                 toffset = ln[68:80]
@@ -125,16 +149,15 @@ def rinexsystem2(fn: Path,
             raws = []
             for i, s in enumerate(sv):
                 # don't process discarded satellites
-                if not s[0] == system:
+                if s[0] != system:
                     for _ in range(Nl_sv):
                         f.readline()
                     continue
                 # .rstrip() necessary to handle variety of files and Windows vs. Unix
-                raw = ''
-                for _ in range(Nl_sv):
-                    raw += f'{f.readline()[:80].rstrip():80s}'
+                # NOT readline(80), but readline()[:80] is needed!
+                raw = [f'{f.readline()[:80]:80s}' for _ in range(Nl_sv)]  # .rstrip() adds no significant process time
 
-                raws.append(raw)
+                raws.append(''.join(raw))
             """
             it is about 5x faster to call np.genfromtxt() for all sats and then index,
             vs. calling np.genfromtxt() for each sat.
@@ -176,6 +199,9 @@ def rinexsystem2(fn: Path,
                 else:
                     data[i, j, isv] = darr[:, k]
 # %% output gathering
+    if fast:
+        data = data[:, :len(times), :]
+
     if np.isnan(data).all():
         return
 
@@ -193,7 +219,7 @@ def rinexsystem2(fn: Path,
                 fields.extend([None, None])
 
     obs = xarray.Dataset(coords={'time': times,
-                                 'sv': [f'{system}{i:02d}' for i in range(1, Nsvmax+1)]})
+                                 'sv': [f'{system}{i:02d}' for i in range(1, Nsvsys+1)]})
 
     for i, k in enumerate(fields):
         # FIXME: for limited time span reads, this drops unused data variables
@@ -317,8 +343,8 @@ def obsheader2(f: TextIO,
 
     try:  # This key is OPTIONAL
         hdr['interval'] = float(hdr['INTERVAL'][:10])
-    except KeyError:
-        hdr['interval'] = None
+    except (KeyError, ValueError):
+        hdr['interval'] = np.nan  # do NOT set it to None or it breaks NetCDF writing
 
     return hdr
 
@@ -366,6 +392,9 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
             times.append(time_epoch)
 
             _skip(f, ln, Nobs)
+
+    if not times:
+        return None
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
