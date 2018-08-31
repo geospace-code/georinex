@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import io
 import os
 from typing.io import TextIO
-from typing import Union, Dict
+from typing import Union, Dict, Any
 try:
     import unlzw
 except ImportError:
@@ -85,7 +85,7 @@ def _opencrx(f: TextIO) -> str:
     return ret
 
 
-def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
+def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     """verify RINEX version"""
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
@@ -101,7 +101,9 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
                 return rinexinfo(f)
 
     try:
-        line = f.readline()
+        line = f.readline(80)  # don't choke on binary files
+        if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
+            raise ValueError
 
         info = {'version': float(line[:9]),  # yes :9
                 'filetype': line[20],
@@ -109,13 +111,13 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Union[str, float]]:
                 'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
         if info['systems'] == ' ':
-            if info['filetype'] == 'N' and int(info['version']) == 2:
+            if info['filetype'] == 'N' and int(info['version']) == 2:  # type: ignore
                 info['systems'] = 'G'
             else:
                 info['systems'] = info['filetype']
 
     except (ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
-        raise ValueError(f'{f.name} does not appear to be a known/valid RINEX file.  {e}')
+        raise ValueError(f'not a known/valid RINEX file.  {e}')
 
     return info
