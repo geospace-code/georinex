@@ -7,6 +7,7 @@ from datetime import datetime
 import xarray
 from typing import List, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
+import psutil
 try:
     from pymap3d import ecef2geodetic
 except ImportError:
@@ -87,6 +88,11 @@ def rinexsystem2(fn: Path,
     Nl_sv = ceil(hdr['Nobs']/5)
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
+
+    mem = psutil.virtual_memory()
+    memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
+    if memneed > 1.2*mem.available or memneed > mem.available + 0.2*psutil.swap_memory().free:
+        raise RuntimeError(f'{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available')
 
     data = np.empty((Npages, Nt, Nsvsys))
     if data.size == 0:
