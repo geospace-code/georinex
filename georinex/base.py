@@ -26,6 +26,8 @@ def load(rinexfn: Path,
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
     """
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
 
     rinexfn = Path(rinexfn).expanduser()
 # %% detect type of Rinex file

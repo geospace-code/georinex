@@ -70,9 +70,25 @@ def rinexsystem2(fn: Path,
     Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
+    hdr = obsheader2(fn, useindicators, meas)
+
+    if hdr['systems'] != 'M' and system != hdr['systems']:
+        return
+
+    if fast:
+        Nextra = _fast_alloc(fn, hdr['Nl_sv'])
+        fast = isinstance(Nextra, int) and Nextra > 0
+        if verbose and not fast:
+            logging.info(f'fast mode disabled due to estimation problem, Nextra: {Nextra}')
+
     if fast:
         times: List[datetime] = []
-        Nt = max(100, fn.stat().st_size // 80 // Nsvmin)  # estimated number of times in file
+        """
+        estimated number of satellites per file:
+            * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
+        """
+        assert isinstance(Nextra, int)
+        Nt = ceil(fn.stat().st_size / 80 / (Nsvmin * Nextra))
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         if times is None:
@@ -80,19 +96,13 @@ def rinexsystem2(fn: Path,
 
         Nt = len(times)
 
-    hdr = obsheader2(fn, useindicators, meas)
-
-    if hdr['systems'] != 'M' and system != hdr['systems']:
-        return
-
-    Nl_sv = ceil(hdr['Nobs']/5)
-
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
 
     mem = psutil.virtual_memory()
     memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
-    if memneed > 1.2*mem.available or memneed > mem.available + 0.2*psutil.swap_memory().free:
-        raise RuntimeError(f'{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available')
+    if memneed > 0.5*mem.available:  # because of array copy Numpy => Xarray
+        raise RuntimeError(f'{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n'
+                           'try fast=False to reduce RAM usage, raise a GitHub Issue to let us help')
 
     data = np.empty((Npages, Nt, Nsvsys))
     if data.size == 0:
@@ -101,10 +111,7 @@ def rinexsystem2(fn: Path,
     data.fill(np.nan)
 # %% start reading
     with opener(fn, verbose=verbose) as f:
-        # skip header
-        for ln in f:
-            if 'END OF HEADER' in ln[60:80]:
-                break
+        _skip_header(f)
 
 # %% process data
         j = -1  # not enumerate in case of time error
@@ -119,7 +126,7 @@ def rinexsystem2(fn: Path,
             if tlim is not None:
                 assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
                 if time_epoch < tlim[0]:
-                    _skip(f, ln, hdr['Nobs'])
+                    _skip(f, ln, hdr['Nl_sv'])
                     continue
                 elif time_epoch > tlim[1]:
                     break
@@ -147,7 +154,7 @@ def rinexsystem2(fn: Path,
 # %% select one, a few, or all satellites
             iuse = [i for i, s in enumerate(sv) if s[0] == system]
             if len(iuse) == 0:
-                _skip(f, ln, hdr['Nobs'], sv)
+                _skip(f, ln, hdr['Nl_sv'], sv)
                 continue
 
             gsv = np.array(sv)[iuse]
@@ -156,12 +163,12 @@ def rinexsystem2(fn: Path,
             for i, s in enumerate(sv):
                 # don't process discarded satellites
                 if s[0] != system:
-                    for _ in range(Nl_sv):
+                    for _ in range(hdr['Nl_sv']):
                         f.readline()
                     continue
                 # .rstrip() necessary to handle variety of files and Windows vs. Unix
                 # NOT readline(80), but readline()[:80] is needed!
-                raw = [f'{f.readline()[:80]:80s}' for _ in range(Nl_sv)]  # .rstrip() adds no significant process time
+                raw = [f'{f.readline()[:80]:80s}' for _ in range(hdr['Nl_sv'])]  # .rstrip() adds no significant process time
 
                 raws.append(''.join(raw))
             """
@@ -169,6 +176,7 @@ def rinexsystem2(fn: Path,
             vs. calling np.genfromtxt() for each sat.
             """
             # can't use "usecols" with "delimiter"
+            # FIXME: only read requested meas=
             darr = np.empty((len(raws), hdr['Nobsused']))
             darr.fill(np.nan)
             for i, r in enumerate(raws):
@@ -192,23 +200,29 @@ def rinexsystem2(fn: Path,
 
 # %% select only "used" satellites
             isv = [int(s[1:])-1 for s in gsv]
-            for i, k in enumerate(hdr['fields_ind']):
-                if useindicators:
-                    data[i*3, j, isv] = darr[:, k*3]
-                    # FIXME which other should be excluded?
-                    ind = i if meas is not None else k
-                    if hdr['fields'][ind] not in ('S1', 'S2'):
-                        if hdr['fields'][ind] in ('L1', 'L2'):
-                            data[i*3+1, j, isv] = darr[:, k*3+1]
+            try:
+                for i, k in enumerate(hdr['fields_ind']):
+                    if useindicators:
+                        data[i*3, j, isv] = darr[:, k*3]
+                        # FIXME which other should be excluded?
+                        ind = i if meas is not None else k
+                        if hdr['fields'][ind] not in ('S1', 'S2'):
+                            if hdr['fields'][ind] in ('L1', 'L2'):
+                                data[i*3+1, j, isv] = darr[:, k*3+1]
 
-                        data[i*3+2, j, isv] = darr[:, k*3+2]
+                            data[i*3+2, j, isv] = darr[:, k*3+2]
+                    else:
+                        data[i, j, isv] = darr[:, k]
+            except IndexError as e:
+                if fast:
+                    raise RuntimeError('this error may be a result of "fast" mode, try fast=False  {e}')
                 else:
-                    data[i, j, isv] = darr[:, k]
+                    raise
 # %% output gathering
     if fast:
         data = data[:, :len(times), :]
 
-    if np.isnan(data).all():
+    if np.isnan(data).all():  # don't use darr=None sentinel, due to meas= cases
         return
 
     fields = []
@@ -242,6 +256,7 @@ def rinexsystem2(fn: Path,
     obs.attrs['version'] = hdr['version']
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['toffset'] = toffset
+    obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
 
     try:
         obs.attrs['position'] = hdr['position']
@@ -271,12 +286,12 @@ def obsheader2(f: TextIO,
     hdr: Dict[str, Any] = {}
     Nobs = 0  # not None due to type checking
 
-    for l in f:
-        if "END OF HEADER" in l:
+    for ln in f:
+        if "END OF HEADER" in ln:
             break
 
-        h = l[60:80].strip()
-        c = l[:60]
+        h = ln[60:80].strip()
+        c = ln[:60]
 # %% measurement types
         if '# / TYPES OF OBSERV' in h:
             if Nobs == 0:
@@ -297,6 +312,7 @@ def obsheader2(f: TextIO,
     hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
     hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
     hdr['Nobs'] = Nobs
+    hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)  # 5 observations per line (incorporating LLI, SSI)
 
 # %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
     try:
@@ -388,7 +404,6 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
     with opener(fn, verbose=verbose) as f:
         # Capture header info
         hdr = obsheader2(f)
-        Nobs = hdr['Nobs']
 
         for ln in f:
             time_epoch = _timeobs(ln)
@@ -397,7 +412,7 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
 
             times.append(time_epoch)
 
-            _skip(f, ln, Nobs)
+            _skip(f, ln, hdr['Nl_sv'])
 
     if not times:
         return None
@@ -411,15 +426,13 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
 
 
 def _skip(f: TextIO, ln: str,
-          Nobs: int,
+          Nl_sv: int,
           sv: Sequence[str]=None):
     """
     skip ahead to next time step
     """
     if sv is None:
         sv = _getsvind(f, ln)
-
-    Nl_sv = ceil(Nobs/5)
 
     # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
     for _ in range(len(sv)*Nl_sv):
@@ -449,3 +462,40 @@ def _timeobs(ln: str) -> Optional[datetime]:
     except ValueError:  # garbage between header and RINEX data
         logging.info(f'garbage detected in RINEX file')
         return None
+
+
+def _skip_header(f: TextIO):
+    for ln in f:
+        if "END OF HEADER" in ln:
+            break
+
+
+def _fast_alloc(fn: Path, Nl_sv: int) -> Optional[int]:
+    """
+    prescan first N lines of file to see if it truncates to less than 80 bytes
+    Picking N:  N > Nobs+4 or so.  100 seemed a good start.
+    """
+    assert fn.is_file(), 'need freshly opend file'
+
+    with opener(fn) as f:
+        _skip_header(f)
+
+        for ln in f:
+            t = _timeobs(ln)
+            if isinstance(t, datetime):
+                break
+
+        if t is None:
+            return None
+
+        _getsvind(f, ln)
+
+        raw = [f.readline() for _ in range(Nl_sv)]
+
+    lens = list(map(len, raw))
+    if max(lens) < 79:  # oddly formatted file, no prediction
+        return None
+
+    shorts = sum(l < 79 for l in lens)
+
+    return len(lens) - shorts
