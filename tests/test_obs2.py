@@ -40,6 +40,14 @@ def test_minimal():
     assert np.isnan(times.interval)
 
 
+def test_fast_slow():
+    fn = R/'minimal.10o'
+    fobs = gr.load(fn, fast=True)
+    sobs = gr.load(fn, fast=False)
+
+    assert fobs.equals(sobs)
+
+
 def test_meas_continuation():
     """
     tests OBS2 files with more than 10 types of observations

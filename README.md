@@ -18,7 +18,8 @@ This gives remarkable speed vs. legacy iterative methods, and allows for HPC / o
 GeoRinex works in Python &ge; 3.6.
 
 Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 2x faster performance than this Python program--that's pretty good for a scripted language like Python!
-However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4, where ease of cross-platform install and correctness are primary goals.
+However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4,
+where ease of cross-platform install and correctness are primary goals.
 
 ![RINEX plot](tests/example_plot.png)
 
@@ -90,7 +91,7 @@ Normally you'd use the `-p` option with single files to plot, if not converting.
   ```
   in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
 
-By default all plots and status messages are off, unless using the `-v --verbose` option to save processing time.
+By default all plots and status messages are off, unless using the `-p` option to save processing time.
 
 It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
 as NetCDF4 is also human-readable, yet say 1000x faster to load than RINEX.
@@ -101,6 +102,10 @@ the following examples. Each example assumes you have first done:
 ```python
 import georinex as gr
 ```
+
+Uses speculative time preallocation `gr.load(..., fast=True)` by default.
+Set `fast=False` or `ReadRinex.py -strict` to fall back to double-read strict (slow) preallocation.
+Please open a GitHub issue if this is a problem.
 
 ### Time limits
 Time bounds can be set for reading -- load only data between those time bounds with the
@@ -275,7 +280,7 @@ obs = xarray.merge((obs1, obs2))
 ### Receiver location
 While `APPROX LOCATION XYZ` gives ECEF location in RINEX OBS files, this is OPTIONAL for moving platforms.
 If available, the `location` is written to the NetCDF4 / HDF5 output file on conversion.
-To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use 
+To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use
 [PyMap3d](https://github.com/scivision/pymap3d).
 
 ## Converting to Pandas DataFrames
@@ -333,6 +338,15 @@ RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
     [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
 -   <https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf>
 -   <http://www.gage.es/gFD>
+
+### Number of SVs visible
+With the GNSS constellations in 2018, per the
+[Trimble Planner](https://www.gnssplanning.com/)
+the min/max visible SV would be about:
+
+* Maximum: ~60 SV maximum near the equator in Asia / Oceania with 5 degree elev. cutoff
+* Minimum: ~6 SV minimum at poles with 20 degree elev. cutoff and GPS only
+
 
 ### RINEX OBS reader algorithm
 
