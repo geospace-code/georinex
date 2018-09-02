@@ -5,9 +5,10 @@ import xarray
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
+import numpy as np
 import tempfile
 #
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 def test_blank():
@@ -72,6 +73,24 @@ def test_mangled():
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
     assert times == datetime(2018, 6, 22, 8)
+
+
+def test_mangled2():
+    fn = R/'brdc2420.18n.gz'
+
+    nav = gr.load(fn)
+
+    G10 = nav.sel(sv='G10').dropna(dim='time', how='all')
+    assert G10['Crc'].values == approx([221.59375, 225.7421875])
+    assert np.isnan(G10['FitIntvl'][0])
+    assert G10['FitIntvl'][1] == approx(4)
+
+    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    assert (times == [datetime(2018, 8, 29, 22, 0),
+                      datetime(2018, 8, 29, 23, 0),
+                      datetime(2018, 8, 29, 23, 30),
+                      datetime(2018, 8, 29, 23, 59, 12),
+                      datetime(2018, 8, 29, 23, 59, 44)]).all()
 
 
 def test_tlim():

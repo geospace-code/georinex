@@ -1,6 +1,7 @@
 import xarray
 import pandas
 import logging
+import numpy as np
 from matplotlib.pyplot import figure
 
 try:
@@ -55,7 +56,10 @@ def receiver_locations(locs: pandas.DataFrame):
         else:  # large or undefined interval
             c = 'b'
 
-        ax.scatter(loc.lon, loc.lat, s=1000*1/loc.interval, c=c, label=name)
+        if np.isfinite(loc.interval):
+            ax.scatter(loc.lon, loc.lat, s=1000*1/loc.interval, c=c, label=name)
+        else:
+            ax.scatter(loc.lon, loc.lat, c=c, label=name)
 
 
 def navtimeseries(nav: xarray.Dataset):

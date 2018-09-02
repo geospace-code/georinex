@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 import georinex as gr
 
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 def test_obs():

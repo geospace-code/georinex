@@ -6,7 +6,7 @@ import xarray
 import tempfile
 from datetime import datetime
 #
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 def test_blank():

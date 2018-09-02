@@ -108,7 +108,12 @@ def rinexnav2(fn: Path,
 
         for i in svi:
             it = np.nonzero(timesu == times[i])[0][0]  # int by defn
-            data[:, it, j] = [float(raws[i][k*Lf:(k+1)*Lf]) for k in range(len(fields))]
+            """
+            some files sometimes drop the last measurement, this fixes that.
+            It assumes the blank is always in the last measurement for now.
+            """
+            dvec = [float(raws[i][k*Lf:(k+1)*Lf]) for k in range(min(len(fields), len(raws[i])//Lf))]
+            data[:len(dvec), it, j] = dvec
 
 # %% assemble output
     # NOTE: time must be datetime64[ns] or .to_netcdf will fail

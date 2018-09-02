@@ -6,7 +6,7 @@ import georinex as gr
 from datetime import datetime
 import os
 
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 Rexe = Path(__file__).resolve().parents[1] / 'rnxcmp'
 exe = './crx2rnx'
 shell = False

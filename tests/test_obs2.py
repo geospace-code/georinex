@@ -8,7 +8,7 @@ import georinex as gr
 import numpy as np
 from datetime import datetime
 #
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 def test_blank():
