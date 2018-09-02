@@ -283,6 +283,23 @@ If available, the `location` is written to the NetCDF4 / HDF5 output file on con
 To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use
 [PyMap3d](https://github.com/scivision/pymap3d).
 
+Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
+
+* using `PlotRXlocation.py` script, which loads and plots all RINEX and .nc files in a directory
+* using `xarray`
+  ```python
+  obs = xarray.open_dataset('my.nc)
+  
+  ecef = obs.position
+  latlon = obs.position_geodetic  # only if pymap3d was used
+  ```
+* Using `h5py`:
+  ```python
+  with h5py.File('my.nc') as f:
+      ecef = h['OBS'].attrs['position']
+      latlon = h['OBS'].attrs['position_geodetic']
+  ```
+
 ## Converting to Pandas DataFrames
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
