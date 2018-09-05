@@ -13,6 +13,10 @@ from .nav3 import navtime3, navheader3
 
 def globber(path: Path, glob: Sequence[str]) -> List[Path]:
 
+    path = Path(path).expanduser()
+    if path.is_file():
+        return [path]
+
     if isinstance(glob, str):
         glob = [glob]
 
@@ -69,10 +73,14 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
                             columns=['lat', 'lon', 'interval'])
 
     for f in flist:
-        try:
-            hdr = rinexheader(f)
-        except ValueError:
-            continue
+        if f.suffix == '.nc':
+            dat = xarray.open_dataset(f, group='OBS')
+            hdr = dat.attrs
+        else:
+            try:
+                hdr = rinexheader(f)
+            except ValueError:
+                continue
 
         if 'position_geodetic' not in hdr:
             continue

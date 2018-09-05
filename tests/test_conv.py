@@ -12,7 +12,7 @@ import georinex as gr
 import os
 WIN32 = os.name == 'nt'
 #
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 @pytest.mark.xfail(WIN32, reason='Windows PermissionError for missing files')

@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 import tempfile
 
-R = Path(__file__).parent
+R = Path(__file__).parent / 'data'
 
 
 def test_convenience():
