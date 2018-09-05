@@ -104,7 +104,6 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         line = f.readline(80)  # don't choke on binary files
         if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
             raise ValueError
-
         info = {'version': float(line[:9]),  # yes :9
                 'filetype': line[20],
                 'systems': line[40],
@@ -115,7 +114,6 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
                 info['systems'] = 'G'
             else:
                 info['systems'] = info['filetype']
-
     except (ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
         raise ValueError(f'not a known/valid RINEX file.  {e}')

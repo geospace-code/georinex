@@ -40,10 +40,13 @@ def main():
     p.add_argument('-t', '--tlim', help='specify time limits (process part of file)', nargs=2)
     p.add_argument('-useindicators', help='use SSI, LLI indicators (signal, loss of lock)',
                    action='store_true')
+    p.add_argument('-strict', help='do not use speculative preallocation (slow) let us know if this is needed',
+                   action='store_false')
     P = p.parse_args()
 
     gr.batch_convert(P.indir, P.glob, P.out, use=P.use, tlim=P.tlim,
-                     useindicators=P.useindicators, meas=P.meas, verbose=P.verbose)
+                     useindicators=P.useindicators, meas=P.meas,
+                     verbose=P.verbose, fast=P.strict)
 
 
 if __name__ == '__main__':

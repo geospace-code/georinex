@@ -85,7 +85,7 @@ def rinexnav2(fn: Path,
             for i, ln in zip(range(Nl[header['systems']]), f):
                 raw += ln[STARTCOL2:79]
             # one line per SV
-            raws.append(raw.replace('D', 'E').replace('\n', ''))
+            raws.append(raw.replace('D', 'E').replace('  ', ' ').replace(' -', '-').replace('\n', ''))
 
     if not raws:
         return None

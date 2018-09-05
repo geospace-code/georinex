@@ -25,6 +25,8 @@ def load(rinexfn: Path,
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
     """
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
 
     rinexfn = Path(rinexfn).expanduser()
 # %% detect type of Rinex file
@@ -76,7 +78,8 @@ def batch_convert(path: Path, glob: str, out: Path,
                   tlim: Tuple[datetime, datetime]=None,
                   useindicators: bool=False,
                   meas: Sequence[str]=None,
-                  verbose: bool=False):
+                  verbose: bool=False,
+                  fast: bool=True):
 
     path = Path(path).expanduser()
 
@@ -88,7 +91,8 @@ def batch_convert(path: Path, glob: str, out: Path,
     for fn in flist:
         try:
             load(fn, out, use=use, tlim=tlim,
-                 useindicators=useindicators, meas=meas, verbose=verbose)
+                 useindicators=useindicators, meas=meas,
+                 verbose=verbose, fast=fast)
         except Exception as e:
             logging.error(f'{fn.name}: {e}')
 

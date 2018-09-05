@@ -17,7 +17,9 @@ def test_blank():
     assert obs is None
 
     with tempfile.TemporaryDirectory() as outdir:
+        outdir = Path(outdir)
         gr.load(fn, outdir)
+        assert not (outdir / (fn.name + '.nc')).is_file()
 
     times = gr.gettime(fn)
     assert times is None
@@ -39,6 +41,19 @@ def test_minimal():
     times = gr.gettime(fn)
     assert np.isnan(times.interval)
 
+    assert obs.fast_processing
+
+
+def test_fast_slow():
+    fn = R/'minimal.10o'
+    fobs = gr.load(fn, fast=True)
+    sobs = gr.load(fn, fast=False)
+
+    assert fobs.equals(sobs)
+
+    assert fobs.fast_processing
+    assert not sobs.fast_processing
+
 
 def test_fast_slow():
     fn = R/'minimal.10o'
@@ -53,7 +68,7 @@ def test_meas_continuation():
     tests OBS2 files with more than 10 types of observations
     """
     fn = R/'ab430140.18o.zip'
-    obs = gr.load(fn)
+    obs = gr.load(fn, verbose=True)
 
     assert len(obs.data_vars) == 20
     for v in ['L1', 'L2', 'C1', 'P2', 'P1', 'S1', 'S2', 'C2', 'L5', 'C5', 'S5',
@@ -62,6 +77,8 @@ def test_meas_continuation():
 
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
     assert times.size == 9
+
+    assert obs.fast_processing
 
 
 def test_meas_one():
@@ -89,6 +106,8 @@ def test_meas_one():
     assert C1.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
     assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
 
+    assert obs.fast_processing
+
 
 def test_meas_two():
     fn = R/'demo.10o'
@@ -109,6 +128,8 @@ def test_meas_two():
 
     assert not C1.equals(L1)
 
+    assert obs.fast_processing
+
 
 def test_meas_miss():
     fn = R/'demo.10o'
@@ -122,6 +143,8 @@ def test_meas_miss():
 
     with pytest.raises(KeyError):
         S2.sel(sv='R23')
+
+    assert obs.fast_processing
 # %% measurement not in any system
     obs = gr.load(fn, meas='nonsense')
     assert obs is None
@@ -130,6 +153,8 @@ def test_meas_miss():
     assert 'L1' not in obs
     assert 'P1' in obs and 'P2' in obs
     assert len(obs.data_vars) == 2
+
+    assert obs.fast_processing
 
 
 def test_mangled():
@@ -140,6 +165,8 @@ def test_mangled():
     times = obs.time.values.astype('datetime64[us]').astype(datetime)
 
     assert (times == (datetime(2018, 6, 22, 6, 17, 30), datetime(2018, 6, 22, 6, 17, 45), datetime(2018, 6, 22, 6, 18))).all()
+
+    assert not obs.fast_processing
 
 
 def test_Z_lzw():
@@ -152,6 +179,8 @@ def test_Z_lzw():
     hdr = gr.rinexheader(fn)
 
     assert hdr['t0'] <= obs.time[0].values.astype('datetime64[us]').astype(datetime)
+
+    assert not obs.fast_processing
 
 
 def test_tlim():
@@ -166,6 +195,8 @@ def test_tlim():
                      datetime(2018, 1, 27, 0, 19, 30),
                      datetime(2018, 1, 27, 0, 19, 45)]
 
+    assert not obs.fast_processing
+
 
 def test_one_sv():
     obs = gr.load(R / 'rinex2onesat.10o')
@@ -176,6 +207,8 @@ def test_one_sv():
     times = gr.gettime(R/'rinex2onesat.10o').values.astype('datetime64[us]').astype(datetime)
 
     assert (times == [datetime(2010, 3, 5, 0, 0), datetime(2010, 3, 5, 0, 0, 30)]).all()
+
+    assert obs.fast_processing
 
 
 def test_all_systems():
@@ -191,6 +224,7 @@ def test_all_systems():
         print('use', u)
         obs = gr.load(R/'demo.10o', use=u)
         assert obs.equals(truth)
+        assert obs.fast_processing
 
     assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
     try:
@@ -203,7 +237,7 @@ def test_all_systems():
 # %% test write .nc
     with tempfile.TemporaryDirectory() as d:
         outfn = Path(d)/'testout.nc'
-        obs = gr.rinexobs(R/'demo.10o', outfn=Path(d)/'testout.nc')
+        gr.rinexobs(R/'demo.10o', outfn=Path(d)/'testout.nc')
         assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
 
 
@@ -217,6 +251,7 @@ def test_one_system():
     for u in ('G', ['G']):
         obs = gr.load(R/'demo.10o', use=u)
         assert obs.equals(truth)
+        assert obs.fast_processing
 
 
 def test_multi_system():
@@ -228,6 +263,7 @@ def test_multi_system():
 
     obs = gr.load(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)
+    assert obs.fast_processing
 
 
 def test_all_indicators():
@@ -240,6 +276,7 @@ def test_all_indicators():
     truth = gr.rinexobs(R/'r2all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)
+    assert obs.fast_processing
 
 
 def test_meas_indicators():
@@ -252,6 +289,7 @@ def test_meas_indicators():
     truth = gr.rinexobs(R/'r2_C1_indicators.nc', group='OBS')
 
     assert obs.equals(truth)
+    assert obs.fast_processing
 
 
 def test_meas_onesys_indicators():
@@ -260,6 +298,7 @@ def test_meas_onesys_indicators():
     C1 = obs['C1']
 
     assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
+    assert obs.fast_processing
 
 
 if __name__ == '__main__':
