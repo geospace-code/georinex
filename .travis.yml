@@ -29,7 +29,7 @@ before_install:
 - conda create -n test python=$TRAVIS_PYTHON_VERSION
 - source activate test
 
-install: 
+install:
 - pip install -e .[tests,io]
 - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then pip install -e .[cov]; fi
 

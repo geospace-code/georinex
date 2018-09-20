@@ -348,18 +348,10 @@ def obsheader2(f: TextIO,
     if '# OF SATELLITES' in hdr:
         hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
 # %% time
-    t0s = hdr['TIME OF FIRST OBS']
-    # NOTE: must do second=int(float()) due to non-conforming files
-    hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                         hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                         microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
 
     try:
-        t0s = hdr['TIME OF LAST OBS']
-        # NOTE: must do second=int(float()) due to non-conforming files
-        hdr['t1'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                             hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                             microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+        hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
     except KeyError:
         pass
 
@@ -439,6 +431,34 @@ def _skip(f: TextIO, ln: str,
         f.readline()
 
 
+def _timehdr(ln: str) -> datetime:
+    """
+    handles malformed header dates
+    NOTE: must do second=int(float()) due to non-conforming files that don't line up decimal point.
+    """
+
+    try:
+        second = int(float(ln[30:36]))
+    except ValueError:
+        second = 0
+
+    if not 0 <= second <= 59:
+        second = 0
+
+    try:
+        usec = int(float(ln[30:43]) % 1 * 1000000)
+    except ValueError:
+        usec = 0
+
+    if not 0 <= usec <= 999999:
+        usec = 0
+
+    return datetime(year=int(ln[:6]), month=int(ln[6:12]), day=int(ln[12:18]),
+                    hour=int(ln[18:24]), minute=int(ln[24:30]),
+                    second=second,
+                    microsecond=usec)
+
+
 def _timeobs(ln: str) -> Optional[datetime]:
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
@@ -451,13 +471,18 @@ def _timeobs(ln: str) -> Optional[datetime]:
         else:
             year += 1900
 
+        try:
+            usec = int(float(ln[16:26]) % 1 * 1000000)
+        except ValueError:
+            usec = 0
+
         return datetime(year=year,
                         month=int(ln[4:6]),
                         day=int(ln[7:9]),
                         hour=int(ln[10:12]),
                         minute=int(ln[13:15]),
                         second=int(ln[16:18]),
-                        microsecond=int(float(ln[16:26]) % 1 * 1000000)
+                        microsecond=usec
                         )
     except ValueError:  # garbage between header and RINEX data
         logging.info(f'garbage detected in RINEX file')
