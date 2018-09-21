@@ -29,7 +29,7 @@ def main():
         raise FileNotFoundError(f'{filename} is not a path or file')
 
 
-def eachfile(fn: Path, verbose: bool=False):
+def eachfile(fn: Path, verbose: bool = False):
     try:
         times = gr.gettime(fn)
     except Exception as e:

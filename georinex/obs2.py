@@ -15,12 +15,12 @@ except ImportError:
 
 
 def rinexobs2(fn: Path,
-              use: Sequence[str]=None,
-              tlim: Tuple[datetime, datetime]=None,
-              useindicators: bool=False,
-              meas: Sequence[str]=None,
-              verbose: bool=False,
-              fast: bool=True) -> xarray.Dataset:
+              use: Sequence[str] = None,
+              tlim: Tuple[datetime, datetime] = None,
+              useindicators: bool = False,
+              meas: Sequence[str] = None,
+              verbose: bool = False,
+              fast: bool = True) -> xarray.Dataset:
 
     if isinstance(use, str):
         use = [use]
@@ -48,11 +48,11 @@ def rinexobs2(fn: Path,
 
 def rinexsystem2(fn: Path,
                  system: str,
-                 tlim: Tuple[datetime, datetime]=None,
-                 useindicators: bool=False,
-                 meas: Sequence[str]=None,
-                 verbose: bool=False,
-                 fast: bool=True) -> xarray.Dataset:
+                 tlim: Tuple[datetime, datetime] = None,
+                 useindicators: bool = False,
+                 meas: Sequence[str] = None,
+                 verbose: bool = False,
+                 fast: bool = True) -> xarray.Dataset:
     """
     procss RINEX OBS data
     fn: RINEX OBS 2 filename
@@ -268,8 +268,8 @@ def rinexsystem2(fn: Path,
 
 
 def obsheader2(f: TextIO,
-               useindicators: bool=False,
-               meas: Sequence[str]=None) -> Dict[str, Any]:
+               useindicators: bool = False,
+               meas: Sequence[str] = None) -> Dict[str, Any]:
 
     if isinstance(f, Path):
         fn = f
@@ -388,7 +388,7 @@ def _getSVlist(ln: str, N: int,
     return sv
 
 
-def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
+def obstime2(fn: Path, verbose: bool = False) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
@@ -419,7 +419,7 @@ def obstime2(fn: Path, verbose: bool=False) -> xarray.DataArray:
 
 def _skip(f: TextIO, ln: str,
           Nl_sv: int,
-          sv: Sequence[str]=None):
+          sv: Sequence[str] = None):
     """
     skip ahead to next time step
     """

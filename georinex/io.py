@@ -16,7 +16,7 @@ R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def opener(fn: Path, header: bool=False, verbose: bool=False) -> TextIO:
+def opener(fn: Path, header: bool = False, verbose: bool = False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
     if fn.is_dir():
         raise FileNotFoundError(f'{fn} is a directory; I need a file')

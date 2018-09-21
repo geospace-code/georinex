@@ -15,13 +15,13 @@ ENC = {'zlib': True, 'complevel': 1, 'fletcher32': True}
 
 
 def load(rinexfn: Path,
-         out: Path=None,
-         use: Sequence[str]=None,
-         tlim: Tuple[datetime, datetime]=None,
-         useindicators: bool=False,
-         meas: Sequence[str]=None,
-         verbose: bool=False,
-         fast: bool=True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
+         out: Path = None,
+         use: Sequence[str] = None,
+         tlim: Tuple[datetime, datetime] = None,
+         useindicators: bool = False,
+         meas: Sequence[str] = None,
+         verbose: bool = False,
+         fast: bool = True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
@@ -74,12 +74,12 @@ def load(rinexfn: Path,
 
 
 def batch_convert(path: Path, glob: str, out: Path,
-                  use: Sequence[str]=None,
-                  tlim: Tuple[datetime, datetime]=None,
-                  useindicators: bool=False,
-                  meas: Sequence[str]=None,
-                  verbose: bool=False,
-                  fast: bool=True):
+                  use: Sequence[str] = None,
+                  tlim: Tuple[datetime, datetime] = None,
+                  useindicators: bool = False,
+                  meas: Sequence[str] = None,
+                  verbose: bool = False,
+                  fast: bool = True):
 
     path = Path(path).expanduser()
 
@@ -98,10 +98,10 @@ def batch_convert(path: Path, glob: str, out: Path,
 
 
 def rinexnav(fn: Path,
-             outfn: Path=None,
-             use: Sequence[str]=None,
-             group: str='NAV',
-             tlim: Tuple[datetime, datetime]=None) -> xarray.Dataset:
+             outfn: Path = None,
+             use: Sequence[str] = None,
+             group: str = 'NAV',
+             tlim: Tuple[datetime, datetime] = None) -> xarray.Dataset:
     """ Read RINEX 2 or 3  NAV files"""
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
@@ -136,14 +136,14 @@ def rinexnav(fn: Path,
 
 
 def rinexobs(fn: Path,
-             outfn: Path=None,
-             use: Sequence[str]=None,
-             group: str='OBS',
-             tlim: Tuple[datetime, datetime]=None,
-             useindicators: bool=False,
-             meas: Sequence[str]=None,
-             verbose: bool=False,
-             fast: bool=True) -> xarray.Dataset:
+             outfn: Path = None,
+             use: Sequence[str] = None,
+             group: str = 'OBS',
+             tlim: Tuple[datetime, datetime] = None,
+             useindicators: bool = False,
+             meas: Sequence[str] = None,
+             verbose: bool = False,
+             fast: bool = True) -> xarray.Dataset:
     """
     Read RINEX 2,3 OBS files in ASCII or GZIP
     """

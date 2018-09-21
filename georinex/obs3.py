@@ -20,11 +20,11 @@ BEIDOU = 0
 
 
 def rinexobs3(fn: Path,
-              use: Sequence[str]=None,
-              tlim: Tuple[datetime, datetime]=None,
-              useindicators: bool=False,
-              meas: Sequence[str]=None,
-              verbose: bool=False) -> xarray.Dataset:
+              use: Sequence[str] = None,
+              tlim: Tuple[datetime, datetime] = None,
+              useindicators: bool = False,
+              meas: Sequence[str] = None,
+              verbose: bool = False) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
 
@@ -115,7 +115,7 @@ def _timeobs(ln: str, fn: Path) -> datetime:
                     microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
 
-def obstime3(fn: Path, verbose: bool=False) -> xarray.DataArray:
+def obstime3(fn: Path, verbose: bool = False) -> xarray.DataArray:
     """
     return all times in RINEX file
     """
@@ -201,8 +201,8 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 
 
 def obsheader3(f: TextIO,
-               use: Sequence[str]=None,
-               meas: Sequence[str]=None) -> Dict[str, Any]:
+               use: Sequence[str] = None,
+               meas: Sequence[str] = None) -> Dict[str, Any]:
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
