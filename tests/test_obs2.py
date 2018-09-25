@@ -157,7 +157,7 @@ def test_meas_miss():
     assert obs.fast_processing
 
 
-def test_mangled():
+def test_mangled_data():
     fn = R/'14601736.18o'
 
     obs = gr.load(fn)
@@ -167,6 +167,16 @@ def test_mangled():
     assert (times == (datetime(2018, 6, 22, 6, 17, 30), datetime(2018, 6, 22, 6, 17, 45), datetime(2018, 6, 22, 6, 18))).all()
 
     assert not obs.fast_processing
+
+
+def test_mangled_times():
+    fn = R/'badtime.10o'
+
+    obs = gr.load(fn)
+
+    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+
+    assert times
 
 
 def test_Z_lzw():

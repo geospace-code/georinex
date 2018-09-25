@@ -14,8 +14,8 @@ Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional S
 
 
 def rinexnav3(fn: Path,
-              use: Sequence[str]=None,
-              tlim: Sequence[datetime]=None) -> xarray.Dataset:
+              use: Sequence[str] = None,
+              tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 3.x NAV files
     Michael Hirsch, Ph.D.

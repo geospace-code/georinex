@@ -13,7 +13,7 @@ Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
 def rinexnav2(fn: Path,
-              tlim: Sequence[datetime]=None) -> xarray.Dataset:
+              tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.

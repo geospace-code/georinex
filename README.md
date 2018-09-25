@@ -10,7 +10,7 @@
 
 # GeoRinex
 
-RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python.
+RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
 Batch converts NAV and OBS GPS RINEX data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.

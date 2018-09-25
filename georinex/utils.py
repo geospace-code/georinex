@@ -143,7 +143,7 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
     return hdr
 
 
-def _tlim(tlim: Tuple[datetime, datetime]=None) -> Optional[Tuple[datetime, datetime]]:
+def _tlim(tlim: Tuple[datetime, datetime] = None) -> Optional[Tuple[datetime, datetime]]:
     if tlim is None:
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):
