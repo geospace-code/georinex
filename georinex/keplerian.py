@@ -31,7 +31,15 @@ def keplerian2ecef(sv: xarray.DataArray) -> Tuple[np.ndarray, np.ndarray, np.nda
     n = n0 + sv['DeltaN']  # corrected mean motion
 
     # from GPS Week 0
-    t0 = datetime(1980, 1, 6) + timedelta(weeks=sv['GPSWeek'][0].astype(int).item())
+    if sv.svtype[0] == 'E':
+        weeks = sv['GALWeek'].values - 1024
+        # TODO: need to add N*4096 for year 2058 and beyond
+    elif sv.svtype[0] == 'G':
+        weeks = sv['GPSWeek'].values
+    else:
+        raise ValueError(f'Unknown system type {sv.svtype[0]}')
+
+    T0 = [datetime(1980, 1, 6) + timedelta(weeks=week) for week in weeks]
 
     tk = np.empty(sv['time'].size, dtype=float)
 
@@ -39,7 +47,7 @@ def keplerian2ecef(sv: xarray.DataArray) -> Tuple[np.ndarray, np.ndarray, np.nda
     # time elapsed since reference epoch
     # seems to be a bug in MyPy, this line computes "correctly"
 
-    for i, (t1, t2) in enumerate(zip(sv['time'], sv['Toe'])):
+    for i, (t0, t1, t2) in enumerate(zip(T0, sv['time'], sv['Toe'])):
         tsv = datetime.utcfromtimestamp(t1.item()/1e9)
         toe = timedelta(seconds=t2.values.astype(int).item()) + t0  # type: ignore  # noqa
         tk[i] = (tsv - toe).total_seconds()  # type: ignore  # noqa

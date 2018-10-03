@@ -3,6 +3,7 @@ from pathlib import Path
 import xarray
 import logging
 import numpy as np
+import math
 from io import BytesIO
 from datetime import datetime
 from .io import opener, rinexinfo
@@ -11,6 +12,7 @@ from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
+Lf = 19  # string length per field
 
 
 def rinexnav3(fn: Path,
@@ -24,7 +26,6 @@ def rinexnav3(fn: Path,
 
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
-    Lf = 19  # string length per field
 
     fn = Path(fn).expanduser()
 
@@ -96,19 +97,8 @@ def rinexnav3(fn: Path,
         if tu.size != t[svi].size:
             logging.warning(f'duplicate times detected on SV {sv}, using first of duplicate times')
             """ I have seen that the data rows match identically when times are duplicated"""
-# %% check for optional GPS "fit interval" presence
-        cf = fields[sv[0]]
-        testread = np.genfromtxt(BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
-# %% patching for Spare entries, some receivers include, and some don't include...
-        if sv[0] == 'G' and len(cf) == testread.size + 1:
-            cf = cf[:-1]
-        elif sv[0] == 'C' and len(cf) == testread.size - 1:
-            cf.insert(20, 'spare')
-        elif sv[0] == 'E' and len(cf) == testread.size - 1:
-            cf.insert(22, 'spare')
 
-        if testread.size != len(cf):
-            raise ValueError(f'{sv[0]} NAV data @ {tu} is not the same length as the number of fields.')
+        cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
 
         darr = np.empty((svi.size, len(cf)))
 
@@ -162,11 +152,42 @@ def _time(ln: str) -> Optional[datetime]:
         return None
 
 
+def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
+    """
+    check for optional spare fields, or GPS "fit interval" field
+    """
+    numval = math.ceil(len(raw) / Lf)  # need this for irregularly defined files
+# %% patching for Spare entries, some receivers include, and some don't include...
+    if sys == 'G' and len(cf) == numval + 1:
+        cf = cf[:-1]
+    elif sys == 'C' and len(cf) == numval - 1:
+        cf.insert(20, 'spare')
+    elif sys == 'E':
+        if numval == 28:
+            cf = cf[:-3]
+        elif numval == 27:
+            cf = cf[:22] + cf[23:-3]
+
+    if numval != len(cf):
+        raise ValueError(f'System {sys} NAV data is not the same length as the number of fields.')
+
+    return cf
+
+
 def _newnav(ln: str, sv: str) -> List[str]:
 
     if sv.startswith('G'):
         """
-        ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
+        ftp://igs.org/pub/data/format/rinex303.pdf
+
+        pages:
+        G: A23-A24
+        E: A25-A28
+        R: A29-A30
+        J: A31-A32
+        C: A33-A34
+        S: A35-A36
+        I: A37-A39
         """
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODE', 'Crs', 'DeltaN', 'M0',
@@ -211,8 +232,13 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Toe', 'Cic', 'Omega0', 'Cis',
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'DataSrc', 'GALWeek',
+                  'spare0',
                   'SISA', 'health', 'BGDe5a', 'BGDe5b',
-                  'TransTime']
+                  'TransTime',
+                  'spare1', 'spare2', 'spare3']
+        assert len(fields) == 31
+    elif sv.startswith('I'):
+        raise NotImplementedError('please raise GitHub issue to request IRNSS NAV3')
     else:
         raise ValueError(f'Unknown SV type {sv[0]}')
 
