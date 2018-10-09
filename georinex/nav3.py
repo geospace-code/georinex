@@ -155,6 +155,9 @@ def _time(ln: str) -> Optional[datetime]:
 def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
     """
     check for optional spare fields, or GPS "fit interval" field
+
+    You might find a new way that NAV3 files are irregular--please open a
+    GitHub Issue or Pull Request.
     """
     numval = math.ceil(len(raw) / Lf)  # need this for irregularly defined files
 # %% patching for Spare entries, some receivers include, and some don't include...
@@ -163,9 +166,11 @@ def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
     elif sys == 'C' and len(cf) == numval - 1:
         cf.insert(20, 'spare')
     elif sys == 'E':
-        if numval == 28:
+        if numval == 29:  # only one trailing spare fields
+            cf = cf[:-2]
+        elif numval == 28:  # zero trailing spare fields
             cf = cf[:-3]
-        elif numval == 27:
+        elif numval == 27:  # no middle or trailing spare fields
             cf = cf[:22] + cf[23:-3]
 
     if numval != len(cf):
