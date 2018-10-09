@@ -165,6 +165,8 @@ def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
     elif sys == 'E':
         if numval == 28:
             cf = cf[:-3]
+        if numval == 29:
+            cf = cf[:-2]
         elif numval == 27:
             cf = cf[:22] + cf[23:-3]
 
