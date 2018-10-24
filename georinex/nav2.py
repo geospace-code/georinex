@@ -128,6 +128,7 @@ def rinexnav2(fn: Path,
     nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtype
     nav.attrs['rinextype'] = 'nav'
+    nav.attrs['svtype'] = [svtype]
 
     if 'ION ALPHA' in header and 'ION BETA' in header:
         alpha = header['ION ALPHA']
