@@ -126,6 +126,7 @@ def rinexnav2(fn: Path,
 # %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
+    nav.attrs['svtype'] = svtype
     nav.attrs['rinextype'] = 'nav'
 
     return nav
