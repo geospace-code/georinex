@@ -25,7 +25,7 @@ def test_batch_convert(tmp_path):
     flist = R.glob(pat)  # all OBS 2 files
 
     outdir = tmp_path
-    subprocess.check_call(['rnx2hdf5', str(R), '*o', '-o', outdir])
+    subprocess.check_call(['rnx2hdf5', str(R), '*o', '-o', str(outdir)])
 
     for fn in flist:
         outfn = outdir / (fn.name + '.nc')
