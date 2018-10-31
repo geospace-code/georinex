@@ -43,20 +43,20 @@ def test_netcdf_read():
     assert isinstance(dat['obs'], xarray.Dataset)
 
 
-def test_netcdf_write():
+def test_netcdf_write(tmp_path):
     """
     NetCDF4 wants suffix .nc -- arbitrary tempfile.NamedTemporaryFile names do NOT work!
     """
     pytest.importorskip('netCDF4')
 
-    with tempfile.TemporaryDirectory() as D:
-        fn = Path(D)/'rw.nc'
-        obs = gr.load(R/'demo.10o', out=fn)
+    outdir = tmp_path
+    fn = outdir / 'rw.nc'
+    obs = gr.load(R/'demo.10o', out=fn)
 
-        wobs = gr.load(fn)
+    wobs = gr.load(fn)
 
-        # MUST be under context manager for lazy loading
-        assert obs.equals(wobs)
+    # MUST be under context manager for lazy loading
+    assert obs.equals(wobs)
 
 
 def test_locs():

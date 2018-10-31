@@ -215,7 +215,7 @@ def rinexsystem2(fn: Path,
                         data[i, j, isv] = darr[:, k]
             except IndexError as e:
                 if fast:
-                    raise RuntimeError('this error may be a result of "fast" mode, try fast=False  {e}')
+                    raise RuntimeError(f'this error may be a result of "fast" mode, try fast=False  {e}')
                 else:
                     raise
 # %% output gathering

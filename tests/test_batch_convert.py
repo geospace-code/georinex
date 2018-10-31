@@ -1,67 +1,66 @@
 #!/usr/bin/env python
 import pytest
-import tempfile
 from pathlib import Path
 import georinex as gr
 
 R = Path(__file__).parent / 'data'
 
 
-def test_obs():
+def test_obs(tmp_path):
     pytest.importorskip('netCDF4')
     pat = '*o'
 
     flist = R.glob(pat)  # all OBS 2 files
 
-    with tempfile.TemporaryDirectory() as outdir:
-        gr.batch_convert(R, pat, outdir)
+    outdir = tmp_path
+    gr.batch_convert(R, pat, outdir)
 
-        for fn in flist:
-            outfn = Path(outdir) / (fn.name + '.nc')
-            if outfn.name.startswith('blank'):
-                continue
+    for fn in flist:
+        outfn = outdir / (fn.name + '.nc')
+        if outfn.name.startswith('blank'):
+            continue
 
-            assert outfn.is_file(), f'{outfn}'
+        assert outfn.is_file(), f'{outfn}'
 
-            truth = gr.load(fn)
-            obs = gr.load(outfn)
+        truth = gr.load(fn)
+        obs = gr.load(outfn)
 
-            assert obs.equals(truth), f'{outfn}  {fn}'
+        assert obs.equals(truth), f'{outfn}  {fn}'
 
 
-def test_nav():
+def test_nav(tmp_path):
     pytest.importorskip('netCDF4')
     pat = '*n'
 
     flist = R.glob(pat)  # all OBS 2 files
 
-    with tempfile.TemporaryDirectory() as outdir:
-        gr.batch_convert(R, pat, outdir)
+    outdir = tmp_path
+    gr.batch_convert(R, pat, outdir)
 
-        for fn in flist:
-            outfn = Path(outdir) / (fn.name + '.nc')
-            if outfn.name.startswith('blank'):
-                continue
+    for fn in flist:
+        outfn = outdir / (fn.name + '.nc')
+        if outfn.name.startswith('blank'):
+            continue
 
-            assert outfn.is_file(), f'{outfn}'
-            assert outfn.stat().st_size > 15000, f'{outfn}'
+        assert outfn.is_file(), f'{outfn}'
+        assert outfn.stat().st_size > 15000, f'{outfn}'
 
-            truth = gr.load(fn)
-            nav = gr.load(outfn)
+        truth = gr.load(fn)
+        nav = gr.load(outfn)
 
-            assert nav.equals(truth), f'{outfn}  {fn}'
+        assert nav.equals(truth), f'{outfn}  {fn}'
 
 
-def test_bad():
+def test_bad(tmp_path):
     pat = '*o'
 
     with pytest.raises(TypeError):
-        with tempfile.TemporaryDirectory() as baddir:
-            gr.batch_convert(baddir, pat)
+        outdir = tmp_path
+        gr.batch_convert(outdir, pat)
 
     with pytest.raises(FileNotFoundError):
-        with tempfile.TemporaryDirectory() as outdir:
-            gr.batch_convert(outdir, pat, outdir)
+        outdir = tmp_path
+        gr.batch_convert(outdir, pat, outdir)
 
 
 if __name__ == '__main__':

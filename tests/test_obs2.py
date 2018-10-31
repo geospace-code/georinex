@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import pytest
 import xarray
-import tempfile
 from pytest import approx
 from pathlib import Path
 import georinex as gr
@@ -11,32 +10,30 @@ from datetime import datetime
 R = Path(__file__).parent / 'data'
 
 
-def test_blank():
+def test_blank(tmp_path):
     fn = R/'blank.10o'
     obs = gr.load(fn)
     assert obs is None
 
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-        assert not (outdir / (fn.name + '.nc')).is_file()
+    outdir = tmp_path
+    gr.load(fn, outdir)
+    assert not (outdir / (fn.name + '.nc')).is_file()
 
     times = gr.gettime(fn)
     assert times is None
 
 
-def test_minimal():
+def test_minimal(tmp_path):
     fn = R/'minimal.10o'
     obs = gr.load(fn)
     assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
 
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
+    outdir = tmp_path
+    gr.load(fn, outdir)
 
-        outfn = (outdir / (fn.name + '.nc'))
-        assert outfn.is_file()
-        assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
+    outfn = (outdir / (fn.name + '.nc'))
+    assert outfn.is_file()
+    assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
 
     times = gr.gettime(fn)
     assert np.isnan(times.interval)
@@ -213,7 +210,7 @@ def test_one_sv():
     assert obs.fast_processing
 
 
-def test_all_systems():
+def test_all_systems(tmp_path):
     """
     ./ReadRinex.py tests/demo.10o -o r2all.nc
     ./ReadRinex.py tests/demo.10n -o r2all.nc
@@ -237,10 +234,10 @@ def test_all_systems():
     obs = gr.rinexobs(R / 'r2all.nc')
     assert obs.equals(truth)
 # %% test write .nc
-    with tempfile.TemporaryDirectory() as d:
-        outfn = Path(d)/'testout.nc'
-        gr.rinexobs(R/'demo.10o', outfn=Path(d)/'testout.nc')
-        assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
+    outdir = tmp_path
+    outfn = outdir / 'testout.nc'
+    gr.rinexobs(R/'demo.10o', outfn=outdir / 'testout.nc')
+    assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
 
 
 def test_one_system():

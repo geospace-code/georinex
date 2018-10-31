@@ -4,37 +4,35 @@ import georinex as gr
 import pytest
 from pytest import approx
 import xarray
-import tempfile
 from datetime import datetime
 #
 R = Path(__file__).parent / 'data'
 
 
-def test_blank():
+def test_blank(tmp_path):
     fn = R/'blank3.10n'
     nav = gr.load(fn)
     assert nav is None
 
-    with tempfile.TemporaryDirectory() as outdir:
-        gr.load(fn, outdir)
+    outdir = tmp_path
+    gr.load(fn, outdir)
 
     times = gr.gettime(fn)
     assert times is None
 
 
-def test_minimal():
+def test_minimal(tmp_path):
     fn = R/'minimal3.10n'
 
     nav = gr.load(fn)
     assert isinstance(nav, xarray.Dataset)
 
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-        outfn = (outdir / (fn.name + '.nc'))
-        assert outfn.is_file()
+    outdir = tmp_path
+    gr.load(fn, outdir)
+    outfn = (outdir / (fn.name + '.nc'))
+    assert outfn.is_file()
 
-        assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
+    assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
 
 
 def test_time():

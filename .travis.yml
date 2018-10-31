@@ -34,7 +34,7 @@ install:
 - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then pip install -e .[cov]; fi
 
 script:
-- make install -C rnxcmp
+- make --quiet install -C rnxcmp
 
 - pytest -rsv
 - if [[ $TRAVIS_PYTHON_VERSION == 3.6* && $TRAVIS_OS_NAME == linux  ]]; then flake8; fi
