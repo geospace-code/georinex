@@ -4,8 +4,8 @@ EXAMPLE OF A NAVIGATION RINEX FILE                          COMMENT
 THIS FILE IS PART OF THE gLAB TOOL SUITE                    COMMENT             
 FILE PREPARED BY: ADRIA ROVIRA GARCIA                       COMMENT             
 PLEASE EMAIL ANY COMMENT OR REQUEST TO:   glab @ gage.es    COMMENT             
-     0.1676D-07     0.2235D-07    -0.1192D-07    -0.1192D-07ION ALPHA           
-     0.1208D+06     0.1310D+06    -0.1310D+06    -0.1966D+06ION BETA            
+    0.1676D-07  0.2235D-07 -0.1192D-07 -0.1192D-07          ION ALPHA
+    0.1208D+06  0.1310D+06 -0.1310D+06 -0.1966D+06          ION BETA
    0.133179128170D-06   0.107469588780D-12   552960     1025DELTA-UTC: A0,A1,T,W
     15                                                      LEAP SECONDS        
                                                             END OF HEADER       

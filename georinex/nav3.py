@@ -6,7 +6,7 @@ import numpy as np
 import math
 from io import BytesIO
 from datetime import datetime
-from .io import opener, rinexinfo
+from .io import opener, rinexinfo, rinex_string_to_float
 from typing import Dict, List, Any, Sequence, Optional
 from typing.io import TextIO
 # constants
@@ -126,6 +126,25 @@ def rinexnav3(fn: Path,
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
+
+    # Add ionospheric correction coefficients if exist.
+    if 'IONOSPHERIC CORR' in header:
+        corr = header['IONOSPHERIC CORR']
+        if 'GPSA' in corr and 'GPSB' in corr:
+            nav.attrs['ionospheric_corr_GPS'] = np.hstack((corr['GPSA'],
+                                                           corr['GPSB']))
+        if 'GAL' in corr:
+            nav.attrs['ionospheric_corr_GAL'] = corr['GAL']
+        if 'QZSA' in corr and 'QZSB' in corr:
+            nav.attrs['ionospheric_corr_QZS'] = np.hstack((corr['QZSA'],
+                                                           corr['QZSB']))
+        if 'BDSA' in corr and 'BDSB' in corr:
+            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['BDSA'],
+                                                           corr['BDSB']))
+        if 'IRNA' in corr and 'IRNB' in corr:
+            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['IRNA'],
+                                                           corr['IRNB']))
+
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes
@@ -264,7 +283,18 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
         if 'END OF HEADER' in ln:
             break
 
-        hdr[ln[60:]] = ln[:60]
+        kind, content = ln[60:].strip(), ln[:60]
+        if kind == "IONOSPHERIC CORR":
+            if kind not in hdr:
+                hdr[kind] = {}
+
+            coefficients_kind = content[:4].strip()
+            coefficients = [
+                rinex_string_to_float(content[5 + i*12:5 + (i+1)*12])
+                for i in range(4)]
+            hdr[kind][coefficients_kind] = coefficients
+        else:
+            hdr[kind] = content
 
     return hdr
 
