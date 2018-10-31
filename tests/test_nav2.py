@@ -154,5 +154,12 @@ def test_small():
     assert nav.equals(truth)
 
 
+def test_ionospheric_correction():
+    nav = gr.load(R/"14601736.18n")
+    assert nav.attrs['ionospheric_corr_GPS'] == approx(
+                    [0.4657e-08,  0.1490e-07, -0.5960e-07, -0.1192e-06,
+                     0.8192e+05,  0.9830e+05, -0.6554e+05, -0.5243e+06])
+
+
 if __name__ == '__main__':
     pytest.main(['-x', __file__])

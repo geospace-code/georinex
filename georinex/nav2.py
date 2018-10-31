@@ -6,7 +6,7 @@ from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
-from .io import opener, rinexinfo
+from .io import opener, rinexinfo, rinex_string_to_float
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
@@ -129,6 +129,15 @@ def rinexnav2(fn: Path,
     nav.attrs['svtype'] = svtype
     nav.attrs['rinextype'] = 'nav'
 
+    if 'ION ALPHA' in header and 'ION BETA' in header:
+        alpha = header['ION ALPHA']
+        alpha = [rinex_string_to_float(alpha[2 + i*12:2 + (i+1)*12])
+                 for i in range(4)]
+        beta = header['ION BETA']
+        beta = [rinex_string_to_float(beta[2 + i*12:2 + (i+1)*12])
+                for i in range(4)]
+        nav.attrs['ionospheric_corr_GPS'] = np.hstack((alpha, beta))
+
     return nav
 
 
@@ -146,8 +155,8 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
     for ln in f:
         if 'END OF HEADER' in ln:
             break
-
-        hdr[ln[60:]] = ln[:60]
+        kind, content = ln[60:].strip(), ln[:60]
+        hdr[kind] = content
 
     return hdr
 

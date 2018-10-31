@@ -2,6 +2,7 @@
 from pathlib import Path
 import georinex as gr
 import pytest
+from pytest import approx
 import xarray
 import tempfile
 from datetime import datetime
@@ -218,6 +219,19 @@ def test_galileo():
     nav = gr.load(R/'galileo3.15n')
 
     assert nav.equals(truth)
+
+
+def test_ionospheric_correction():
+    nav = gr.load(R/"demo.17n")
+
+    assert nav.attrs['ionospheric_corr_GPS'] == approx(
+                    [1.1176e-08, -1.4901e-08, -5.9605e-08, 1.1921e-07,
+                     9.8304e04, -1.1469e05, -1.9661e05, 7.2090e05])
+
+    nav = gr.load(R/"galileo3.15n")
+
+    assert nav.attrs['ionospheric_corr_GAL'] == approx(
+                    [0.1248e+03, 0.5039, 0.2377e-01, 0])
 
 
 if __name__ == '__main__':
