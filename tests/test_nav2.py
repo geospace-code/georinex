@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import pytest
 from pytest import approx
-from numpy.testing import assert_allclose
 import xarray
 from pathlib import Path
 from datetime import datetime
@@ -157,7 +156,7 @@ def test_small():
 
 def test_ionospheric_correction():
     nav = gr.load(R/"14601736.18n")
-    assert_allclose(nav.attrs['ionospheric_corr_GPS'],
+    assert nav.attrs['ionospheric_corr_GPS'] == approx(
                     [0.4657e-08,  0.1490e-07, -0.5960e-07, -0.1192e-06,
                      0.8192e+05,  0.9830e+05, -0.6554e+05, -0.5243e+06])
 
