@@ -5,7 +5,6 @@ from pytest import approx
 from pathlib import Path
 import georinex as gr
 import numpy as np
-from numpy.testing import assert_equal
 
 from datetime import datetime
 #
@@ -304,10 +303,10 @@ def test_meas_onesys_indicators():
 
 def test_time_system_determination():
     obs = gr.load(R/"demo.10o")
-    assert_equal(obs.attrs['time_system'], 'GPS')
+    assert obs.attrs['time_system'] == 'GPS'
 
     obs = gr.load(R/'default_time_system2.10o')
-    assert_equal(obs.attrs['time_system'], 'GLO')
+    assert obs.attrs['time_system'] == 'GLO'
 
 
 if __name__ == '__main__':
