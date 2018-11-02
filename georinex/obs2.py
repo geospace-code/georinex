@@ -7,12 +7,11 @@ from datetime import datetime
 import xarray
 from typing import List, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
-import psutil
 try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
-from .common import determine_time_system
+from .common import determine_time_system, check_ram
 
 
 def rinexobs2(fn: Path,
@@ -98,13 +97,10 @@ def rinexsystem2(fn: Path,
         Nt = len(times)
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
-
-    mem = psutil.virtual_memory()
+# %% optinal RAM check
     memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
-    if memneed > 0.5*mem.available:  # because of array copy Numpy => Xarray
-        raise RuntimeError(f'{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n'
-                           'try fast=False to reduce RAM usage, raise a GitHub Issue to let us help')
-
+    check_ram(memneed, fn)
+# %% preallocate
     data = np.empty((Npages, Nt, Nsvsys))
     if data.size == 0:
         return

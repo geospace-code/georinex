@@ -1,5 +1,23 @@
+from pathlib import Path
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
+
 def rinex_string_to_float(x: str) -> float:
     return float(x.replace('D', 'E'))
+
+
+def check_ram(memneed: int, fn: Path):
+    if psutil is None:
+        return
+
+    mem = psutil.virtual_memory()
+
+    if memneed > 0.5*mem.available:  # because of array copy Numpy => Xarray
+        raise RuntimeError(f'{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n'
+                           'try fast=False to reduce RAM usage, raise a GitHub Issue to let us help')
 
 
 def determine_time_system(header: dict) -> str:
