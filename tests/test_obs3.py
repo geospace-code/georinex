@@ -184,5 +184,13 @@ def tests_all_indicators():
     assert obs.equals(truth)
 
 
+def test_time_system_determination():
+    obs = gr.load(R/"demo3.10o")
+    assert obs.attrs['time_system'] == 'GPS'
+
+    obs = gr.load(R/'default_time_system3.10o')
+    assert obs.attrs['time_system'] == 'GAL'
+
+
 if __name__ == '__main__':
     pytest.main(['-x', __file__])

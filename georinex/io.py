@@ -121,7 +121,3 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         raise ValueError(f'not a known/valid RINEX file.  {e}')
 
     return info
-
-
-def rinex_string_to_float(x: str) -> float:
-    return float(x.replace('D', 'E'))

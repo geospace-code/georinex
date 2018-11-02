@@ -12,6 +12,7 @@ try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
+from .common import determine_time_system
 
 
 def rinexobs2(fn: Path,
@@ -257,6 +258,7 @@ def rinexsystem2(fn: Path,
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['toffset'] = toffset
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
+    obs.attrs['time_system'] = determine_time_system(hdr)
 
     try:
         obs.attrs['position'] = hdr['position']
