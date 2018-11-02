@@ -6,7 +6,8 @@ from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
-from .io import opener, rinexinfo, rinex_string_to_float
+from .io import opener, rinexinfo
+from .common import rinex_string_to_float
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
@@ -126,7 +127,7 @@ def rinexnav2(fn: Path,
 # %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
-    nav.attrs['svtype'] = svtype
+    nav.attrs['svtype'] = [svtype]  # Use list for consistency with NAV3.
     nav.attrs['rinextype'] = 'nav'
 
     if 'ION ALPHA' in header and 'ION BETA' in header:

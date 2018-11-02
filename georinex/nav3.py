@@ -6,7 +6,8 @@ import numpy as np
 import math
 from io import BytesIO
 from datetime import datetime
-from .io import opener, rinexinfo, rinex_string_to_float
+from .io import opener, rinexinfo
+from .common import rinex_string_to_float
 from typing import Dict, List, Any, Sequence, Optional
 from typing.io import TextIO
 # constants

@@ -3,6 +3,7 @@ import pytest
 from pytest import approx
 import xarray
 import numpy as np
+from numpy.testing import assert_equal
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
@@ -182,6 +183,14 @@ def tests_all_indicators():
     truth = gr.rinexobs(R/'r3all_indicators.nc', group='OBS')
 
     assert obs.equals(truth)
+
+
+def test_time_system_determination():
+    obs = gr.load(R/"demo3.10o")
+    assert_equal(obs.attrs['time_system'], 'GPS')
+
+    obs = gr.load(R/'default_time_system3.10o')
+    assert_equal(obs.attrs['time_system'], 'GAL')
 
 
 if __name__ == '__main__':

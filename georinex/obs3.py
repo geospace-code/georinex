@@ -12,6 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
+from .common import determine_time_system
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 SBAS = 100  # offset for ID
 GLONASS = 37
@@ -89,6 +90,7 @@ def rinexobs3(fn: Path,
     data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
     data.attrs['rinextype'] = 'obs'
+    data.attrs['time_system'] = determine_time_system(hdr)
 
     try:
         data.attrs['position'] = hdr['position']
