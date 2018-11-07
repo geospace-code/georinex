@@ -105,16 +105,24 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
             raise ValueError
 
-        info = {'version': float(line[:9]),  # yes :9
-                'filetype': line[20],
-                'systems': line[40],
-                'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
-
-        if info['systems'] == ' ':
-            if info['filetype'] == 'N' and int(info['version']) == 2:  # type: ignore
-                info['systems'] = 'G'
+        version = float(line[:9])
+        file_type = line[20]
+        if int(version) == 2:
+            if file_type == 'N':
+                system = 'G'
+            elif file_type == 'G':
+                system = 'R'
+            elif file_type == 'E':
+                system = 'E'
             else:
-                info['systems'] = info['filetype']
+                system = line[40]
+        else:
+            system = line[40]
+
+        info = {'version': version,
+                'filetype': file_type,
+                'systems': system,
+                'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
     except (ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling

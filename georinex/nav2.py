@@ -124,6 +124,13 @@ def rinexnav2(fn: Path,
         if k is None:
             continue
         nav[k] = (('time', 'sv'), data[i, :, :])
+
+    # GLONASS uses kilometers to report its ephemeris.
+    # Convert to meters here to be consistent with NAV3 implementation.
+    if svtype == 'R':
+        for name in ['X', 'Y', 'Z', 'dX', 'dY', 'dZ', 'dX2', 'dY2', 'dZ2']:
+            nav[name] *= 1e3
+
 # %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['filename'] = fn.name
