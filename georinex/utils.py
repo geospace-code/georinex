@@ -104,9 +104,9 @@ def rinextype(fn: Path) -> str:
     else:
         fnl = fn.name.lower()
 
-    if fnl.endswith(('o', 'o.rnx', 'o.crx')):
+    if fnl.endswith(('obs', 'o', 'o.rnx', 'o.crx')):
         return 'obs'
-    elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
+    elif fnl.endswith(('nav', 'e', 'g', 'n', 'n.rnx')):
         return 'nav'
     elif fn.suffix.endswith('.nc'):
         return 'nc'
