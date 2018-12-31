@@ -76,7 +76,7 @@ def test_locs():
 def test_obsdata():
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r2all.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R/'r2all.nc', group='OBS')
 
     obs = gr.load(R/'demo.10o')
     assert obs.equals(truth)
@@ -85,7 +85,7 @@ def test_obsdata():
 def test_navdata():
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r2all.nc', group='NAV')
     nav = gr.load(R/'demo.10n')
 
     assert nav.equals(truth)

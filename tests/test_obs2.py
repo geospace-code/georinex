@@ -25,6 +25,8 @@ def test_blank(tmp_path):
 
 
 def test_minimal(tmp_path):
+    pytest.importorskip('netCDF4')
+
     fn = R/'minimal.10o'
     obs = gr.load(fn)
     assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
@@ -218,7 +220,7 @@ def test_all_systems(tmp_path):
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2all.nc', group='OBS')
 # %% test reading all satellites
     for u in (None, ' ', '', ['G', 'R', 'S']):
         print('use', u)
@@ -246,7 +248,7 @@ def test_one_system():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2G.nc', group='OBS')
 
     for u in ('G', ['G']):
         obs = gr.load(R/'demo.10o', use=u)
@@ -259,7 +261,7 @@ def test_multi_system():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS')
 
     obs = gr.load(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)

@@ -23,6 +23,8 @@ def test_blank(tmp_path):
 
 
 def test_minimal(tmp_path):
+    pytest.importorskip('netCDF4')
+
     fn = R/'minimal.10n'
 
     nav = gr.load(fn)
@@ -146,7 +148,7 @@ def test_gps():
 def test_small():
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r2all.nc', group='NAV')
     nav = gr.load(R/'demo.10n')
 
     assert nav.equals(truth)

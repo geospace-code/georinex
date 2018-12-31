@@ -106,7 +106,7 @@ def rinexnav(fn: Path,
     fn = Path(fn).expanduser()
     if fn.suffix == '.nc':
         try:
-            return xarray.open_dataset(fn, group=group, autoclose=True)
+            return xarray.open_dataset(fn, group=group)
         except OSError as e:
             raise LookupError(f'Group {group} not found in {fn}    {e}')
 
@@ -152,7 +152,7 @@ def rinexobs(fn: Path,
 # %% NetCDF4
     if fn.suffix == '.nc':
         try:
-            return xarray.open_dataset(fn, group=group, autoclose=True)
+            return xarray.open_dataset(fn, group=group)
         except OSError as e:
             raise LookupError(f'Group {group} not found in {fn}   {e}')
 

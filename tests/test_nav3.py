@@ -22,6 +22,8 @@ def test_blank(tmp_path):
 
 
 def test_minimal(tmp_path):
+    pytest.importorskip('netCDF4')
+
     fn = R/'minimal3.10n'
 
     nav = gr.load(fn)
@@ -190,7 +192,7 @@ def test_sbas():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV')
     nav = gr.load(R/'demo3.10n')
 
     assert nav.equals(truth)
@@ -201,7 +203,7 @@ def test_gps():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r3gps.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r3gps.nc', group='NAV')
     nav = gr.load(R/'demo.17n')
 
     assert nav.equals(truth)
@@ -213,7 +215,7 @@ def test_galileo():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV')
     nav = gr.load(R/'galileo3.15n')
 
     assert nav.equals(truth)
