@@ -30,8 +30,7 @@ matrix:
     - choco install python3
     - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
     install:
-    - set CC=gcc
-    - mingw32-make install -C rnxcmp
+    - mingw32-make install CC=gcc -C rnxcmp
     - pip install -e .[tests]
 
 script: pytest -rsv

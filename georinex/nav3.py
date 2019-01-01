@@ -181,10 +181,25 @@ def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
     """
     numval = math.ceil(len(raw) / Lf)  # need this for irregularly defined files
 # %% patching for Spare entries, some receivers include, and some don't include...
-    if sys == 'G' and len(cf) == numval + 1:
-        cf = cf[:-1]
-    elif sys == 'C' and len(cf) == numval - 1:
-        cf.insert(20, 'spare')
+    if sys == 'G':
+        if numval == 30:
+            cf = cf[:-1]
+        elif numval == 29:
+            cf = cf[:-2]
+    elif sys == 'C':
+        if numval == 27:
+            cf = cf[:20] + [cf[21]] + cf[23:29]
+        elif numval == 28:
+            cf = cf[:22] + cf[23:29]
+        elif numval == 29:
+            cf = cf[:29]
+        elif numval == 30:
+            cf = cf[:30]
+    elif sys == 'J':
+        if numval == 29:
+            cf = cf[:29]
+        elif numval == 30:
+            cf = cf[:30]
     elif sys == 'E':
         if numval == 29:  # only one trailing spare fields
             cf = cf[:-2]
@@ -192,6 +207,9 @@ def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
             cf = cf[:-3]
         elif numval == 27:  # no middle or trailing spare fields
             cf = cf[:22] + cf[23:-3]
+    elif sys == 'I':
+        if numval == 28:
+            cf = cf[:28]
 
     if numval != len(cf):
         raise ValueError(f'System {sys} NAV data is not the same length as the number of fields.')
@@ -221,26 +239,30 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
-                  'TransTime', 'FitIntvl']
+                  'TransTime', 'FitIntvl', 'spare0', 'spare1']
+        assert len(fields) == 31
     elif sv.startswith('C'):  # pg A-33  Beidou Compass BDT
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'AODE', 'Crs', 'DeltaN', 'M0',
                   'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
                   'Toe', 'Cic', 'Omega0', 'Cis',
                   'Io', 'Crc', 'omega', 'OmegaDot',
-                  'IDOT', 'BDTWeek',
+                  'IDOT', 'spare0', 'BDTWeek', 'spare1',
                   'SVacc', 'SatH1', 'TGD1', 'TGD2',
-                  'TransTime', 'AODC']
+                  'TransTime', 'AODC', 'spare2', 'spare3']
+        assert len(fields) == 31
     elif sv.startswith('R'):  # pg. A-29   GLONASS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'FreqNum',
                   'Z', 'dZ', 'dZ2', 'AgeOpInfo']
+        assert len(fields) == 15
     elif sv.startswith('S'):  # pg. A-35 SBAS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'URA',
                   'Z', 'dZ', 'dZ2', 'IODN']
+        assert len(fields) == 15
     elif sv.startswith('J'):  # pg. A-31  QZSS
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODE', 'Crs', 'DeltaN', 'M0',
@@ -249,7 +271,8 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
-                  'TransTime', 'FitIntvl']
+                  'TransTime', 'FitIntvl', 'spare0', 'spare1']
+        assert len(fields) == 31
     elif sv.startswith('E'):  # pg. A-25 Galileo Table A8
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODnav', 'Crs', 'DeltaN', 'M0',
@@ -263,7 +286,16 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'spare1', 'spare2', 'spare3']
         assert len(fields) == 31
     elif sv.startswith('I'):
-        raise NotImplementedError('please raise GitHub issue to request IRNSS NAV3')
+        fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
+                  'IODEC', 'Crs', 'DeltaN', 'M0',
+                  'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
+                  'Toe', 'Cic', 'Omega0', 'Cis',
+                  'Io', 'Crc', 'omega', 'OmegaDot',
+                  'IDOT', 'spare0', 'BDTWeek', 'spare1',
+                  'URA', 'health', 'TGD', 'spare2',
+                  'TransTime',
+                  'spare3', 'spare4', 'spare5']
+        assert len(fields) == 31
     else:
         raise ValueError(f'Unknown SV type {sv[0]}')
 

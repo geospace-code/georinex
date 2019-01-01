@@ -97,21 +97,13 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
 
 def rinextype(fn: Path) -> str:
     """
-    based on file extension only, does not actually inspect the file--that comes later
+    determine if input file is NetCDF, OBS or NAV
     """
-    if fn.suffix in ('.gz', '.zip', '.Z'):
-        fnl = fn.stem.lower()
-    else:
-        fnl = fn.name.lower()
 
-    if fnl.endswith(('obs', 'o', 'o.rnx', 'o.crx')):
-        return 'obs'
-    elif fnl.endswith(('nav', 'e', 'g', 'n', 'n.rnx')):
-        return 'nav'
-    elif fn.suffix.endswith('.nc'):
+    if fn.suffix.endswith('.nc'):
         return 'nc'
     else:
-        raise ValueError(f"I dont know what type of file you're trying to read: {fn}")
+        return rinexinfo(fn)['rinextype']
 
 
 def rinexheader(fn: Path) -> Dict[str, Any]:
@@ -129,14 +121,14 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
         elif rtype == 'nav':
             hdr = navheader2(fn)
         else:
-            raise ValueError(f'Unknown rinex type in {fn}')
+            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
     elif int(info['version']) == 3:
         if rtype == 'obs':
             hdr = obsheader3(fn)
         elif rtype == 'nav':
             hdr = navheader3(fn)
         else:
-            raise ValueError(f'Unknown rinex type in {fn}')
+            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 

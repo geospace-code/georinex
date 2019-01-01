@@ -52,6 +52,8 @@ def main():
 
         grp.timeseries(data)
         show()
+    else:
+        print(data)
 
 
 if __name__ == '__main__':

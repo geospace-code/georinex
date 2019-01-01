@@ -7,6 +7,7 @@ import io
 import os
 from typing.io import TextIO
 from typing import Union, Dict, Any
+
 try:
     import unlzw
 except ImportError:
@@ -87,6 +88,7 @@ def _opencrx(f: TextIO) -> str:
 
 def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     """verify RINEX version"""
+
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
@@ -103,7 +105,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     try:
         line = f.readline(80)  # don't choke on binary files
         if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
-            raise ValueError
+            raise ValueError('a string is expected')
 
         version = float(line[:9])
         file_type = line[20]
@@ -119,8 +121,16 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         else:
             system = line[40]
 
+        if line[20] in ('O', 'C'):
+            rinex_type = 'obs'
+        elif line[20] == 'N' or 'NAV' in line[20:40]:
+            rinex_type = 'nav'
+        else:
+            rinex_type = line[20]
+
         info = {'version': version,
                 'filetype': file_type,
+                'rinextype': rinex_type,
                 'systems': system,
                 'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 

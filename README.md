@@ -346,7 +346,10 @@ shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xar
 
 ## Notes
 
-RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
+* RINEX 3.03 specification: ftp://igs.org/pub/data/format/rinex303.pdf
+* RINEX 3.04 specification (Dec 2018): ftp://igs.org/pub/data/format/rinex304.pdf
+* RINEX 3.04 release notes:  ftp://igs.org/pub/data/format/rinex304-release-notes.pdf
+
 
 -   GPS satellite position is given for each time in the NAV file as
     Keplerian parameters, which can be
@@ -380,12 +383,14 @@ you can
 [log RINEX 3](https://play.google.com/store/apps/details?id=de.geopp.rinexlogger)
 using the built-in GPS receiver.
 
-Here is a lot of RINEX 3 data to work with:
+UNAVCO [site map](https://www.unavco.org/instrumentation/networks/map/map.html#/): identify the 4-letter callsign of a station, and look in the FTP sites below for data from a site.
+
+UNAVCO RINEX 3 data:
 
 * OBS: ftp://data-out.unavco.org/pub/rinex3/obs/
 * NAV: ftp://data-out.unavco.org/pub/rinex3/nav/
 
-Likewise here's a bunch of RINEX 2 data:
+UNAVCO RINEX 2 data:
 
 * OBS: ftp://data-out.unavco.org/pub/rinex/obs/
 * NAV: ftp://data-out.unavco.org/pub/rinex/nav/
