@@ -86,9 +86,18 @@ def test_obs3():
 
 
 def test_locs():
-    locs = gr.getlocations(R / 'demo.10o')
+    fn = R / 'demo.10o'
 
-    assert locs.loc['demo.10o'].values == approx([41.3887, 2.112, 30])
+    with fn.open('r') as f:
+        txt = f.read()
+
+    with io.StringIO(txt) as f:
+        locs = gr.getlocations(f)
+
+    if locs.size == 0:
+        pytest.skip('no locs found')
+
+    assert locs.iloc[0].values == approx([41.3887, 2.112, 30])
 
 
 if __name__ == '__main__':
