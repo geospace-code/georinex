@@ -1,6 +1,7 @@
 from pathlib import Path
 import xarray
 from typing import Union, Tuple, Dict, Sequence
+from typing.io import TextIO
 from datetime import datetime
 import logging
 from .io import rinexinfo
@@ -14,7 +15,7 @@ from .utils import rinextype, _tlim
 ENC = {'zlib': True, 'complevel': 1, 'fletcher32': True}
 
 
-def load(rinexfn: Path,
+def load(rinexfn: Union[TextIO, str, Path],
          out: Path = None,
          use: Sequence[str] = None,
          tlim: Tuple[datetime, datetime] = None,
@@ -23,13 +24,15 @@ def load(rinexfn: Path,
          verbose: bool = False,
          fast: bool = True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
-    Reads OBS, NAV in RINEX 2,3.
-    Plain ASCII text or compressed (including Hatanaka)
+    Reads OBS, NAV in RINEX 2.x and 3.x
+
+    Files / StringIO input may be plain ASCII text or compressed (including Hatanaka)
     """
     if verbose:
         logging.basicConfig(level=logging.INFO)
 
-    rinexfn = Path(rinexfn).expanduser()
+    if isinstance(rinexfn, (str, Path)):
+        rinexfn = Path(rinexfn).expanduser()
 # %% detect type of Rinex file
     rtype = rinextype(rinexfn)
 # %% determine if/where to write NetCDF4/HDF5 output
@@ -97,18 +100,21 @@ def batch_convert(path: Path, glob: str, out: Path,
             logging.error(f'{fn.name}: {e}')
 
 
-def rinexnav(fn: Path,
+def rinexnav(fn: Union[TextIO, str, Path],
              outfn: Path = None,
              use: Sequence[str] = None,
              group: str = 'NAV',
              tlim: Tuple[datetime, datetime] = None) -> xarray.Dataset:
     """ Read RINEX 2 or 3  NAV files"""
-    fn = Path(fn).expanduser()
-    if fn.suffix == '.nc':
-        try:
-            return xarray.open_dataset(fn, group=group)
-        except OSError as e:
-            raise LookupError(f'Group {group} not found in {fn}    {e}')
+
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
+
+        if fn.suffix == '.nc':
+            try:
+                return xarray.open_dataset(fn, group=group)
+            except OSError as e:
+                raise LookupError(f'Group {group} not found in {fn}    {e}')
 
     tlim = _tlim(tlim)
 
@@ -135,7 +141,7 @@ def rinexnav(fn: Path,
 # %% Observation File
 
 
-def rinexobs(fn: Path,
+def rinexobs(fn: Union[TextIO, str, Path],
              outfn: Path = None,
              use: Sequence[str] = None,
              group: str = 'OBS',
@@ -145,16 +151,17 @@ def rinexobs(fn: Path,
              verbose: bool = False,
              fast: bool = True) -> xarray.Dataset:
     """
-    Read RINEX 2,3 OBS files in ASCII or GZIP
+    Read RINEX 2.x and 3.x OBS files in ASCII or GZIP (or Hatanaka)
     """
 
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 # %% NetCDF4
-    if fn.suffix == '.nc':
-        try:
-            return xarray.open_dataset(fn, group=group)
-        except OSError as e:
-            raise LookupError(f'Group {group} not found in {fn}   {e}')
+        if fn.suffix == '.nc':
+            try:
+                return xarray.open_dataset(fn, group=group)
+            except OSError as e:
+                raise LookupError(f'Group {group} not found in {fn}   {e}')
 
     tlim = _tlim(tlim)
 # %% version selection

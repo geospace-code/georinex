@@ -17,51 +17,57 @@ R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def opener(fn: Path, header: bool = False, verbose: bool = False) -> TextIO:
+def opener(fn: Union[TextIO, Path],
+           header: bool = False,
+           verbose: bool = False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
-    if fn.is_dir():
-        raise FileNotFoundError(f'{fn} is a directory; I need a file')
 
-    if verbose:
-        if fn.stat().st_size > 100e6:
-            print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
+    if isinstance(fn, io.StringIO):
+        yield fn
+    else:
+        if fn.is_dir():
+            raise FileNotFoundError(f'{fn} is a directory; I need a file')
 
-    if fn.suffixes == ['.crx', '.gz']:
-        if header:
+        if verbose:
+            if fn.stat().st_size > 100e6:
+                print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
+
+        if fn.suffixes == ['.crx', '.gz']:
+            if header:
+                with gzip.open(fn, 'rt') as f:
+                    yield f
+            else:
+                with gzip.open(fn, 'rt') as g:
+                    f = io.StringIO(_opencrx(g))
+                    yield f
+        elif fn.suffix == '.crx':
+            if header:
+                with fn.open('r') as f:
+                    yield f
+            else:
+                with fn.open('r') as g:
+                    f = io.StringIO(_opencrx(g))
+                    yield f
+        elif fn.suffix == '.gz':
             with gzip.open(fn, 'rt') as f:
                 yield f
+        elif fn.suffix == '.zip':
+            with zipfile.ZipFile(fn, 'r') as z:
+                flist = z.namelist()
+                for rinexfn in flist:
+                    with z.open(rinexfn, 'r') as bf:
+                        f = io.TextIOWrapper(bf, newline=None)
+                        yield f
+        elif fn.suffix == '.Z':
+            if unlzw is None:
+                raise ImportError('pip install unlzw')
+            with fn.open('rb') as zu:
+                with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
+                    yield f
+
         else:
-            with gzip.open(fn, 'rt') as g:
-                f = io.StringIO(_opencrx(g))
-                yield f
-    elif fn.suffix == '.crx':
-        if header:
             with fn.open('r') as f:
                 yield f
-        else:
-            with fn.open('r') as g:
-                f = io.StringIO(_opencrx(g))
-                yield f
-    elif fn.suffix == '.gz':
-        with gzip.open(fn, 'rt') as f:
-            yield f
-    elif fn.suffix == '.zip':
-        with zipfile.ZipFile(fn, 'r') as z:
-            flist = z.namelist()
-            for rinexfn in flist:
-                with z.open(rinexfn, 'r') as bf:
-                    f = io.TextIOWrapper(bf, newline=None)
-                    yield f
-    elif fn.suffix == '.Z':
-        if unlzw is None:
-            raise ImportError('pip install unlzw')
-        with fn.open('rb') as zu:
-            with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
-                yield f
-
-    else:
-        with fn.open('r') as f:
-            yield f
 
 
 def _opencrx(f: TextIO) -> str:
@@ -101,6 +107,8 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         else:
             with opener(fn) as f:
                 return rinexinfo(f)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
 
     try:
         line = f.readline(80)  # don't choke on binary files

@@ -4,11 +4,11 @@ import xarray
 import logging
 import numpy as np
 import math
-from io import BytesIO
+import io
 from datetime import datetime
 from .io import opener, rinexinfo
 from .common import rinex_string_to_float
-from typing import Dict, List, Any, Sequence, Optional
+from typing import Dict, Union, List, Any, Sequence, Optional
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
@@ -16,7 +16,7 @@ Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional S
 Lf = 19  # string length per field
 
 
-def rinexnav3(fn: Path,
+def rinexnav3(fn: Union[TextIO, str, Path],
               use: Sequence[str] = None,
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
@@ -27,8 +27,8 @@ def rinexnav3(fn: Path,
 
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
-
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     svs = []
     raws = []
@@ -104,7 +104,8 @@ def rinexnav3(fn: Path,
         darr = np.empty((svi.size, len(cf)))
 
         for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+            darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')),
+                                       delimiter=Lf)
 
 # %% discard duplicated times
 
@@ -147,9 +148,10 @@ def rinexnav3(fn: Path,
                                                            corr['IRNB']))
 
     nav.attrs['version'] = header['version']
-    nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes
     nav.attrs['rinextype'] = 'nav'
+    if isinstance(fn, Path):
+        nav.attrs['filename'] = fn.name
 
     return nav
 
@@ -307,6 +309,12 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
         fn = f
         with fn.open('r') as f:
             return navheader3(f)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unsure of input data type {type(f)}')
 
     hdr = rinexinfo(f)
     assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 2.x files'
@@ -332,7 +340,7 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
     return hdr
 
 
-def navtime3(fn: Path) -> xarray.DataArray:
+def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
     """
     return all times in RINEX file
     """
@@ -355,7 +363,9 @@ def navtime3(fn: Path) -> xarray.DataArray:
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'filename': fn})
+                               dims=['time'])
+
+    if isinstance(fn, Path):
+        timedat.attrs['filename'] = fn.name
 
     return timedat

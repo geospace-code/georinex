@@ -9,7 +9,7 @@
 # GeoRinex
 
 RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
-Batch converts NAV and OBS GPS RINEX data into
+Batch converts NAV and OBS GPS RINEX (including Hatanaka compressed OBS) data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
@@ -24,7 +24,7 @@ where ease of cross-platform install and correctness are primary goals.
 
 ## Inputs
 
-* RINEX 3 or RINEX 2
+* RINEX 3.x or RINEX 2.x
   * NAV
   * OBS
 * Plain ASCII or seamlessly read compressed ASCII in:
@@ -32,6 +32,7 @@ where ease of cross-platform install and correctness are primary goals.
   * `.Z` LZW
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
+* Python `io.StringIO` text stream RINEX
 
 ## Output
 

@@ -2,10 +2,11 @@ from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
+import io
 from math import ceil
 from datetime import datetime
 import xarray
-from typing import List, Any, Dict, Tuple, Sequence, Optional
+from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
 try:
     from pymap3d import ecef2geodetic
@@ -46,7 +47,7 @@ def rinexobs2(fn: Path,
     return obs
 
 
-def rinexsystem2(fn: Path,
+def rinexsystem2(fn: Union[TextIO, Path],
                  system: str,
                  tlim: Tuple[datetime, datetime] = None,
                  useindicators: bool = False,
@@ -88,7 +89,17 @@ def rinexsystem2(fn: Path,
             * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
         """
         assert isinstance(Nextra, int)
-        Nt = ceil(fn.stat().st_size / 80 / (Nsvmin * Nextra))
+
+        if isinstance(fn, Path):
+            filesize = fn.stat().st_size
+        elif isinstance(fn, io.StringIO):
+            fn.seek(0, io.SEEK_END)
+            filesize = fn.tell()
+            fn.seek(0, io.SEEK_SET)
+        else:
+            raise TypeError(f'Unknown input data file type {type(fn)}')
+
+        Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         if times is None:
@@ -249,12 +260,13 @@ def rinexsystem2(fn: Path,
     obs = obs.dropna(dim='sv', how='all')
     obs = obs.dropna(dim='time', how='all')  # when tlim specified
 # %% attributes
-    obs.attrs['filename'] = fn.name
     obs.attrs['version'] = hdr['version']
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['toffset'] = toffset
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
+    if isinstance(fn, Path):
+        obs.attrs['filename'] = fn.name
 
     try:
         obs.attrs['position'] = hdr['position']
@@ -273,6 +285,12 @@ def obsheader2(f: TextIO,
         fn = f
         with opener(fn, header=True) as f:
             return obsheader2(f, useindicators, meas)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'Unknown input filetype {type(f)}')
 
 # %% selection
     if isinstance(meas, str):
@@ -386,7 +404,8 @@ def _getSVlist(ln: str, N: int,
     return sv
 
 
-def obstime2(fn: Path, verbose: bool = False) -> xarray.DataArray:
+def obstime2(fn: Union[TextIO, Path],
+             verbose: bool = False) -> xarray.DataArray:
     """
     read all times in RINEX2 OBS file
     """
@@ -409,8 +428,10 @@ def obstime2(fn: Path, verbose: bool = False) -> xarray.DataArray:
 
     timedat = xarray.DataArray(times,
                                dims=['time'],
-                               attrs={'filename': fn.name,
-                                      'interval': hdr['interval']})
+                               attrs={'interval': hdr['interval']})
+
+    if isinstance(fn, Path):
+        timedat.attrs['filename'] = fn.name
 
     return timedat
 
@@ -493,12 +514,19 @@ def _skip_header(f: TextIO):
             break
 
 
-def _fast_alloc(fn: Path, Nl_sv: int) -> Optional[int]:
+def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> Optional[int]:
     """
     prescan first N lines of file to see if it truncates to less than 80 bytes
-    Picking N:  N > Nobs+4 or so.  100 seemed a good start.
+
+    Picking N:  N > Nobs+4 or so.
+      100 seemed a good start.
     """
-    assert fn.is_file(), 'need freshly opend file'
+    if isinstance(fn, Path):
+        assert fn.is_file(), 'need freshly opend file'
+    elif isinstance(fn, io.StringIO):
+        fn.seek(0)
+    else:
+        raise TypeError(f'Unknown filetype {type(fn)}')
 
     with opener(fn) as f:
         _skip_header(f)

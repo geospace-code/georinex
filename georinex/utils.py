@@ -2,6 +2,9 @@ from pathlib import Path
 from typing import Tuple, Dict, Any, Optional, Sequence, List
 from datetime import datetime
 from dateutil.parser import parse
+from typing import Union
+from typing.io import TextIO
+import io
 import xarray
 import pandas
 from .io import rinexinfo
@@ -27,14 +30,15 @@ def globber(path: Path, glob: Sequence[str]) -> List[Path]:
     return flist
 
 
-def gettime(fn: Path) -> xarray.DataArray:
+def gettime(fn: Union[TextIO, str, Path]) -> xarray.DataArray:
     """
     get times in RINEX 2/3 file
     Note: in header,
         * TIME OF FIRST OBS is mandatory
         * TIME OF LAST OBS is optional
     """
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
     assert int(info['version']) in (2, 3)
@@ -95,15 +99,19 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
     return locs
 
 
-def rinextype(fn: Path) -> str:
+def rinextype(fn: Union[TextIO, Path]) -> str:
     """
     determine if input file is NetCDF, OBS or NAV
     """
 
-    if fn.suffix.endswith('.nc'):
+    if isinstance(fn, Path) and fn.suffix.endswith('.nc'):
         return 'nc'
     else:
-        return rinexinfo(fn)['rinextype']
+        info = rinexinfo(fn)['rinextype']
+        if isinstance(fn, io.StringIO):
+            fn.seek(0)
+
+        return info
 
 
 def rinexheader(fn: Path) -> Dict[str, Any]:

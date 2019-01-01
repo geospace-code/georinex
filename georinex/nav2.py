@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Sequence, Optional
+from typing import Dict, Union, Any, Sequence, Optional
 from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
+import io
 from .io import opener, rinexinfo
 from .common import rinex_string_to_float
 #
@@ -13,7 +14,7 @@ STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
-def rinexnav2(fn: Path,
+def rinexnav2(fn: Union[TextIO, str, Path],
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
@@ -23,7 +24,8 @@ def rinexnav2(fn: Path,
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     ftp://igs.org/pub/data/format/rinex211.txt
     """
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     Lf = 19  # string length per field
 
@@ -133,9 +135,10 @@ def rinexnav2(fn: Path,
 
 # %% other attributes
     nav.attrs['version'] = header['version']
-    nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = [svtype]  # Use list for consistency with NAV3.
     nav.attrs['rinextype'] = 'nav'
+    if isinstance(fn, Path):
+        nav.attrs['filename'] = fn.name
 
     if 'ION ALPHA' in header and 'ION BETA' in header:
         alpha = header['ION ALPHA']
@@ -154,7 +157,12 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
         fn = f
         with fn.open('r') as f:
             return navheader2(f)
-
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unknown filetype {type(f)}')
 # %%verify RINEX version, and that it's NAV
     hdr = rinexinfo(f)
     if int(hdr['version']) != 2:
@@ -200,7 +208,7 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def navtime2(fn: Path) -> xarray.DataArray:
+def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
     """
     read all times in RINEX 2 NAV file
     """
@@ -227,7 +235,9 @@ def navtime2(fn: Path) -> xarray.DataArray:
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'filename': fn})
+                               dims=['time'])
+
+    if isinstance(fn, Path):
+        timedat.attrs['filename'] = fn.name
 
     return timedat
