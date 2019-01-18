@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pytest
+from pytest import approx
 from pathlib import Path
 import georinex as gr
 import xarray
@@ -61,7 +62,6 @@ def test_minimal(tmp_path, filename):
                           ('demo3.10n', 3)],
                          ids=['OBS2', 'OBS3', 'NAV2', 'NAV3'])
 def test_header(fn, version):
-    # %% rinex 2
     hdr = gr.rinexheader(R/fn)
     inf = gr.rinexinfo(R/fn)
 
@@ -70,6 +70,17 @@ def test_header(fn, version):
 
     if inf['filetype'] == 'O':
         assert len(hdr['position']) == 3
+
+
+def test_dont_care_file_extension():
+    """ GeoRinex ignores the file extension and only considers file headers to determine what a file is."""
+    fn = R / 'brdc0320.16l.txt'
+
+    hdr = gr.rinexheader(R/fn)
+    assert int(hdr['version']) == 3
+
+    nav = gr.load(fn)
+    assert nav.ionospheric_corr_GAL == approx([139, 0.132, 0.0186])
 
 
 if __name__ == '__main__':

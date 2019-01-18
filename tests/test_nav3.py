@@ -127,7 +127,7 @@ def test_ionospheric_correction():
     nav = gr.load(R/"galileo3.15n")
 
     assert nav.attrs['ionospheric_corr_GAL'] == approx(
-                    [0.1248e+03, 0.5039, 0.2377e-01, 0])
+                    [0.1248e+03, 0.5039, 0.2377e-01])
 
 
 if __name__ == '__main__':

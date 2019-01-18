@@ -329,11 +329,11 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
             if kind not in hdr:
                 hdr[kind] = {}
 
-            coefficients_kind = content[:4].strip()
-            coefficients = [
-                rinex_string_to_float(content[5 + i*12:5 + (i+1)*12])
-                for i in range(4)]
-            hdr[kind][coefficients_kind] = coefficients
+            coeff_kind = content[:4].strip()
+            N = 3 if coeff_kind == 'GAL' else 4
+            # RINEX 3.04 table A5 page A19
+            coeff = [rinex_string_to_float(content[5 + i*12:5 + (i+1)*12]) for i in range(N)]
+            hdr[kind][coeff_kind] = coeff
         else:
             hdr[kind] = content
 
