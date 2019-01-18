@@ -13,7 +13,7 @@ Batch converts NAV and OBS GPS RINEX (including Hatanaka compressed OBS) data in
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
-GeoRinex works in Python &ge; 3.6 and has over 100 unit tests driven by Pytest.
+GeoRinex works in Python &ge; 3.6 and has over 125 unit tests driven by Pytest.
 
 Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 2x faster performance than this Python program--that's pretty good for a scripted language like Python!
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4,

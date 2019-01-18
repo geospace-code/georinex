@@ -6,49 +6,28 @@ import georinex as gr
 R = Path(__file__).parent / 'data'
 
 
-def test_obs(tmp_path):
-    pytest.importorskip('netCDF4')
-    pat = '*o'
+flist = list(R.glob('*.*o')) + list(R.glob('*.*n'))
+assert len(flist) > 0
 
-    flist = R.glob(pat)  # all OBS 2 files
+
+@pytest.mark.parametrize('filename', flist, ids=[f.name for f in flist])
+def test_batch_convert_rinex2(tmp_path, filename):
+    pytest.importorskip('netCDF4')
 
     outdir = tmp_path
-    gr.batch_convert(R, pat, outdir)
+    gr.batch_convert(R, filename.name, outdir)
 
-    for fn in flist:
-        outfn = outdir / (fn.name + '.nc')
-        if outfn.name.startswith('blank'):
-            continue
+    outfn = outdir / (filename.name + '.nc')
+    if outfn.name.startswith('blank'):
+        pytest.xfail('blank files do not convert')
 
-        assert outfn.is_file(), f'{outfn}'
+    assert outfn.is_file(), f'{outfn}'
+    assert outfn.stat().st_size > 15000, f'{outfn}'
 
-        truth = gr.load(fn)
-        obs = gr.load(outfn)
+    truth = gr.load(filename)
+    dat = gr.load(outfn)
 
-        assert obs.equals(truth), f'{outfn}  {fn}'
-
-
-def test_nav(tmp_path):
-    pytest.importorskip('netCDF4')
-    pat = '*n'
-
-    flist = R.glob(pat)  # all OBS 2 files
-
-    outdir = tmp_path
-    gr.batch_convert(R, pat, outdir)
-
-    for fn in flist:
-        outfn = outdir / (fn.name + '.nc')
-        if outfn.name.startswith('blank'):
-            continue
-
-        assert outfn.is_file(), f'{outfn}'
-        assert outfn.stat().st_size > 15000, f'{outfn}'
-
-        truth = gr.load(fn)
-        nav = gr.load(outfn)
-
-        assert nav.equals(truth), f'{outfn}  {fn}'
+    assert dat.equals(truth), f'{outfn}  {filename}'
 
 
 def test_bad(tmp_path):
