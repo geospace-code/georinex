@@ -10,37 +10,7 @@ import georinex as gr
 R = Path(__file__).parent / 'data'
 
 
-def test_blank(tmp_path):
-    fn = R/'blank3.10o'
-    obs = gr.load(fn)
-    assert obs is None
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal(tmp_path):
-    pytest.importorskip('netCDF4')
-
-    fn = R/'minimal3.10o'
-    obs = gr.load(fn)
-    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-
-    outfn = (outdir / (fn.name + '.nc'))
-    assert outfn.is_file()
-    assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-    times = gr.gettime(fn)
-    assert np.isnan(times.interval)
-
-
-def test_meas():
+def test_contents():
     """
     test specifying specific measurements (usually only a few of the thirty or so are needed)
     """
@@ -49,7 +19,10 @@ def test_meas():
     for v in ['L1C', 'L2P', 'C1P', 'C2P', 'C1C', 'S1C', 'S1P', 'S2P']:
         assert v in obs
     assert len(obs.data_vars) == 8
-# %% one measurement
+
+
+def test_meas_one():
+    fn = R/'demo3.10o'
     obs = gr.load(fn, meas='C1C')
     assert 'L1C' not in obs
 
@@ -57,7 +30,11 @@ def test_meas():
     assert C1C.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
 
     assert (C1C.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
-# %% two NON-SEQUENTIAL measurements
+
+
+def test_meas_two():
+    """two NON-SEQUENTIAL measurements"""
+    fn = R/'demo3.10o'
     obs = gr.load(fn, meas=['L1C', 'S1C'])
     assert 'L2P' not in obs
 
@@ -70,8 +47,13 @@ def test_meas():
 
     assert (S1C.sel(sv='R23') == approx([39., 79.])).all()
 
+    C1C = gr.load(fn, meas='C1C')
     assert not C1C.equals(L1C)
-# %% measurement not in some systems
+
+
+def test_meas_some_missing():
+    """measurement not in some systems"""
+    fn = R/'demo3.10o'
     obs = gr.load(fn, meas=['S2P'])
     assert 'L2P' not in obs
 
@@ -83,12 +65,19 @@ def test_meas():
     # or simply do not make that kind of measurement at all
     R23 = S2P.sel(sv='R23')
     assert np.isnan(R23).all()
-# %% measurement not in any system
+
+
+def test_meas_all_missing():
+    """measurement not in any system"""
+    fn = R/'demo3.10o'
     obs = gr.load(fn, meas='nonsense')
     assert 'nonsense' not in obs
 
     assert len(obs.data_vars) == 0
-# %% wildcard
+
+
+def test_meas_wildcard():
+    fn = R/'demo3.10o'
     obs = gr.load(fn, meas='C')
     assert 'L1C' not in obs
     assert 'C1P' in obs and 'C2P' in obs and 'C1C' in obs
@@ -122,6 +111,7 @@ def test_tlim():
 
 
 def test_bad_system():
+    """ Z and Y are not currently used by RINEX """
     with pytest.raises(KeyError):
         gr.load(R/'demo3.10o', use='Z')
 
@@ -129,7 +119,8 @@ def test_bad_system():
         gr.load(R/'demo3.10o', use=['Z', 'Y'])
 
 
-def test_one_system():
+@pytest.mark.parametrize('use', ('G', ['G']))
+def test_one_system(use):
     """
     ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
     """
@@ -137,9 +128,8 @@ def test_one_system():
 
     truth = xarray.open_dataset(R/'r3G.nc', group='OBS')
 
-    for u in ('G', ['G']):
-        obs = gr.load(R/'demo3.10o', use=u)
-        assert obs.equals(truth)
+    obs = gr.load(R/'demo3.10o', use=use)
+    assert obs.equals(truth)
 
     assert obs.position == approx([4789028.4701, 176610.0133, 4195017.031])
     try:
@@ -186,12 +176,12 @@ def tests_all_indicators():
     assert obs.equals(truth)
 
 
-def test_time_system_determination():
-    obs = gr.load(R/"demo3.10o")
-    assert obs.attrs['time_system'] == 'GPS'
-
-    obs = gr.load(R/'default_time_system3.10o')
-    assert obs.attrs['time_system'] == 'GAL'
+@pytest.mark.parametrize('fn, tname',
+                         [('demo3.10o', 'GPS'),
+                          ('default_time_system3.10o', 'GAL')])
+def test_time_system(fn, tname):
+    obs = gr.load(R/fn)
+    assert obs.attrs['time_system'] == tname
 
 
 if __name__ == '__main__':

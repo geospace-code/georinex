@@ -89,6 +89,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 # %% other attributes
     data.attrs['version'] = hdr['version']
     data.attrs['rinextype'] = 'obs'
+    data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
     data.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         data.attrs['filename'] = fn.name

@@ -4,48 +4,14 @@ import xarray
 from pytest import approx
 from pathlib import Path
 import georinex as gr
-import numpy as np
 
 from datetime import datetime
 #
 R = Path(__file__).parent / 'data'
 
 
-def test_blank(tmp_path):
-    fn = R/'blank.10o'
-    obs = gr.load(fn)
-    assert obs is None
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-    assert not (outdir / (fn.name + '.nc')).is_file()
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal(tmp_path):
-    pytest.importorskip('netCDF4')
-
-    fn = R/'minimal.10o'
-    obs = gr.load(fn)
-    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-
-    outfn = (outdir / (fn.name + '.nc'))
-    assert outfn.is_file()
-    assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-    times = gr.gettime(fn)
-    assert np.isnan(times.interval)
-
-    assert obs.fast_processing
-
-
 def test_fast_slow():
-    fn = R/'minimal.10o'
+    fn = R/'minimal2.10o'
     fobs = gr.load(fn, fast=True)
     sobs = gr.load(fn, fast=False)
 
@@ -213,7 +179,8 @@ def test_one_sv():
     assert obs.fast_processing
 
 
-def test_all_systems(tmp_path):
+@pytest.mark.parametrize('use', (None, ' ', '', ['G', 'R', 'S']))
+def test_all_systems(tmp_path, use):
     """
     ./ReadRinex.py tests/demo.10o -o r2all.nc
     ./ReadRinex.py tests/demo.10n -o r2all.nc
@@ -222,11 +189,9 @@ def test_all_systems(tmp_path):
 
     truth = xarray.open_dataset(R / 'r2all.nc', group='OBS')
 # %% test reading all satellites
-    for u in (None, ' ', '', ['G', 'R', 'S']):
-        print('use', u)
-        obs = gr.load(R/'demo.10o', use=u)
-        assert obs.equals(truth)
-        assert obs.fast_processing
+    obs = gr.load(R/'demo.10o', use=use)
+    assert obs.equals(truth)
+    assert obs.fast_processing
 
     assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
     try:
@@ -243,17 +208,17 @@ def test_all_systems(tmp_path):
     assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
 
 
-def test_one_system():
+@pytest.mark.parametrize('use', ('G', ['G']))
+def test_one_system(use):
     """./ReadRinex.py tests/demo.10o -u G -o r2G.nc
     """
     pytest.importorskip('netCDF4')
 
     truth = xarray.open_dataset(R / 'r2G.nc', group='OBS')
 
-    for u in ('G', ['G']):
-        obs = gr.load(R/'demo.10o', use=u)
-        assert obs.equals(truth)
-        assert obs.fast_processing
+    obs = gr.load(R/'demo.10o', use=use)
+    assert obs.equals(truth)
+    assert obs.fast_processing
 
 
 def test_multi_system():
@@ -303,12 +268,12 @@ def test_meas_onesys_indicators():
     assert obs.fast_processing
 
 
-def test_time_system_determination():
-    obs = gr.load(R/"demo.10o")
-    assert obs.attrs['time_system'] == 'GPS'
-
-    obs = gr.load(R/'default_time_system2.10o')
-    assert obs.attrs['time_system'] == 'GLO'
+@pytest.mark.parametrize('fn, tname',
+                         [('demo.10o', 'GPS'),
+                          ('default_time_system2.10o', 'GLO')])
+def test_time_system(fn, tname):
+    obs = gr.load(R/fn)
+    assert obs.attrs['time_system'] == tname
 
 
 if __name__ == '__main__':

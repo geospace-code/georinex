@@ -10,34 +10,6 @@ import numpy as np
 R = Path(__file__).parent / 'data'
 
 
-def test_blank(tmp_path):
-    fn = R/'blank.10n'
-    nav = gr.load(fn)
-    assert nav is None
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal(tmp_path):
-    pytest.importorskip('netCDF4')
-
-    fn = R/'minimal.10n'
-
-    nav = gr.load(fn)
-    assert isinstance(nav, xarray.Dataset)
-
-    outdir = tmp_path
-    gr.load(fn, outdir)
-    outfn = (outdir / (fn.name + '.nc'))
-    assert outfn.is_file()
-
-    assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-
 def test_time():
     pytest.importorskip('unlzw')
 
@@ -101,7 +73,11 @@ def test_tlim():
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
 
     assert (times == [datetime(2018, 7, 29, 11, 50), datetime(2018, 7, 29, 12)]).all()
-# %% past end of file
+
+
+def test_tlim_past_eof():
+    pytest.importorskip('unlzw')
+
     nav = gr.load(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
 
     times = nav.time.values.astype('datetime64[us]').astype(datetime)
