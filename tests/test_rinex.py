@@ -15,13 +15,13 @@ def test_blank(tmp_path, filename):
     fn = R/filename
 
     dat = gr.load(fn)
-    assert dat is None
+    assert len(dat.time) == 0
 
     outdir = tmp_path
     gr.load(fn, outdir)
 
     times = gr.gettime(fn)
-    assert times is None
+    assert len(times) == 0
 
 
 @pytest.mark.parametrize('filename',

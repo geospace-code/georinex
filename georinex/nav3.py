@@ -7,7 +7,7 @@ import math
 import io
 from datetime import datetime
 from .io import opener, rinexinfo
-from .common import rinex_string_to_float
+from .common import rinex_string_to_float, _skip
 from typing import Dict, Union, List, Any, Sequence, Optional
 from typing.io import TextIO
 # constants
@@ -16,7 +16,7 @@ Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional S
 Lf = 19  # string length per field
 
 
-def rinexnav3(fn: Union[TextIO, str, Path],
+def rinexnav3(fn: Union[TextIO, Path],
               use: Sequence[str] = None,
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
@@ -27,8 +27,6 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
-    if isinstance(fn, (str, Path)):
-        fn = Path(fn).expanduser()
 
     svs = []
     raws = []
@@ -79,17 +77,12 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
-    if not raws:
-        return None
 # %% parse
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, 'ns') for t in times])
-    nav: xarray.Dataset = None
-    svu = sorted(set(svs))
 
-    if len(svu) == 0:
-        logging.warning('no specified data found in {fn}')
-        return None
+    svu = sorted(set(svs))
+    nav = xarray.Dataset(coords={'sv': svu})
 
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
@@ -120,11 +113,7 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 
             dsf[f] = (('time', 'sv'), d[:, None])
 
-        if nav is None:
-            nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
-        else:
-            nav = xarray.merge((nav,
-                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
+        nav = xarray.merge((nav, xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
@@ -149,16 +138,11 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 
     nav.attrs['version'] = header['version']
     nav.attrs['svtype'] = svtypes
-    nav.attrs['rinextype'] = 'nav'
+    nav.attrs['rinextype'] = header['rinextype']
     if isinstance(fn, Path):
         nav.attrs['filename'] = fn.name
 
     return nav
-
-
-def _skip(f: TextIO, Nl: int):
-    for _, _ in zip(range(Nl), f):
-        pass
 
 
 def _time(ln: str) -> Optional[datetime]:
@@ -311,10 +295,6 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
             return navheader3(f)
     elif isinstance(f, io.StringIO):
         f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'unsure of input data type {type(f)}')
 
     hdr = rinexinfo(f)
     assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 2.x files'
@@ -356,9 +336,6 @@ def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
 
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
-
-    if not times:
-        return None
 
     times = np.unique(times)
 

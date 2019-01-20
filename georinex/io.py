@@ -21,13 +21,13 @@ def opener(fn: Union[TextIO, Path],
            header: bool = False,
            verbose: bool = False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
+    if isinstance(fn, str):
+        fn = Path(fn).expanduser()
+
 
     if isinstance(fn, io.StringIO):
         yield fn
     else:
-        if fn.is_dir():
-            raise FileNotFoundError(f'{fn} is a directory; I need a file')
-
         if verbose:
             if fn.stat().st_size > 100e6:
                 print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
@@ -113,7 +113,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     try:
         line = f.readline(80)  # don't choke on binary files
         if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
-            raise ValueError('a string is expected')
+            raise ValueError('The first line of the RINEX file header is corrupted.')
 
         version = float(line[:9])
         file_type = line[20]
@@ -142,7 +142,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
                 'systems': system,
                 'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
-    except (ValueError, UnicodeDecodeError) as e:
+    except (AttributeError, ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
         raise ValueError(f'not a known/valid RINEX file.  {e}')
 

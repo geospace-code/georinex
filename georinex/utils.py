@@ -70,6 +70,9 @@ def getlocations(flist: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
 
     Requires pymap3d.ecef2geodetic
     """
+    if isinstance(flist, (str, Path)):
+        flist = Path(flist).expanduser()
+
     if isinstance(flist, (Path, io.StringIO)):
         flist = [flist]
 
@@ -85,10 +88,7 @@ def getlocations(flist: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
             dat = xarray.open_dataset(f, group='OBS')
             hdr = dat.attrs
         else:
-            try:
-                hdr = rinexheader(f)
-            except ValueError:
-                continue
+            hdr = rinexheader(f)
 
         if isinstance(f, Path):
             key = f.name
@@ -113,14 +113,17 @@ def rinextype(fn: Union[TextIO, Path]) -> str:
     determine if input file is NetCDF, OBS or NAV
     """
 
-    if isinstance(fn, Path) and fn.suffix.endswith('.nc'):
-        return 'nc'
-    else:
-        info = rinexinfo(fn)['rinextype']
-        if isinstance(fn, io.StringIO):
-            fn.seek(0)
+    if isinstance(fn, Path):  # check if NetCDF
+        with fn.open('rb') as f:
+            magic = f.read(4).decode('ascii', 'ignore')
+            if magic[:3] == 'HDF':
+                return 'nc'
 
-        return info
+    info = rinexinfo(fn)['rinextype']
+    if isinstance(fn, io.StringIO):
+        fn.seek(0)
+
+    return info
 
 
 def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:

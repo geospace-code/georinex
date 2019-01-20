@@ -1,4 +1,4 @@
-from .io import opener
+from .io import opener, rinexinfo
 from pathlib import Path
 import numpy as np
 import logging
@@ -34,14 +34,16 @@ def rinexobs2(fn: Path,
         o = rinexsystem2(fn, system=u, tlim=tlim,
                          useindicators=useindicators, meas=meas,
                          verbose=verbose, fast=fast)
-        if o is not None:
+        if len(o) > 0:
             if obs is None:
                 attrs = o.attrs
                 obs = o
             else:
                 obs = xarray.merge((obs, o))
 
-    if obs is not None:
+    if obs is None:
+        obs = o  # just pass last system, it's empty anyway.
+    else:
         obs.attrs = attrs
 
     return obs
@@ -77,8 +79,11 @@ def rinexsystem2(fn: Union[TextIO, Path],
         return
 
     if fast:
-        Nextra = _fast_alloc(fn, hdr['Nl_sv'])
-        fast = isinstance(Nextra, int) and Nextra > 0
+        try:
+            Nextra = _fast_alloc(fn, hdr['Nl_sv'])
+            fast = isinstance(Nextra, int) and Nextra > 0
+        except UnboundLocalError:
+            fast = False
         if verbose and not fast:
             logging.info(f'fast mode disabled due to estimation problem, Nextra: {Nextra}')
 
@@ -102,9 +107,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
         Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
-        if times is None:
-            return
-
         Nt = len(times)
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
@@ -113,9 +115,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
     check_ram(memneed, fn)
 # %% preallocate
     data = np.empty((Npages, Nt, Nsvsys))
-    if data.size == 0:
-        return
-
     data.fill(np.nan)
 # %% start reading
     with opener(fn, verbose=verbose) as f:
@@ -153,10 +152,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
             if fast:
                 times.append(time_epoch)
 
-            try:
-                toffset = ln[68:80]
-            except ValueError:
-                toffset = None
+            toffset = ln[68:80]
 # %% get SV indices
             sv = _getsvind(f, ln)
 # %% select one, a few, or all satellites
@@ -230,9 +226,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
     if fast:
         data = data[:, :len(times), :]
 
-    if np.isnan(data).all():  # don't use darr=None sentinel, due to meas= cases
-        return
-
     fields = []
     for field in hdr['fields']:
         fields.append(field)
@@ -261,9 +254,13 @@ def rinexsystem2(fn: Union[TextIO, Path],
     obs = obs.dropna(dim='time', how='all')  # when tlim specified
 # %% attributes
     obs.attrs['version'] = hdr['version']
-    obs.attrs['rinextype'] = 'obs'
-    obs.attrs['toffset'] = toffset
+    obs.attrs['rinextype'] = hdr['rinextype']
+    try:
+        obs.attrs['toffset'] = toffset
+    except UnboundLocalError:
+        pass
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
+
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         obs.attrs['filename'] = fn.name
@@ -281,16 +278,12 @@ def obsheader2(f: TextIO,
                useindicators: bool = False,
                meas: Sequence[str] = None) -> Dict[str, Any]:
 
-    if isinstance(f, Path):
+    if isinstance(f, (str, Path)):
         fn = f
         with opener(fn, header=True) as f:
             return obsheader2(f, useindicators, meas)
     elif isinstance(f, io.StringIO):
         f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
 
 # %% selection
     if isinstance(meas, str):
@@ -299,34 +292,37 @@ def obsheader2(f: TextIO,
     if not meas or not meas[0].strip():
         meas = None
 
-    hdr: Dict[str, Any] = {}
     Nobs = 0  # not None due to type checking
+    hdr = rinexinfo(f)
+# %% first line
+    try:
+        ln = f.readline()
+    # %% other lines
+        for ln in f:
+            if "END OF HEADER" in ln:
+                break
 
-    for ln in f:
-        if "END OF HEADER" in ln:
-            break
+            h = ln[60:80].strip()
+            c = ln[:60]
+    # %% measurement types
+            if '# / TYPES OF OBSERV' in h:
+                if Nobs == 0:
+                    Nobs = int(c[:6])
 
-        h = ln[60:80].strip()
-        c = ln[:60]
-# %% measurement types
-        if '# / TYPES OF OBSERV' in h:
-            if Nobs == 0:
-                Nobs = int(c[:6])
-
-            c = c[6:].split()  # NOT within "if Nobs"
-# %%
-        if h not in hdr:  # Header label
-            hdr[h] = c  # string with info
-        else:  # concatenate
-            if isinstance(hdr[h], str):
-                hdr[h] += " " + c
-            elif isinstance(hdr[h], list):
-                hdr[h] += c
-            else:
-                raise ValueError(f'not sure what {c} is')
+                c = c[6:].split()  # NOT within "if Nobs"
+    # %%
+            if h not in hdr:  # Header label
+                hdr[h] = c  # string with info
+            else:  # concatenate
+                if isinstance(hdr[h], str):
+                    hdr[h] += " " + c
+                elif isinstance(hdr[h], list):
+                    hdr[h] += c
+                else:
+                    raise ValueError(f'not sure what {c} is')
+    except AttributeError:
+        raise ValueError('failed to parse header, is this a RINEX OBS2 file?')
 # %% useful values
-    hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
-    hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
     hdr['Nobs'] = Nobs
     hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)  # 5 observations per line (incorporating LLI, SSI)
 
@@ -338,7 +334,11 @@ def obsheader2(f: TextIO,
     except KeyError:
         pass
 # %% observation types
-    hdr['fields'] = hdr['# / TYPES OF OBSERV']
+    try:
+        hdr['fields'] = hdr['# / TYPES OF OBSERV']
+    except KeyError:
+        hdr['fields'] = []
+
     if Nobs != len(hdr['fields']):
         raise ValueError(f'{f.name} header read incorrectly')
 
@@ -364,7 +364,10 @@ def obsheader2(f: TextIO,
     if '# OF SATELLITES' in hdr:
         hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
 # %% time
-    hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+    try:
+        hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+    except KeyError:
+        pass
 
     try:
         hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
@@ -423,12 +426,11 @@ def obstime2(fn: Union[TextIO, Path],
 
             _skip(f, ln, hdr['Nl_sv'])
 
-    if not times:
-        return None
-
     timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'interval': hdr['interval']})
+                               dims=['time'])
+
+    if 'interval' in hdr:
+        timedat.attrs['interval'] = hdr['interval']
 
     if isinstance(fn, Path):
         timedat.attrs['filename'] = fn.name

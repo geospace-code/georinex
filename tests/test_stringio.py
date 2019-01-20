@@ -11,7 +11,7 @@ R = Path(__file__).parent / 'data'
 
 @pytest.mark.parametrize('rinex_version, t', [(2, datetime(1999, 9, 2, 19)),
                                               (3, datetime(2010, 10, 18, 0, 1, 4))])
-def test_nav3(rinex_version, t):
+def test_nav(rinex_version, t):
     fn = R / f'minimal{rinex_version}.10n'
     with fn.open('r') as f:
         txt = f.read()

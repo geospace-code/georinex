@@ -44,8 +44,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     if not meas or not meas[0].strip():
         meas = None
 # %% allocate
-    # times = obstime3(fn)
-    data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
+    data = xarray.Dataset()  # data = xarray.Dataset(coords={'time': times, 'sv': None})
     if tlim is not None:
         assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
 # %% loop
@@ -82,10 +81,9 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
-    if data is None:  # all outside time bounds, etc.
-        return
 # %% patch SV names in case of "G 7" => "G07"
-    data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
+    if 'sv' in data.coords:
+        data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
     data.attrs['version'] = hdr['version']
     data.attrs['rinextype'] = 'obs'
@@ -132,12 +130,11 @@ def obstime3(fn: Union[TextIO, Path],
             if ln.startswith('>'):
                 times.append(_timeobs(ln))
 
-    if not times:
-        return None
-
     timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'interval': hdr['interval']})
+                               dims=['time'])
+
+    if 'interval' in hdr:
+        timedat.attrs['interval'] = hdr['interval']
 
     if isinstance(fn, Path):
         timedat.attrs['filename'] = fn.name
@@ -224,45 +221,44 @@ def obsheader3(f: TextIO,
             return obsheader3(f)
     elif isinstance(f, io.StringIO):
         f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
 # %% first line
-    ln = f.readline()
-    hdr = {'version': float(ln[:9]),  # yes :9
-           'systems': ln[40],
-           }
-    for ln in f:
-        if "END OF HEADER" in ln:
-            break
+    try:
+        ln = f.readline()
+        hdr = {'version': float(ln[:9]),  # yes :9
+               'systems': ln[40],
+               }
+# %% other lines
+        for ln in f:
+            if "END OF HEADER" in ln:
+                break
 
-        h = ln[60:80]
-        c = ln[:60]
-        if 'SYS / # / OBS TYPES' in h:
-            k = c[0]
-            fields[k] = c[6:60].split()
-            N = int(c[3:6])
+            h = ln[60:80]
+            c = ln[:60]
+            if 'SYS / # / OBS TYPES' in h:
+                k = c[0]
+                fields[k] = c[6:60].split()
+                N = int(c[3:6])
 # %% maximum number of fields in a file, to allow fast Numpy parse.
-            Fmax = max(N, Fmax)
+                Fmax = max(N, Fmax)
 
-            n = N-13
-            while n > 0:  # Rinex 3.03, pg. A6, A7
-                ln = f.readline()
-                assert 'SYS / # / OBS TYPES' in ln[60:]
-                fields[k] += ln[6:60].split()
-                n -= 13
+                n = N-13
+                while n > 0:  # Rinex 3.03, pg. A6, A7
+                    ln = f.readline()
+                    assert 'SYS / # / OBS TYPES' in ln[60:]
+                    fields[k] += ln[6:60].split()
+                    n -= 13
 
-            assert len(fields[k]) == N
+                assert len(fields[k]) == N
 
-            continue
+                continue
 
-        if h.strip() not in hdr:  # Header label
-            hdr[h.strip()] = c  # don't strip for fixed-width parsers
-            # string with info
-        else:  # concatenate to the existing string
-            hdr[h.strip()] += " " + c
-
+            if h.strip() not in hdr:  # Header label
+                hdr[h.strip()] = c  # don't strip for fixed-width parsers
+                # string with info
+            else:  # concatenate to the existing string
+                hdr[h.strip()] += " " + c
+    except AttributeError:
+        raise ValueError('Failed to parse header, is this a RINEX  OBS3 file?')
 # %% list with x,y,z cartesian (OPTIONAL)
     try:
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
@@ -271,16 +267,19 @@ def obsheader3(f: TextIO,
     except KeyError:
         pass
 # %% time
-    t0s = hdr['TIME OF FIRST OBS']
-    # NOTE: must do second=int(float()) due to non-conforming files
-    hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                         hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                         microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    try:
+        t0s = hdr['TIME OF FIRST OBS']
+        # NOTE: must do second=int(float()) due to non-conforming files
+        hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                             hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                             microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    except KeyError:
+        pass
 
     try:
         hdr['interval'] = float(hdr['INTERVAL'][:10])
     except KeyError:
-        hdr['interval'] = np.nan  # not None or write will fail
+        pass
 # %% select specific satellite systems only (optional)
     if use is not None:
         if not set(fields.keys()).intersection(use):

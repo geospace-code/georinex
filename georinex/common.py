@@ -1,8 +1,14 @@
 from pathlib import Path
+from typing.io import TextIO
 try:
     import psutil
 except ImportError:
     psutil = None
+
+
+def _skip(f: TextIO, Nl: int):
+    for _, _ in zip(range(Nl), f):
+        pass
 
 
 def rinex_string_to_float(x: str) -> float:
@@ -44,7 +50,10 @@ def determine_time_system(header: dict) -> str:
     elif file_type == 'M':
         # Else the type is mixed and the time system must be specified in
         # TIME OF FIRST OBS row.
-        ts = header['TIME OF FIRST OBS'][48:51]
+        try:
+            ts = header['TIME OF FIRST OBS'][48:51]
+        except KeyError:
+            return ''  # not None for NetCDF4 writing
     else:
         raise ValueError(f'unknown file type {file_type}')
 

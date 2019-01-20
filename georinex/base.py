@@ -126,8 +126,6 @@ def rinexnav(fn: Union[TextIO, str, Path],
     else:
         raise LookupError(f'unknown RINEX  {info}  {fn}')
 
-    if nav is None:
-        return None
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()

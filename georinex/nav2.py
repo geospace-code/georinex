@@ -8,13 +8,13 @@ import numpy as np
 import logging
 import io
 from .io import opener, rinexinfo
-from .common import rinex_string_to_float
+from .common import rinex_string_to_float, _skip
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
-def rinexnav2(fn: Union[TextIO, str, Path],
+def rinexnav2(fn: Union[TextIO, Path],
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
@@ -24,9 +24,6 @@ def rinexnav2(fn: Union[TextIO, str, Path],
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     ftp://igs.org/pub/data/format/rinex211.txt
     """
-    if isinstance(fn, (str, Path)):
-        fn = Path(fn).expanduser()
-
     Lf = 19  # string length per field
 
     svs = []
@@ -90,8 +87,6 @@ def rinexnav2(fn: Union[TextIO, str, Path],
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
-    if not raws:
-        return None
 # %% parse
     svs = [s.replace(' ', '0') for s in svs]
     svu = sorted(set(svs))
@@ -136,7 +131,7 @@ def rinexnav2(fn: Union[TextIO, str, Path],
 # %% other attributes
     nav.attrs['version'] = header['version']
     nav.attrs['svtype'] = [svtype]  # Use list for consistency with NAV3.
-    nav.attrs['rinextype'] = 'nav'
+    nav.attrs['rinextype'] = header['rinextype']
     if isinstance(fn, Path):
         nav.attrs['filename'] = fn.name
 
@@ -159,10 +154,7 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
             return navheader2(f)
     elif isinstance(f, io.StringIO):
         f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'unknown filetype {type(f)}')
+
 # %%verify RINEX version, and that it's NAV
     hdr = rinexinfo(f)
     if int(hdr['version']) != 2:
@@ -172,7 +164,8 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
         if 'END OF HEADER' in ln:
             break
         kind, content = ln[60:].strip(), ln[:60]
-        hdr[kind] = content
+        if kind:  # throwaway blank header lines
+            hdr[kind] = content
 
     return hdr
 
@@ -203,11 +196,6 @@ def _timenav(ln: str) -> Optional[datetime]:
         return None
 
 
-def _skip(f: TextIO, Nl: int):
-    for _, _ in zip(range(Nl), f):
-        pass
-
-
 def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
     """
     read all times in RINEX 2 NAV file
@@ -228,9 +216,6 @@ def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
             times.append(time)
 
             _skip(f, Nl[hdr['systems']])
-
-    if not times:
-        return None
 
     times = np.unique(times)
 
