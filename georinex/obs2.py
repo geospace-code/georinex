@@ -204,8 +204,8 @@ def rinexsystem2(fn: Path,
                         data[i*3, j, isv] = darr[:, k*3]
                         # FIXME which other should be excluded?
                         ind = i if meas is not None else k
-                        if hdr['fields'][ind] not in ('S1', 'S2'):
-                            if hdr['fields'][ind] in ('L1', 'L2'):
+                        if hdr['fields'][ind] not in ('S1', 'S2', 'S5'):
+                            if hdr['fields'][ind] in ('L1', 'L2', 'L5'):
                                 data[i*3+1, j, isv] = darr[:, k*3+1]
 
                             data[i*3+2, j, isv] = darr[:, k*3+2]
@@ -227,8 +227,8 @@ def rinexsystem2(fn: Path,
     for field in hdr['fields']:
         fields.append(field)
         if useindicators:
-            if field not in ('S1', 'S2'):
-                if field in ('L1', 'L2'):
+            if field not in ('S1', 'S2', 'S5'):
+                if field in ('L1', 'L2', 'L5'):
                     fields.append(f'{field}lli')
                 else:
                     fields.append(None)

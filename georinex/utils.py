@@ -104,7 +104,7 @@ def rinextype(fn: Path) -> str:
     else:
         fnl = fn.name.lower()
 
-    if fnl.endswith(('o', 'o.rnx', 'o.crx')):
+    if fnl.endswith(('o', 'o.rnx', 'o.crx', 'd', 'D')):
         return 'obs'
     elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
         return 'nav'
@@ -123,7 +123,7 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
     info = rinexinfo(fn)
     rtype = rinextype(fn)
 
-    if int(info['version']) == 2:
+    if int(info['version']) == 2 or int(info['version']) == 1:
         if rtype == 'obs':
             hdr = obsheader2(fn)
         elif rtype == 'nav':

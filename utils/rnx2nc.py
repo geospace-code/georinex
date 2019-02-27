@@ -14,7 +14,7 @@ import georinex as gr
 def _convert(file, odir, i):
     print ('Converting file: ', file)
     try:
-        gr.load(file,ofn=odir, useindicators=i)
+        gr.load(file, out=odir, useindicators=i)
     except Exception as e:
         print (e)
     sleep(0.1)
@@ -22,6 +22,7 @@ def _convert(file, odir, i):
 def _iterate(file, odir, override, i):
     head, tail = os.path.split(file)
     rx = tail[0:8]
+    print (rx)
     if platform.system() == 'Linux':
         newfn = odir + '/' + rx + '.nc'
     elif platform.system() == 'Windows':
@@ -40,7 +41,7 @@ def convertObs2HDF(folder=None, sufix=None, odir=None, override=False,i=False):
     """
     if os.path.isdir(folder):
         if sufix is None:
-            wlist = ['*.**o', '*.**O']
+            wlist = ['*.**o']
         else:
             wlstr = sufix
         if odir is None:
@@ -51,8 +52,11 @@ def convertObs2HDF(folder=None, sufix=None, odir=None, override=False,i=False):
             for file in flist:
                 _iterate(file, odir, override, i)
     elif os.path.isfile(folder):
-        if folder[-1] == 'o' or folder[-1] == 'O': # Very stupid / change to match OBS file template
+        print (folder)
+        if folder[-1] == 'o' or folder[-1] == 'O' or folder[-1] == 'd': # Very stupid / change to match OBS file template
             file = folder
+            if odir is None:
+                odir, filename = os.path.split(folder)
             _iterate(file, odir, override, i)
         else:
             print ('Not a RInex OBS file (.**o)')

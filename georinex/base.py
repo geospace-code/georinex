@@ -20,7 +20,7 @@ def load(rinexfn: Path,
          useindicators: bool = False,
          meas: Sequence[str] = None,
          verbose: bool = False,
-         fast: bool = True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
+         fast: bool = False) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
     Reads OBS, NAV in RINEX 2,3.
     Plain ASCII text or compressed (including Hatanaka)
@@ -34,7 +34,6 @@ def load(rinexfn: Path,
 # %% determine if/where to write NetCDF4/HDF5 output
     outfn = None
     if out:
-        print (out)
         out = Path(out).expanduser()
         if out.is_dir():
             outfn = out / (rinexfn.name + '.nc')  # not with_suffix to keep unique RINEX 2 filenames
@@ -177,10 +176,10 @@ def rinexobs(fn: Path,
 
     if outfn:
         outfn = Path(outfn).expanduser()
-        wmode = _groupexists(outfn, group)
+#        wmode = _groupexists(outfn, group)
 
         enc = {k: ENC for k in obs.data_vars}
-        obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
+        obs.to_netcdf(outfn, group=group, mode='w', encoding=enc)
 
     return obs
 
