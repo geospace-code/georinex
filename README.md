@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/34296204.svg)](https://zenodo.org/badge/latestdoi/34296204)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
 [![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
 [![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
 [![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
@@ -288,7 +288,7 @@ Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
 * using `xarray`
   ```python
   obs = xarray.open_dataset('my.nc)
-  
+
   ecef = obs.position
   latlon = obs.position_geodetic  # only if pymap3d was used
   ```
