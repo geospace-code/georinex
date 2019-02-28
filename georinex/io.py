@@ -32,24 +32,13 @@ def opener(fn: Union[TextIO, Path],
             if fn.stat().st_size > 100e6:
                 print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
 
-        if fn.suffixes == ['.crx', '.gz']:
-            if header:
-                with gzip.open(fn, 'rt') as f:
-                    yield f
-            else:
-                with gzip.open(fn, 'rt') as g:
-                    f = io.StringIO(_opencrx(g))
-                    yield f
-        elif fn.suffix == '.crx':
-            if header:
-                with fn.open('r') as f:
-                    yield f
-            else:
-                with fn.open('r') as g:
-                    f = io.StringIO(_opencrx(g))
-                    yield f
-        elif fn.suffix == '.gz':
+        if fn.suffix == '.gz':
             with gzip.open(fn, 'rt') as f:
+                version, is_crinex = rinex_version(f.readline(80))
+                f.seek(0)
+
+                if is_crinex:
+                    f = io.StringIO(_opencrx(f))
                 yield f
         elif fn.suffix == '.zip':
             with zipfile.ZipFile(fn, 'r') as z:
@@ -65,8 +54,13 @@ def opener(fn: Union[TextIO, Path],
                 with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
                     yield f
 
-        else:
+        else:  # assume not compressed (or Hatanaka)
             with fn.open('r') as f:
+                version, is_crinex = rinex_version(f.readline(80))
+                f.seek(0)
+
+                if is_crinex:
+                    f = io.StringIO(_opencrx(f))
                 yield f
 
 
@@ -98,22 +92,15 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
-        if fn.suffixes == ['.crx', '.gz']:
-            with gzip.open(fn, 'rt') as z:
-                return rinexinfo(io.StringIO(z.read(80)))
-        elif fn.suffix == '.crx':
-            with fn.open('r') as f:
-                return rinexinfo(io.StringIO(f.read(80)))
-        else:
-            with opener(fn) as f:
-                return rinexinfo(f)
+        with opener(fn) as f:
+            return rinexinfo(f)
     elif isinstance(f, io.StringIO):
         f.seek(0)
 
     try:
         line = f.readline(80)  # don't choke on binary files
 
-        version, is_crinex = rinex_version(line)
+        version = rinex_version(line)[0]
 
         file_type = line[20]
         if int(version) == 2:
@@ -138,8 +125,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         info = {'version': version,
                 'filetype': file_type,
                 'rinextype': rinex_type,
-                'systems': system,
-                'hatanaka': is_crinex}
+                'systems': system}
 
     except (TypeError, AttributeError, ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
