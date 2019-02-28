@@ -37,7 +37,7 @@ def opener(fn: Union[TextIO, Path],
                 version, is_crinex = rinex_version(f.readline(80))
                 f.seek(0)
 
-                if is_crinex:
+                if is_crinex and not header:
                     f = io.StringIO(_opencrx(f))
                 yield f
         elif fn.suffix == '.zip':
@@ -59,7 +59,7 @@ def opener(fn: Union[TextIO, Path],
                 version, is_crinex = rinex_version(f.readline(80))
                 f.seek(0)
 
-                if is_crinex:
+                if is_crinex and not header:
                     f = io.StringIO(_opencrx(f))
                 yield f
 

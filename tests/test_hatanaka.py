@@ -46,7 +46,7 @@ def test_obs3_gz():
 
 
 @pytest.mark.skipif(nocrx, reason=f'crx2rnx not found in {Rexe}')
-# @pytest.mark.timeout(30)
+@pytest.mark.timeout(30)
 def test_obs3():
     fn = R / 'P43300USA_R_20190012056_17M_15S_MO.crx'
 
