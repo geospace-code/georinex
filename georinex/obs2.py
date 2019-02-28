@@ -252,7 +252,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     for i, k in enumerate(fields):
         # FIXME: for limited time span reads, this drops unused data variables
         # if np.isnan(data[i, ...]).all():
-            # continue
+        #     continue
         if k is None:
             continue
         obs[k] = (('time', 'sv'), data[i, :, :])
