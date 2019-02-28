@@ -28,7 +28,7 @@ def test_batch_convert(tmp_path, filename):
     pytest.importorskip('netCDF4')
 
     if filename.name.startswith('blank'):
-        pytest.xfail('this file has no contents, hence nothing to convert to NetCDF4')
+        return  # this file has no contents, hence nothing to convert to NetCDF4
 
     outdir = tmp_path
     subprocess.check_call(['rnx2hdf5', str(R), '*o', '-o', str(outdir)])

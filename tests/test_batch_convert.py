@@ -19,7 +19,7 @@ def test_batch_convert_rinex2(tmp_path, filename):
 
     outfn = outdir / (filename.name + '.nc')
     if outfn.name.startswith('blank'):
-        pytest.xfail('blank files do not convert')
+        return  # blank files do not convert
 
     assert outfn.is_file(), f'{outfn}'
     assert outfn.stat().st_size > 15000, f'{outfn}'
