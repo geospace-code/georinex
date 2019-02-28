@@ -12,7 +12,7 @@ try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
-from .common import determine_time_system, check_ram
+from .common import determine_time_system, check_ram, rinex_version
 
 
 def rinexobs2(fn: Path,
@@ -325,7 +325,7 @@ def obsheader2(f: TextIO,
             else:
                 raise ValueError(f'not sure what {c} is')
 # %% useful values
-    hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
+    hdr['version'] = rinex_version(hdr['RINEX VERSION / TYPE'])[0]
     hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
     hdr['Nobs'] = Nobs
     hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)  # 5 observations per line (incorporating LLI, SSI)

@@ -7,6 +7,7 @@ import io
 import os
 from typing.io import TextIO
 from typing import Union, Dict, Any
+from .common import rinex_version
 
 try:
     import unlzw
@@ -111,10 +112,9 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
 
     try:
         line = f.readline(80)  # don't choke on binary files
-        if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
-            raise ValueError('The first line of the RINEX file header is corrupted.')
 
-        version = float(line[:9])
+        version, is_crinex = rinex_version(line)
+
         file_type = line[20]
         if int(version) == 2:
             if file_type == 'N':
@@ -139,9 +139,9 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
                 'filetype': file_type,
                 'rinextype': rinex_type,
                 'systems': system,
-                'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
+                'hatanaka': is_crinex}
 
-    except (AttributeError, ValueError, UnicodeDecodeError) as e:
+    except (TypeError, AttributeError, ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
         raise ValueError(f'not a known/valid RINEX file.  {e}')
 

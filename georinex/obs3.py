@@ -12,7 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system
+from .common import determine_time_system, rinex_version
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 SBAS = 100  # offset for ID
 GLONASS = 37
@@ -230,7 +230,7 @@ def obsheader3(f: TextIO,
         raise TypeError(f'Unknown input filetype {type(f)}')
 # %% first line
     ln = f.readline()
-    hdr = {'version': float(ln[:9]),  # yes :9
+    hdr = {'version': rinex_version(ln)[0],
            'systems': ln[40],
            }
     for ln in f:

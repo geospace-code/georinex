@@ -1,8 +1,29 @@
 from pathlib import Path
+from typing import Tuple
 try:
     import psutil
 except ImportError:
     psutil = None
+
+
+def rinex_version(s: str) -> Tuple[float, bool]:
+    """
+
+    input: first line of RINEX/CRINEX file
+
+    output: version, is_CRINEX
+    """
+    if not isinstance(s, str):
+        raise TypeError('need first line of RINEX file as string')
+
+    if len(s) >= 80:
+        if s[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
+            raise ValueError('The first line of the RINEX file header is corrupted.')
+
+    vers = float(s[:9])  # %9.2f
+    is_crinex = s[20:40] == 'COMPACT RINEX FORMAT'
+
+    return vers, is_crinex
 
 
 def rinex_string_to_float(x: str) -> float:
