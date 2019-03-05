@@ -2,7 +2,7 @@ from pathlib import Path
 import xarray
 from typing import Union, Tuple, Dict, Sequence
 from typing.io import TextIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from .io import rinexinfo
 from .obs2 import rinexobs2
@@ -22,7 +22,9 @@ def load(rinexfn: Union[TextIO, str, Path],
          useindicators: bool = False,
          meas: Sequence[str] = None,
          verbose: bool = False,
-         fast: bool = True) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
+         *,
+         fast: bool = True,
+         interval: Union[float, int, timedelta] = None) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
     Reads OBS, NAV in RINEX 2.x and 3.x
 
@@ -51,7 +53,7 @@ def load(rinexfn: Union[TextIO, str, Path],
     elif rtype == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose, fast=fast)
+                        verbose=verbose, fast=fast, interval=interval)
     elif rtype == 'nc':
         # outfn not used here, because we already have the converted file!
         try:
@@ -82,6 +84,7 @@ def batch_convert(path: Path, glob: str, out: Path,
                   useindicators: bool = False,
                   meas: Sequence[str] = None,
                   verbose: bool = False,
+                  *,
                   fast: bool = True):
 
     path = Path(path).expanduser()
@@ -149,7 +152,9 @@ def rinexobs(fn: Union[TextIO, str, Path],
              useindicators: bool = False,
              meas: Sequence[str] = None,
              verbose: bool = False,
-             fast: bool = True) -> xarray.Dataset:
+             *,
+             fast: bool = True,
+             interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
     """
     Read RINEX 2.x and 3.x OBS files in ASCII or GZIP (or Hatanaka)
     """
@@ -170,11 +175,13 @@ def rinexobs(fn: Union[TextIO, str, Path],
     if int(info['version']) == 2:
         obs = rinexobs2(fn, use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose, fast=fast)
+                        verbose=verbose,
+                        fast=fast, interval=interval)
     elif int(info['version']) == 3:
         obs = rinexobs3(fn, use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose)
+                        verbose=verbose,
+                        fast=fast, interval=interval)
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 

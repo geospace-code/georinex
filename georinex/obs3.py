@@ -2,7 +2,7 @@ from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 import xarray
 from typing import Dict, Union, List, Tuple, Any, Sequence
@@ -25,13 +25,39 @@ def rinexobs3(fn: Union[TextIO, str, Path],
               tlim: Tuple[datetime, datetime] = None,
               useindicators: bool = False,
               meas: Sequence[str] = None,
-              verbose: bool = False) -> xarray.Dataset:
+              verbose: bool = False,
+              *,
+              fast: bool = False,
+              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
 
+    fn: RINEX OBS 3 filename
     use: 'G'  or ['G', 'R'] or similar
+
+    tlim: read between these time bounds
+    useindicators: SSI, LLI are output
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
+
+    fast:
+          TODO: FUTURE, not yet enabled for OBS3
+          speculative preallocation based on minimum SV assumption and file size.
+          Avoids double-reading file and more complicated linked lists.
+          Believed that Numpy array should be faster than lists anyway.
+          Reduce Nsvmin if error (let us know)
+
+    interval: allows decimating file read by time e.g. every 5 seconds.
+                Useful to speed up reading of very large RINEX files
     """
+
+    if interval is not None:
+        if isinstance(interval, (float, int)):
+            interval = timedelta(seconds=interval)
+        elif isinstance(interval, timedelta):
+            pass
+        else:
+            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
+
     if isinstance(use, str):
         use = [use]
 
@@ -46,8 +72,8 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 # %% allocate
     # times = obstime3(fn)
     data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
-    if tlim is not None:
-        assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
+    if tlim is not None and not isinstance(tlim[0], datetime):
+        raise TypeError('time bounds are specified as datetime.datetime')
 # %% loop
     with opener(fn, verbose=verbose) as f:
         hdr = obsheader3(f, use, meas)

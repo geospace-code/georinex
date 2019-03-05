@@ -40,11 +40,12 @@ def main():
                    action='store_true')
     p.add_argument('-strict', help='do not use speculative preallocation (slow) let us know if this is needed',
                    action='store_false')
+    p.add_argument('-interval', help='read the rinex file only every N seconds', type=float)
     P = p.parse_args()
 
     data = gr.load(P.rinexfn, P.out, use=P.use, tlim=P.tlim,
                    useindicators=P.useindicators, meas=P.meas,
-                   verbose=P.verbose, fast=P.strict)
+                   verbose=P.verbose, fast=P.strict, interval=P.interval)
 # %% plots
     if P.plot:
         import georinex.plots as grp

@@ -4,7 +4,7 @@ import numpy as np
 import logging
 import io
 from math import ceil
-from datetime import datetime
+from datetime import datetime, timedelta
 import xarray
 from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
@@ -21,7 +21,9 @@ def rinexobs2(fn: Path,
               useindicators: bool = False,
               meas: Sequence[str] = None,
               verbose: bool = False,
-              fast: bool = True) -> xarray.Dataset:
+              *,
+              fast: bool = True,
+              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
 
     if isinstance(use, str):
         use = [use]
@@ -33,7 +35,8 @@ def rinexobs2(fn: Path,
     for u in use:
         o = rinexsystem2(fn, system=u, tlim=tlim,
                          useindicators=useindicators, meas=meas,
-                         verbose=verbose, fast=fast)
+                         verbose=verbose,
+                         fast=fast, interval=interval)
         if o is not None:
             if obs is None:
                 attrs = o.attrs
@@ -53,27 +56,54 @@ def rinexsystem2(fn: Union[TextIO, Path],
                  useindicators: bool = False,
                  meas: Sequence[str] = None,
                  verbose: bool = False,
-                 fast: bool = True) -> xarray.Dataset:
+                 *,
+                 fast: bool = True,
+                 interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
     """
-    procss RINEX OBS data
+    process RINEX OBS data
+
     fn: RINEX OBS 2 filename
     system: 'G', 'R', or similar
+
+    tlim: read between these time bounds
+    useindicators: SSI, LLI are output
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
 
     fast: speculative preallocation based on minimum SV assumption and file size.
           Avoids double-reading file and more complicated linked lists.
           Believed that Numpy array should be faster than lists anyway.
           Reduce Nsvmin if error (let us know)
+
+    t_interval: allows decimating file read by time e.g. every 5 seconds.
+                Useful to speed up reading of very large RINEX files
     """
     Lf = 14
-    assert isinstance(system, str)
+    if not isinstance(system, str):
+        raise TypeError('System type() must be str')
+
+    if tlim is not None and not isinstance(tlim[0], datetime):
+        raise TypeError('time bounds are specified as datetime.datetime')
+
+    if interval is not None:
+        if isinstance(interval, (float, int)):
+            if interval < 0:
+                raise ValueError('time interval must be non-negative')
+            interval = timedelta(seconds=interval)
+        elif isinstance(interval, timedelta):
+            pass
+        else:
+            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
+
 # %% allocation
+    # these values are not perfect, but seem reasonable.
+    # Let us know if you needed to change them.
     Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
+        logging.debug(f'system {system} in {fn} was skipped by user choice')
         return
 
     if fast:
@@ -108,10 +138,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
         Nt = len(times)
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
-# %% optinal RAM check
+# %% optional RAM check
     memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
     check_ram(memneed, fn)
-# %% preallocate
+# %% preallocate, check
     data = np.empty((Npages, Nt, Nsvsys))
     if data.size == 0:
         return
@@ -123,25 +153,36 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
 # %% process data
         j = -1  # not enumerate in case of time error
+        last_epoch = None
+# %% time handling / skipping
         for ln in f:
             time_epoch = _timeobs(ln)
-            if time_epoch is None:
+            if time_epoch is None:  # junk / unexpected line
                 continue
 
             if not fast:
                 j += 1
 
             if tlim is not None:
-                assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
-                if time_epoch < tlim[0]:
+                if time_epoch < tlim[0]:  # before specified start-time
                     _skip(f, ln, hdr['Nl_sv'])
                     continue
-                elif time_epoch > tlim[1]:
+                elif time_epoch > tlim[1]:  # reached end-time of read
                     break
+
+            if interval is not None:
+                if last_epoch is None:  # initialization
+                    last_epoch = time_epoch
+                else:
+                    if time_epoch - last_epoch < interval:
+                        _skip(f, ln, hdr['Nl_sv'])
+                        continue
+                    else:
+                        last_epoch += interval
 
             if fast:
                 j += 1
-# %%
+# %% epoch flag and offset
             eflag = int(ln[28])
             if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
                 logging.info(f'{time_epoch}: epoch flag {eflag}')

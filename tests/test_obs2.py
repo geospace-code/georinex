@@ -276,5 +276,15 @@ def test_time_system(fn, tname):
     assert obs.attrs['time_system'] == tname
 
 
+@pytest.mark.parametrize('interval, expected_len', [(0, 9),
+                                                    (15, 9),
+                                                    (35, 4)])
+def test_interval(interval, expected_len):
+    obs = gr.load(R/'ab430140.18o.zip', interval=interval)
+    times = obs.time.values.astype('datetime64[us]').astype(datetime).tolist()
+
+    assert len(times) == expected_len
+
+
 if __name__ == '__main__':
     pytest.main(['-xrsv', __file__])
