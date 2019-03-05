@@ -276,7 +276,8 @@ def test_time_system(fn, tname):
     assert obs.attrs['time_system'] == tname
 
 
-@pytest.mark.parametrize('interval, expected_len', [(0, 9),
+@pytest.mark.parametrize('interval, expected_len', [(None, 9),
+                                                    (0, 9),
                                                     (15, 9),
                                                     (35, 4)])
 def test_interval(interval, expected_len):

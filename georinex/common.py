@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Tuple
+from datetime import timedelta
+from typing import Tuple, Union, Optional
 try:
     import psutil
 except ImportError:
@@ -70,3 +71,17 @@ def determine_time_system(header: dict) -> str:
         raise ValueError(f'unknown file type {file_type}')
 
     return ts
+
+
+def _check_time_interval(interval: Union[float, int, timedelta, None]) -> Optional[timedelta]:
+    if interval is not None:
+        if isinstance(interval, (float, int)):
+            if interval < 0:
+                raise ValueError('time interval must be non-negative')
+            interval = timedelta(seconds=interval)
+        elif isinstance(interval, timedelta):
+            pass
+        else:
+            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
+
+    return interval

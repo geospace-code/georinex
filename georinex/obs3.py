@@ -12,7 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, rinex_version
+from .common import determine_time_system, rinex_version, _check_time_interval
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 SBAS = 100  # offset for ID
 GLONASS = 37
@@ -50,13 +50,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 Useful to speed up reading of very large RINEX files
     """
 
-    if interval is not None:
-        if isinstance(interval, (float, int)):
-            interval = timedelta(seconds=interval)
-        elif isinstance(interval, timedelta):
-            pass
-        else:
-            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
+    interval = _check_time_interval(interval)
 
     if isinstance(use, str):
         use = [use]
@@ -74,6 +68,8 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are specified as datetime.datetime')
+
+    last_epoch = None
 # %% loop
     with opener(fn, verbose=verbose) as f:
         hdr = obsheader3(f, use, meas)
@@ -102,6 +98,15 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                     continue
                 elif time > tlim[1]:
                     break
+
+            if interval is not None:
+                if last_epoch is None:  # initialization
+                    last_epoch = time
+                else:
+                    if time - last_epoch < interval:
+                        continue
+                    else:
+                        last_epoch += interval
 
             if verbose:
                 print(time, end="\r")

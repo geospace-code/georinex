@@ -184,5 +184,17 @@ def test_time_system(fn, tname):
     assert obs.attrs['time_system'] == tname
 
 
+@pytest.mark.parametrize('interval, expected_len', [(None, 14),
+                                                    (15, 14),
+                                                    (35, 8)])
+def test_interval(interval, expected_len):
+
+    obs = gr.load(R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', interval=interval,
+                  tlim=('2018-07-29T01:00', '2018-07-29T01:05'))
+    times = obs.time.values.astype('datetime64[us]').astype(datetime).tolist()
+
+    assert len(times) == expected_len
+
+
 if __name__ == '__main__':
     pytest.main(['-x', __file__])

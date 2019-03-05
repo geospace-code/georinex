@@ -12,7 +12,7 @@ try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
-from .common import determine_time_system, check_ram, rinex_version
+from .common import determine_time_system, check_ram, rinex_version, _check_time_interval
 
 
 def rinexobs2(fn: Path,
@@ -84,16 +84,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are specified as datetime.datetime')
 
-    if interval is not None:
-        if isinstance(interval, (float, int)):
-            if interval < 0:
-                raise ValueError('time interval must be non-negative')
-            interval = timedelta(seconds=interval)
-        elif isinstance(interval, timedelta):
-            pass
-        else:
-            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
-
+    interval = _check_time_interval(interval)
 # %% allocation
     # these values are not perfect, but seem reasonable.
     # Let us know if you needed to change them.
