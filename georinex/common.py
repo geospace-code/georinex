@@ -1,6 +1,5 @@
 from pathlib import Path
-from datetime import datetime, timedelta
-import xarray
+from datetime import timedelta
 from typing import Tuple, Union, Optional
 try:
     import psutil
@@ -72,18 +71,6 @@ def determine_time_system(header: dict) -> str:
         raise ValueError(f'unknown file type {file_type}')
 
     return ts
-
-
-def to_datetime(times: xarray.DataArray) -> datetime:
-    if not isinstance(times, xarray.DataArray):
-        return times
-
-    t = times.values.astype('datetime64[us]').astype(datetime)
-
-    if not isinstance(t, datetime):
-        t = t.squeeze()[()]  # might still be array, but squeezed at least
-
-    return t
 
 
 def _check_time_interval(interval: Union[float, int, timedelta, None]) -> Optional[timedelta]:

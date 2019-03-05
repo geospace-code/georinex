@@ -10,7 +10,6 @@ from pytest import approx
 from pathlib import Path
 import os
 import georinex as gr
-from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
 
@@ -19,7 +18,7 @@ R = Path(__file__).parent / 'data'
                                             (datetime(2019, 1, 1), datetime(2019, 1, 1)),
                                             (xarray.DataArray(datetime(2019, 1, 1)), datetime(2019, 1, 1))])
 def test_to_datetime(time, exp_time):
-    assert to_datetime(time) == exp_time
+    assert gr.to_datetime(time) == exp_time
 
 
 @pytest.mark.xfail(os.name == 'nt', reason='Windows PermissionError for missing files')

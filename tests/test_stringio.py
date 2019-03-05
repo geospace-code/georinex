@@ -5,7 +5,6 @@ from pathlib import Path
 import georinex as gr
 import io
 from datetime import datetime
-from georinex.common import to_datetime
 
 R = Path(__file__).parent / 'data'
 
@@ -21,7 +20,7 @@ def test_nav3(rinex_version, t):
         rtype = gr.rinextype(f)
         assert rtype == 'nav'
 
-        times = to_datetime(gr.gettime(f))
+        times = gr.to_datetime(gr.gettime(f))
         nav = gr.load(f)
 
     assert times == t
@@ -39,7 +38,7 @@ def test_obs(rinex_version):
         rtype = gr.rinextype(f)
         assert rtype == 'obs'
 
-        times = to_datetime(gr.gettime(f))
+        times = gr.to_datetime(gr.gettime(f))
         obs = gr.load(f)
 
     assert times == datetime(2010, 3, 5, 0, 0, 30)

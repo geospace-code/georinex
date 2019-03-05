@@ -158,6 +158,7 @@ Get `xarray.DataArray` of times in RINEX file:
 times = gr.gettimes('~/my.rnx')
 ```
 
+The times can be converted to `datetime.datetime` with `to_datetime()` function
 
 ## read Obs
 

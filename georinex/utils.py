@@ -164,3 +164,15 @@ def _tlim(tlim: Tuple[datetime, datetime] = None) -> Optional[Tuple[datetime, da
         raise ValueError(f'Not sure what time limits are: {tlim}')
 
     return tlim
+
+
+def to_datetime(times: xarray.DataArray) -> datetime:
+    if not isinstance(times, xarray.DataArray):
+        return times
+
+    t = times.values.astype('datetime64[us]').astype(datetime)
+
+    if not isinstance(t, datetime):
+        t = t.squeeze()[()]  # might still be array, but squeezed at least
+
+    return t

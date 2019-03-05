@@ -5,13 +5,12 @@ from pytest import approx
 import xarray
 from datetime import datetime
 import georinex as gr
-from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
 
 
 def test_time():
-    times = to_datetime(gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'))
+    times = gr.to_datetime(gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'))
 
     assert times[0] == datetime(2018, 4, 24, 8)
     assert times[-1] == datetime(2018, 6, 20, 22)
@@ -21,7 +20,7 @@ def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn, tlim=('2018-07-29T08', '2018-07-29T09'))
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert (times == [datetime(2018, 7, 29, 8, 20), datetime(2018, 7, 29, 8, 50)]).all()
 
@@ -30,7 +29,7 @@ def test_tlim_past_eof():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn, tlim=('2018-07-29T23', '2018-07-29T23:30'))
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 7, 29, 23)
 
@@ -74,7 +73,7 @@ def test_mixed():
     assert isinstance(nav, xarray.Dataset)
     assert sorted(nav.svtype) == ['C', 'E', 'G', 'R']
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert times.size == 15
 # %% full flle test

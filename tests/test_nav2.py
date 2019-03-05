@@ -6,7 +6,6 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 import georinex as gr
-from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
 
@@ -14,7 +13,7 @@ R = Path(__file__).parent / 'data'
 def test_time():
     pytest.importorskip('unlzw')
 
-    times = to_datetime(gr.gettime(R/'ab422100.18n.Z'))
+    times = gr.to_datetime(gr.gettime(R/'ab422100.18n.Z'))
 
     assert times[0] == datetime(2018, 7, 29, 1, 59, 44)
     assert times[-1] == datetime(2018, 7, 30)
@@ -43,7 +42,7 @@ def test_mangled():
 
     nav = gr.load(fn)
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 6, 22, 8)
 
@@ -58,7 +57,7 @@ def test_mangled2():
     assert np.isnan(G10['FitIntvl'][0])
     assert G10['FitIntvl'][1] == approx(4)
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
     assert (times == [datetime(2018, 8, 29, 22, 0),
                       datetime(2018, 8, 29, 23, 0),
                       datetime(2018, 8, 29, 23, 30),
@@ -71,7 +70,7 @@ def test_tlim():
 
     nav = gr.load(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert (times == [datetime(2018, 7, 29, 11, 50), datetime(2018, 7, 29, 12)]).all()
 
@@ -81,7 +80,7 @@ def test_tlim_past_eof():
 
     nav = gr.load(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 7, 29, 23, 45)
 
@@ -92,7 +91,7 @@ def test_galileo():
     nav = gr.load(R/'ceda2100.18e.Z')
 
     E18 = nav.sel(sv='E18').dropna(dim='time', how='all')
-    assert to_datetime(E18.time) == datetime(2018, 7, 29, 12, 40)
+    assert gr.to_datetime(E18.time) == datetime(2018, 7, 29, 12, 40)
 
     assert E18.to_array().values.squeeze() == approx([6.023218797054e-3, -2.854960712284e-11, 0.,
                                                       76, 79.53125, 3.006910964197e-09, -1.308337580849, 6.468966603279e-06,
@@ -108,7 +107,7 @@ def test_gps():
 
     nav = gr.load(R/'brdc2800.15n.Z')
 
-    times = to_datetime(nav.time)
+    times = gr.to_datetime(nav.time)
     assert times[1] == datetime(2015, 10, 7, 1, 59, 28)
 
     nav1 = nav.sel(time='2015-10-07T01:59:28').dropna(dim='sv', how='all')

@@ -5,7 +5,6 @@ from pytest import approx
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
-from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
 
@@ -33,7 +32,7 @@ def test_meas_continuation():
               'L6', 'C6', 'S6', 'L7', 'C7', 'S7', 'L8', 'C8', 'S8']:
         assert v in obs
 
-    times = to_datetime(obs.time)
+    times = gr.to_datetime(obs.time)
     assert times.size == 9
 
     assert obs.fast_processing
@@ -120,7 +119,7 @@ def test_mangled_data():
 
     obs = gr.load(fn)
 
-    times = to_datetime(obs.time)
+    times = gr.to_datetime(obs.time)
 
     assert (times == (datetime(2018, 6, 22, 6, 17, 30),
                       datetime(2018, 6, 22, 6, 17, 45),
@@ -134,7 +133,7 @@ def test_mangled_times():
 
     obs = gr.load(fn)
 
-    times = to_datetime(obs.time)
+    times = gr.to_datetime(obs.time)
 
     assert times
 
@@ -148,7 +147,7 @@ def test_Z_lzw():
 
     hdr = gr.rinexheader(fn)
 
-    assert hdr['t0'] <= to_datetime(obs.time[0])
+    assert hdr['t0'] <= gr.to_datetime(obs.time[0])
 
     assert not obs.fast_processing
 
@@ -158,7 +157,7 @@ def test_tlim():
 
     obs = gr.load(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
 
-    times = to_datetime(obs.time)
+    times = gr.to_datetime(obs.time)
 
     assert (times == [datetime(2018, 1, 27, 0, 19),
                       datetime(2018, 1, 27, 0, 19, 15),
@@ -174,7 +173,7 @@ def test_one_sv():
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'
 
-    times = to_datetime(gr.gettime(R/'rinex2onesat.10o'))
+    times = gr.to_datetime(gr.gettime(R/'rinex2onesat.10o'))
 
     assert (times == [datetime(2010, 3, 5, 0, 0), datetime(2010, 3, 5, 0, 0, 30)]).all()
 
@@ -284,7 +283,7 @@ def test_time_system(fn, tname):
                                                     (35, 4)])
 def test_interval(interval, expected_len):
     obs = gr.load(R/'ab430140.18o.zip', interval=interval)
-    times = to_datetime(obs.time)
+    times = gr.to_datetime(obs.time)
 
     assert len(times) == expected_len
 
