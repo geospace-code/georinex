@@ -5,12 +5,21 @@ for OBS RINEX reader
 """
 import pytest
 import xarray
+from datetime import datetime
 from pytest import approx
 from pathlib import Path
-import georinex as gr
 import os
+import georinex as gr
+from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
+
+
+@pytest.mark.parametrize('time, exp_time', [(None, None),
+                                            (datetime(2019, 1, 1), datetime(2019, 1, 1)),
+                                            (xarray.DataArray(datetime(2019, 1, 1)), datetime(2019, 1, 1))])
+def test_to_datetime(time, exp_time):
+    assert to_datetime(time) == exp_time
 
 
 @pytest.mark.xfail(os.name == 'nt', reason='Windows PermissionError for missing files')

@@ -6,6 +6,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
+from georinex.common import to_datetime
 #
 R = Path(__file__).parent / 'data'
 
@@ -92,7 +93,7 @@ def test_zip():
                               'G17', 'G19', 'G25', 'G30', 'R01', 'R02', 'R08', 'R22', 'R23', 'R24', 'S20',
                               'S31', 'S35', 'S38']).all()
 
-    times = gr.gettime(fn).values.astype('datetime64[us]').astype(datetime)
+    times = to_datetime(gr.gettime(fn))
 
     assert (times == [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30),  datetime(2018, 5, 13, 1, 31)]).all()
 
@@ -104,7 +105,7 @@ def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz'
     obs = gr.load(fn, tlim=('2018-07-29T01:17', '2018-07-29T01:18'))
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = to_datetime(obs.time)
 
     assert (times == [datetime(2018, 7, 29, 1, 17), datetime(2018, 7, 29, 1, 17, 15),
                       datetime(2018, 7, 29, 1, 17, 45), datetime(2018, 7, 29, 1, 18)]).all()
@@ -191,7 +192,8 @@ def test_interval(interval, expected_len):
 
     obs = gr.load(R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', interval=interval,
                   tlim=('2018-07-29T01:00', '2018-07-29T01:05'))
-    times = obs.time.values.astype('datetime64[us]').astype(datetime).tolist()
+
+    times = to_datetime(obs.time)
 
     assert len(times) == expected_len
 

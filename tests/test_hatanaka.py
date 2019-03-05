@@ -2,9 +2,10 @@
 import subprocess
 import pytest
 from pathlib import Path
-import georinex as gr
 from datetime import datetime
 import os
+import georinex as gr
+from georinex.common import to_datetime
 
 R = Path(__file__).parent / 'data'
 Rexe = Path(__file__).resolve().parents[1] / 'rnxcmp'
@@ -39,7 +40,7 @@ def test_obs3_gz():
                               'G24', 'G28', 'G30', 'R03', 'R04', 'R05', 'R13', 'R14', 'R15',
                               'R16', 'R21', 'S20', 'S23', 'S25', 'S47', 'S48']).all()
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = to_datetime(obs.time)
 
     assert times[0] == datetime(2018, 7, 19, 1)
     assert times[-1] == datetime(2018, 7, 19, 1, 10)
@@ -61,7 +62,7 @@ def test_obs3():
                               'G16', 'G22', 'G23', 'G26', 'G31', 'R01', 'R02', 'R08', 'R10',
                               'R11', 'R12', 'R17', 'S31', 'S33', 'S35', 'S38']).all()
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = to_datetime(obs.time)
 
     assert times[0] == datetime(2019, 1, 1, 20, 56, 45)
     assert times[-1] == datetime(2019, 1, 1, 20, 57)
