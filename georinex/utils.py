@@ -37,7 +37,7 @@ def gettime(fn: Path) -> xarray.DataArray:
     fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
-    assert int(info['version']) in (2, 3)
+    assert int(info['version']) in (1, 2, 3), 'Wrong RINEX version'
 
     rtype = rinextype(fn)
 
@@ -45,7 +45,7 @@ def gettime(fn: Path) -> xarray.DataArray:
         raise NotImplementedError('per-observation time is in NAV, OBS files')
 # %% select function
     if rtype == 'obs':
-        if int(info['version']) == 2:
+        if int(info['version']) == 1 or int(info['version']) == 2:
             times = obstime2(fn)
         elif int(info['version']) == 3:
             times = obstime3(fn)
@@ -104,7 +104,7 @@ def rinextype(fn: Path) -> str:
     else:
         fnl = fn.name.lower()
 
-    if fnl.endswith(('o', 'o.rnx', 'o.crx', 'd', 'D')):
+    if fnl.endswith(('o', 'O', 'o.rnx', 'o.crx', 'd', 'D')):
         return 'obs'
     elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
         return 'nav'

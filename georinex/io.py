@@ -24,7 +24,6 @@ def opener(fn: Path, header: bool = False, verbose: bool = False) -> TextIO:
     if verbose:
         if fn.stat().st_size > 100e6:
             print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
-
     if fn.suffixes == ['.crx', '.gz']:
         if header:
             with gzip.open(fn, 'rt') as f:
@@ -33,7 +32,7 @@ def opener(fn: Path, header: bool = False, verbose: bool = False) -> TextIO:
             with gzip.open(fn, 'rt') as g:
                 f = io.StringIO(_opencrx(g))
                 yield f
-    elif fn.suffix == '.crx':
+    elif fn.suffix == '.crx' or str(fn)[-1] == 'd':
         if header:
             with fn.open('r') as f:
                 yield f
@@ -72,12 +71,16 @@ def _opencrx(f: TextIO) -> str:
     exe = './crx2rnx'
     shell = False
     if os.name == 'nt':
-        exe = exe[2:]
+        root = os.getcwd()
+        exe = root + '\\crx2rnx.exe'
         shell = True
-
+#    print (root, exe, shell)
     try:
         In = f.read()
-        ret = subprocess.check_output([exe, '-'], input=In,
+        if os.name == 'nt':
+            ret = subprocess.check_output([exe, '-'], input=In, shell=shell, universal_newlines=True)
+        else:
+            ret = subprocess.check_output([exe, '-'], input=In,
                                       universal_newlines=True, cwd=R/'rnxcmp', shell=shell)
     except FileNotFoundError as e:
         raise FileNotFoundError(f'trouble converting Hatanka file, did you compile the crx2rnx program?   {e}')
@@ -93,7 +96,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
         if fn.suffixes == ['.crx', '.gz']:
             with gzip.open(fn, 'rt') as z:
                 return rinexinfo(io.StringIO(z.read(80)))
-        elif fn.suffix == '.crx':
+        elif fn.suffixes == ['.crx', '.d']:
             with fn.open('r') as f:
                 return rinexinfo(io.StringIO(f.read(80)))
         else:
