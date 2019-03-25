@@ -1,31 +1,19 @@
 #!/usr/bin/env python
-import subprocess
 import pytest
 from pathlib import Path
 from datetime import datetime
-import os
+
 import georinex as gr
 
 R = Path(__file__).parent / 'data'
-Rexe = Path(__file__).resolve().parents[1] / 'rnxcmp'
-exe = './crx2rnx'
-shell = False
-if os.name == 'nt':
-    exe = exe[2:]
-    shell = True
-
-try:  # capture_output is py >= 3.7
-    ret = subprocess.run([exe, '-h'], stderr=subprocess.PIPE,
-                         universal_newlines=True, cwd=Rexe, shell=shell)  # -h returncode == 1
-    nocrx = False if ret.stderr.startswith('Usage') else True
-except (FileNotFoundError, PermissionError) as e:
-    print(e)
-    nocrx = True
 
 
-@pytest.mark.skipif(nocrx, reason=f'crx2rnx not found in {Rexe}')
 @pytest.mark.timeout(30)
-def test_obs3_gz():
+def test_obs3_gz(request):
+    exe = request.config.cache.get('exe', None)
+    if exe['nocrx']:
+        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+
     fn = R / 'CEBR00ESP_R_20182000000_01D_30S_MO.crx.gz'
 
     info = gr.rinexinfo(fn)
@@ -45,9 +33,12 @@ def test_obs3_gz():
     assert times[-1] == datetime(2018, 7, 19, 1, 10)
 
 
-@pytest.mark.skipif(nocrx, reason=f'crx2rnx not found in {Rexe}')
 @pytest.mark.timeout(30)
-def test_obs3():
+def test_obs3(request):
+    exe = request.config.cache.get('exe', None)
+    if exe['nocrx']:
+        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+
     fn = R / 'P43300USA_R_20190012056_17M_15S_MO.crx'
 
     info = gr.rinexinfo(fn)

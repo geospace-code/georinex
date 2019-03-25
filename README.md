@@ -71,6 +71,20 @@ set CC=gcc
 mingw32-make -C rnxcmp
 ```
 
+Currently, `unlzw` doesn't work on Windows, making `.Z` files unreadable.
+
+### Selftest
+
+It can be useful to check the setup of your system with:
+```sh
+python -m pytest
+```
+
+```
+133 passed, 8 skipped
+```
+
+
 ## Usage
 
 The simplest command-line use is through the top-level `ReadRinex` script.

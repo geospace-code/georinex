@@ -94,12 +94,12 @@ def rinexsystem2(fn: Union[TextIO, Path],
     hdr = obsheader2(fn, useindicators, meas)
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
-        logging.debug(f'system {system} in {fn} was skipped by user choice')
+        logging.debug(f'system {system} in {fn} was not present')
         return
 
     if fast:
         Nextra = _fast_alloc(fn, hdr['Nl_sv'])
-        fast = isinstance(Nextra, int) and Nextra > 0
+        fast = Nextra > 0
         if verbose and not fast:
             logging.info(f'fast mode disabled due to estimation problem, Nextra: {Nextra}')
 
@@ -360,8 +360,8 @@ def obsheader2(f: TextIO,
     hdr['version'] = rinex_version(hdr['RINEX VERSION / TYPE'])[0]
     hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
     hdr['Nobs'] = Nobs
-    hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)  # 5 observations per line (incorporating LLI, SSI)
-
+    # 5 observations per line (incorporating LLI, SSI)
+    hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)
 # %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
     try:
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
@@ -546,7 +546,7 @@ def _skip_header(f: TextIO):
             break
 
 
-def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> Optional[int]:
+def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
     """
     prescan first N lines of file to see if it truncates to less than 80 bytes
 
@@ -554,7 +554,7 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> Optional[int]:
       100 seemed a good start.
     """
     if isinstance(fn, Path):
-        assert fn.is_file(), 'need freshly opend file'
+        assert fn.is_file(), 'need freshly opened file'
     elif isinstance(fn, io.StringIO):
         fn.seek(0)
     else:
@@ -562,14 +562,14 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> Optional[int]:
 
     with opener(fn) as f:
         _skip_header(f)
-
+# %% find the first line with time (sometimes a blank line or two after header)
         for ln in f:
             t = _timeobs(ln)
             if isinstance(t, datetime):
                 break
 
         if t is None:
-            return None
+            return 0
 
         _getsvind(f, ln)
 
@@ -577,7 +577,7 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> Optional[int]:
 
     lens = list(map(len, raw))
     if max(lens) < 79:  # oddly formatted file, no prediction
-        return None
+        return 0
 
     shorts = sum(l < 79 for l in lens)
 

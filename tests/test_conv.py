@@ -8,7 +8,6 @@ import xarray
 from datetime import datetime
 from pytest import approx
 from pathlib import Path
-import os
 import georinex as gr
 #
 R = Path(__file__).parent / 'data'
@@ -21,7 +20,6 @@ def test_to_datetime(time, exp_time):
     assert gr.to_datetime(time) == exp_time
 
 
-@pytest.mark.xfail(os.name == 'nt', reason='Windows PermissionError for missing files')
 def test_bad_files(tmp_path):
     emptyfn = tmp_path/'nonexistingfilename'
     emptyfn.touch()
@@ -70,7 +68,11 @@ def test_netcdf_write(tmp_path):
     assert obs.equals(wobs)
 
 
-def test_locs():
+def test_locs(request):
+    exe = request.config.cache.get('exe', None)
+    if exe['nocrx']:
+        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+
     pytest.importorskip('pymap3d')
 
     pat = ['*o',
