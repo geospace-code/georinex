@@ -5,7 +5,7 @@ import logging
 from math import ceil
 from datetime import datetime
 import xarray
-from typing import List, Any, Dict, Tuple, Sequence, Optional
+from typing import List, Any, Dict, Tuple, Sequence, Optional, Union
 from typing.io import TextIO
 import psutil
 try:
@@ -252,6 +252,7 @@ def rinexsystem2(fn: Path,
 # %% attributes
     obs.attrs['filename'] = fn.name
     obs.attrs['version'] = hdr['version']
+    obs.attrs['interval'] = hdr['interval']
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['toffset'] = toffset
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
@@ -265,15 +266,16 @@ def rinexsystem2(fn: Path,
     return obs
 
 
-def obsheader2(f: TextIO,
+def obsheader2(f: Union[TextIO, str],
                useindicators: bool = False,
                meas: Sequence[str] = None) -> Dict[str, Any]:
-
+    
     if isinstance(f, Path):
         fn = f
         with opener(fn, header=True) as f:
             return obsheader2(f, useindicators, meas)
-
+    elif isinstance(f, str):
+        f = open(f, 'r')
 # %% selection
     if isinstance(meas, str):
         meas = [meas]
@@ -296,8 +298,9 @@ def obsheader2(f: TextIO,
                 Nobs = int(c[:6])
 
             c = c[6:].split()  # NOT within "if Nobs"
+            
 # %%
-        if h not in hdr:  # Header label
+        if h not in hdr: # Header label
             hdr[h] = c  # string with info
         else:  # concatenate
             if isinstance(hdr[h], str):
@@ -307,8 +310,14 @@ def obsheader2(f: TextIO,
             else:
                 raise ValueError(f'not sure what {c} is')
 # %% useful values
-    hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
-    hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+    try:
+        hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
+    except:
+        pass
+    try:
+        hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+    except:
+        pass
     hdr['Nobs'] = Nobs
     hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)  # 5 observations per line (incorporating LLI, SSI)
 
@@ -320,34 +329,42 @@ def obsheader2(f: TextIO,
     except KeyError:
         pass
 # %% observation types
-    hdr['fields'] = hdr['# / TYPES OF OBSERV']
-    if Nobs != len(hdr['fields']):
-        raise ValueError(f'{f.name} header read incorrectly')
+    try:
+        hdr['fields'] = hdr['# / TYPES OF OBSERV']
+    except:
+        pass
+    try:
+        if Nobs != len(hdr['fields']):
+            raise ValueError(f'{f.name} header read incorrectly')
+    
+        if isinstance(meas, (tuple, list, np.ndarray)):
+            ind = np.zeros(len(hdr['fields']), dtype=bool)
+            for m in meas:
+                for i, f in enumerate(hdr['fields']):
+                    if f.startswith(m):
+                        ind[i] = True
 
-    if isinstance(meas, (tuple, list, np.ndarray)):
-        ind = np.zeros(len(hdr['fields']), dtype=bool)
-        for m in meas:
-            for i, f in enumerate(hdr['fields']):
-                if f.startswith(m):
-                    ind[i] = True
+            hdr['fields_ind'] = np.nonzero(ind)[0]
+        else:
+            ind = slice(None)
+            hdr['fields_ind'] = np.arange(Nobs)
 
-        hdr['fields_ind'] = np.nonzero(ind)[0]
-    else:
-        ind = slice(None)
-        hdr['fields_ind'] = np.arange(Nobs)
-
-    hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
-
-    hdr['Nobsused'] = hdr['Nobs']
-    if useindicators:
-        hdr['Nobsused'] *= 3
+        hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
+    
+        hdr['Nobsused'] = hdr['Nobs']
+        if useindicators:
+            hdr['Nobsused'] *= 3
+    except:
+        pass
 
 # %%
     if '# OF SATELLITES' in hdr:
         hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
 # %% time
-    hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
-
+    try:
+        hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+    except:
+        pass
     try:
         hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
     except KeyError:
@@ -394,7 +411,6 @@ def obstime2(fn: Path, verbose: bool = False) -> xarray.DataArray:
     with opener(fn, verbose=verbose) as f:
         # Capture header info
         hdr = obsheader2(f)
-
         for ln in f:
             time_epoch = _timeobs(ln)
             if time_epoch is None:
