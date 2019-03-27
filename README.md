@@ -167,12 +167,10 @@ Print start, stop times and measurement interval for all files in a directory:
 TimeRinex ~/data *.rnx
 ```
 
-Get `xarray.DataArray` of times in RINEX file:
+Get vector of `datetime.datetime` in RINEX file:
 ```python
 times = gr.gettimes('~/my.rnx')
 ```
-
-The times can be converted to `datetime.datetime` with `to_datetime()` function
 
 ## read Obs
 

@@ -31,14 +31,13 @@ def test_nav3(rinex_version, t):
 @pytest.mark.parametrize('rinex_version', [2, 3])
 def test_obs(rinex_version):
     fn = R / f'minimal{rinex_version}.10o'
-    with fn.open('r') as f:
-        txt = f.read()
+    txt = fn.read_text()
 
     with io.StringIO(txt) as f:
         rtype = gr.rinextype(f)
         assert rtype == 'obs'
 
-        times = gr.to_datetime(gr.gettime(f))
+        times = gr.gettime(f)
         obs = gr.load(f)
 
     assert times == datetime(2010, 3, 5, 0, 0, 30)

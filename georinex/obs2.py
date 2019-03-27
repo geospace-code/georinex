@@ -92,7 +92,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     if hdr['systems'] != 'M' and system != hdr['systems']:
         logging.debug(f'system {system} in {fn} was not present')
         return xarray.Dataset({})
-
+# %% preallocate
     if fast:
         Nextra = _fast_alloc(fn, hdr['Nl_sv'])
         fast = Nextra > 0
@@ -105,10 +105,9 @@ def rinexsystem2(fn: Union[TextIO, Path],
     Nt = times.size
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
-# %% optional RAM check
+
     memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
     check_ram(memneed, fn)
-# %% preallocate, check
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
 # %% start reading
@@ -141,8 +140,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
                         continue
                     else:
                         last_epoch += interval
-            # j += 1 must be after all time skipping
+
+# %% j += 1 must be after all time skipping
             j += 1
+
             if verbose:
                 print(time_epoch, end="\r")
 
@@ -151,8 +152,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
                     times[j] = time_epoch
                 except IndexError as e:
                     raise IndexError(f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}')
-
-# Does anyone need this?
+# %% Does anyone need this?
 #            try:
 #                toffset = ln[68:80]
 #            except ValueError:
@@ -280,15 +280,15 @@ def _num_times(fn: Path, Nextra: int,
         """
         estimated number of satellites per file:
             * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
+
+        We open the file and seek because often we're using compressed files
+        that have been decompressed in memory only--there is no on-disk
+        uncompressed file.
         """
-        if isinstance(fn, Path):
-            filesize = fn.stat().st_size
-        elif isinstance(fn, io.StringIO):
-            fn.seek(0, io.SEEK_END)
-            filesize = fn.tell()
-            fn.seek(0, io.SEEK_SET)
-        else:
-            raise TypeError(f'Unknown input data file type {type(fn)}')
+        with opener(fn, verbose=verbose) as f:
+            f.seek(0, io.SEEK_END)
+            filesize = f.tell()
+            f.seek(0, io.SEEK_SET)  # NEED THIS for io.StringIO input from user!
 
         Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
         times = np.empty(Nt, dtype=datetime)
