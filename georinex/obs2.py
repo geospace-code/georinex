@@ -143,12 +143,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
                         last_epoch += interval
             # j += 1 must be after all time skipping
             j += 1
-# %% epoch flag and offset
-            eflag = int(ln[28])
-            if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
-                logging.info(f'{time_epoch}: epoch flag {eflag}')
-                continue
-
             if verbose:
                 print(time_epoch, end="\r")
 
@@ -518,14 +512,19 @@ def _timeobs(ln: str) -> datetime:
     except ValueError:
         usec = 0
 
-    return datetime(year=year,
-                    month=int(ln[4:6]),
-                    day=int(ln[7:9]),
-                    hour=int(ln[10:12]),
-                    minute=int(ln[13:15]),
-                    second=int(ln[16:18]),
-                    microsecond=usec
-                    )
+    t = datetime(year=year,
+                 month=int(ln[4:6]),
+                 day=int(ln[7:9]),
+                 hour=int(ln[10:12]),
+                 minute=int(ln[13:15]),
+                 second=int(ln[16:18]),
+                 microsecond=usec)
+# %% check if valid time
+    eflag = int(ln[28])
+    if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
+        raise ValueError(f'{t}: epoch flag {eflag}')
+
+    return t
 
 
 def _skip_header(f: TextIO):
