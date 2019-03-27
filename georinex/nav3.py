@@ -357,9 +357,6 @@ def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
 
-    if not times:
-        return None
-
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,

@@ -163,9 +163,6 @@ def obstime3(fn: Union[TextIO, Path],
             if ln.startswith('>'):
                 times.append(_timeobs(ln))
 
-    if not times:
-        return None
-
     timedat = xarray.DataArray(times,
                                dims=['time'],
                                attrs={'interval': hdr['interval']})

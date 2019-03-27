@@ -37,8 +37,6 @@ def eachfile(fn: Path, verbose: bool = False):
             print(f'{fn.name}: {e}')
         return
 
-    if times is None:
-        return
 # %% output
     try:
         ostr = (f"{fn.name}:"

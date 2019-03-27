@@ -21,7 +21,7 @@ def test_blank(tmp_path, filename):
     gr.load(fn, outdir)
 
     times = gr.gettime(fn)
-    assert times is None
+    assert times.size == 0
 
 
 @pytest.mark.parametrize('filename',

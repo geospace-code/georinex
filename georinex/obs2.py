@@ -123,10 +123,9 @@ def rinexsystem2(fn: Union[TextIO, Path],
         Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
-        if times is None:
-            return
-
         Nt = len(times)
+        if Nt < 1:
+            return
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
 # %% optional RAM check
@@ -454,9 +453,6 @@ def obstime2(fn: Union[TextIO, Path],
             times.append(time_epoch)
 
             _skip(f, ln, hdr['Nl_sv'])
-
-    if not times:
-        return None
 
     timedat = xarray.DataArray(times,
                                dims=['time'],

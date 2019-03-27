@@ -229,9 +229,6 @@ def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
 
             _skip(f, Nl[hdr['systems']])
 
-    if not times:
-        return None
-
     times = np.unique(times)
 
     timedat = xarray.DataArray(times,
