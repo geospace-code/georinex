@@ -7,19 +7,23 @@ import xarray
 
 R = Path(__file__).parent / 'data'
 
+blanks = ['blank.10n', 'blank.10o', 'blank3.10n', 'blank3.10o']
 
-@pytest.mark.parametrize('filename',
-                         ['blank.10n', 'blank.10o', 'blank3.10n', 'blank3.10o'])
-def test_blank(tmp_path, filename):
-    fn = R/filename
 
-    dat = gr.load(fn)
+@pytest.mark.parametrize('filename', blanks)
+def test_blank_read(tmp_path, filename):
+    dat = gr.load(R/filename)
     assert dat.time.size == 0
 
-    outdir = tmp_path
-    gr.load(fn, outdir)
 
-    times = gr.gettime(fn)
+@pytest.mark.parametrize('filename', blanks)
+def test_blank_write(tmp_path, filename):
+    gr.load(R/filename, tmp_path)
+
+
+@pytest.mark.parametrize('filename', blanks)
+def test_blank_times(filename):
+    times = gr.gettime(R/filename)
     assert times.size == 0
 
 

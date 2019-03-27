@@ -6,7 +6,7 @@ import io
 from math import ceil
 from datetime import datetime, timedelta
 import xarray
-from typing import List, Union, Any, Dict, Tuple, Sequence
+from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
 try:
     from pymap3d import ecef2geodetic
@@ -86,7 +86,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
     # these values are not perfect, but seem reasonable.
     # Let us know if you needed to change them.
     Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
-    Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
     hdr = obsheader2(fn, useindicators, meas)
 
@@ -99,32 +98,11 @@ def rinexsystem2(fn: Union[TextIO, Path],
         fast = Nextra > 0
         if verbose and not fast:
             logging.info(f'fast mode disabled due to estimation problem, Nextra: {Nextra}')
+    else:
+        Nextra = 0
 
-    if fast:
-        times: List[datetime] = []
-        """
-        estimated number of satellites per file:
-            * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
-        """
-        if isinstance(fn, Path):
-            filesize = fn.stat().st_size
-        elif isinstance(fn, io.StringIO):
-            fn.seek(0, io.SEEK_END)
-            filesize = fn.tell()
-            fn.seek(0, io.SEEK_SET)
-        else:
-            raise TypeError(f'Unknown input data file type {type(fn)}')
-
-        Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
-    else:  # strict preallocation by double-reading file, OK for < 100 MB files
-        t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
-        if tlim is not None:
-            times = t[(tlim[0] <= t) & (t < tlim[1])]
-        else:
-            times = t
-        Nt = len(times)
-        if Nt < 1:
-            return xarray.Dataset({})
+    times = _num_times(fn, Nextra, tlim, fast, verbose)
+    Nt = times.size
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
 # %% optional RAM check
@@ -176,7 +154,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
                 print(time_epoch, end="\r")
 
             if fast:
-                times.append(time_epoch)
+                times[j] = time_epoch
 
             try:
                 toffset = ln[68:80]
@@ -257,7 +235,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
                     raise
 # %% output gathering
     if fast:
-        data = data[:, :len(times), :]
+        data = data[:, :times.size, :]
 
     fields = []
     for field in hdr['fields']:
@@ -288,7 +266,8 @@ def rinexsystem2(fn: Union[TextIO, Path],
 # %% attributes
     obs.attrs['version'] = hdr['version']
     obs.attrs['rinextype'] = 'obs'
-    obs.attrs['toffset'] = toffset
+    if toffset is not None:
+        obs.attrs['toffset'] = toffset
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
@@ -301,6 +280,37 @@ def rinexsystem2(fn: Union[TextIO, Path],
         pass
 
     return obs
+
+
+def _num_times(fn: Path, Nextra: int,
+               tlim: Optional[Tuple[datetime, datetime]],
+               fast: bool, verbose: bool) -> np.ndarray:
+    Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
+
+    if fast:
+        """
+        estimated number of satellites per file:
+            * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
+        """
+        if isinstance(fn, Path):
+            filesize = fn.stat().st_size
+        elif isinstance(fn, io.StringIO):
+            fn.seek(0, io.SEEK_END)
+            filesize = fn.tell()
+            fn.seek(0, io.SEEK_SET)
+        else:
+            raise TypeError(f'Unknown input data file type {type(fn)}')
+
+        Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
+        times = np.empty(Nt, dtype=datetime)
+    else:  # strict preallocation by double-reading file, OK for < 100 MB files
+        t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+        if tlim is not None:
+            times = t[(tlim[0] <= t) & (t < tlim[1])]
+        else:
+            times = t
+
+    return times
 
 
 def obsheader2(f: TextIO,
