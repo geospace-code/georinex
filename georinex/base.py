@@ -1,5 +1,6 @@
 from pathlib import Path
 import xarray
+from numpy import array
 from typing import Union, Tuple, Dict, Sequence
 from typing.io import TextIO
 from datetime import datetime, timedelta
@@ -193,11 +194,8 @@ def rinexobs(fn: Union[TextIO, str, Path],
 
     if outfn:
         outfn = Path(outfn).expanduser()
-#        wmode = _groupexists(outfn, group)
-
         enc = {k: ENC for k in obs.data_vars}
         obs.to_netcdf(outfn, group=group, mode='w', encoding=enc)
-
     return obs
 
 
