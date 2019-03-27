@@ -1,21 +1,19 @@
-[![DOI](https://zenodo.org/badge/34296204.svg)](https://zenodo.org/badge/latestdoi/34296204)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
 [![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
 [![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
 [![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
-[![PyPi wheels](https://img.shields.io/pypi/format/georinex.svg)](https://pypi.python.org/pypi/georinex)
-[![Maintainability](https://api.codeclimate.com/v1/badges/7c5da1b7b7dd26e135ab/maintainability)](https://codeclimate.com/github/scivision/georinex/maintainability)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 [![Xarray badge](https://img.shields.io/badge/powered%20by-xarray-orange.svg?style=flat)](http://xarray.pydata.org/en/stable/why-xarray.html)
 
 # GeoRinex
 
 RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
-Batch converts NAV and OBS GPS RINEX data into
+Batch converts NAV and OBS GPS RINEX (including Hatanaka compressed OBS) data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
-GeoRinex works in Python &ge; 3.6.
+GeoRinex works in Python &ge; 3.6 and has over 125 unit tests driven by Pytest.
 
 Pure compiled language RINEX processors such as within Fortran NAPEOS give perhaps 2x faster performance than this Python program--that's pretty good for a scripted language like Python!
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4,
@@ -26,7 +24,7 @@ where ease of cross-platform install and correctness are primary goals.
 
 ## Inputs
 
-* RINEX 3 or RINEX 2
+* RINEX 3.x or RINEX 2.x
   * NAV
   * OBS
 * Plain ASCII or seamlessly read compressed ASCII in:
@@ -34,6 +32,7 @@ where ease of cross-platform install and correctness are primary goals.
   * `.Z` LZW
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
+* Python `io.StringIO` text stream RINEX
 
 ## Output
 
@@ -71,6 +70,20 @@ For optional Hatanaka converter on Windows, assuming you have
 set CC=gcc
 mingw32-make -C rnxcmp
 ```
+
+Currently, `unlzw` doesn't work on Windows, making `.Z` files unreadable.
+
+### Selftest
+
+It can be useful to check the setup of your system with:
+```sh
+python -m pytest
+```
+
+```
+133 passed, 8 skipped
+```
+
 
 ## Usage
 
@@ -154,11 +167,10 @@ Print start, stop times and measurement interval for all files in a directory:
 TimeRinex ~/data *.rnx
 ```
 
-Get `xarray.DataArray` of times in RINEX file:
+Get vector of `datetime.datetime` in RINEX file:
 ```python
 times = gr.gettimes('~/my.rnx')
 ```
-
 
 ## read Obs
 
@@ -289,7 +301,7 @@ Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
 * using `xarray`
   ```python
   obs = xarray.open_dataset('my.nc)
-  
+
   ecef = obs.position
   latlon = obs.position_geodetic  # only if pymap3d was used
   ```
@@ -348,7 +360,10 @@ shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xar
 
 ## Notes
 
-RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
+* RINEX 3.03 specification: ftp://igs.org/pub/data/format/rinex303.pdf
+* RINEX 3.04 specification (Dec 2018): ftp://igs.org/pub/data/format/rinex304.pdf
+* RINEX 3.04 release notes:  ftp://igs.org/pub/data/format/rinex304-release-notes.pdf
+
 
 -   GPS satellite position is given for each time in the NAV file as
     Keplerian parameters, which can be
@@ -382,12 +397,14 @@ you can
 [log RINEX 3](https://play.google.com/store/apps/details?id=de.geopp.rinexlogger)
 using the built-in GPS receiver.
 
-Here is a lot of RINEX 3 data to work with:
+UNAVCO [site map](https://www.unavco.org/instrumentation/networks/map/map.html#/): identify the 4-letter callsign of a station, and look in the FTP sites below for data from a site.
+
+UNAVCO RINEX 3 data:
 
 * OBS: ftp://data-out.unavco.org/pub/rinex3/obs/
 * NAV: ftp://data-out.unavco.org/pub/rinex3/nav/
 
-Likewise here's a bunch of RINEX 2 data:
+UNAVCO RINEX 2 data:
 
 * OBS: ftp://data-out.unavco.org/pub/rinex/obs/
 * NAV: ftp://data-out.unavco.org/pub/rinex/nav/

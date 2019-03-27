@@ -4,53 +4,21 @@ from pytest import approx
 import xarray
 from pathlib import Path
 from datetime import datetime
-import georinex as gr
 import numpy as np
-import tempfile
+import georinex as gr
 #
 R = Path(__file__).parent / 'data'
 
 
-def test_blank():
-    fn = R/'blank.10n'
-    nav = gr.load(fn)
-    assert nav is None
-
-    with tempfile.TemporaryDirectory() as outdir:
-        gr.load(fn, outdir)
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal():
-    fn = R/'minimal.10n'
-
-    nav = gr.load(fn)
-    assert isinstance(nav, xarray.Dataset)
-
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-        outfn = (outdir / (fn.name + '.nc'))
-        assert outfn.is_file()
-
-        assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-
 def test_time():
-    pytest.importorskip('unlzw')
-
-    times = gr.gettime(R/'ab422100.18n.Z').values.astype('datetime64[us]').astype(datetime)
+    times = gr.gettime(R/'ab422100.18n')
 
     assert times[0] == datetime(2018, 7, 29, 1, 59, 44)
     assert times[-1] == datetime(2018, 7, 30)
 
 
 def test_data():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'ab422100.18n.Z')
+    nav = gr.load(R/'ab422100.18n')
 
     nav0 = nav.sel(time='2018-07-29T03:59:44').dropna(dim='sv', how='all')
 
@@ -70,7 +38,7 @@ def test_mangled():
 
     nav = gr.load(fn)
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 6, 22, 8)
 
@@ -85,7 +53,7 @@ def test_mangled2():
     assert np.isnan(G10['FitIntvl'][0])
     assert G10['FitIntvl'][1] == approx(4)
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
     assert (times == [datetime(2018, 8, 29, 22, 0),
                       datetime(2018, 8, 29, 23, 0),
                       datetime(2018, 8, 29, 23, 30),
@@ -94,28 +62,26 @@ def test_mangled2():
 
 
 def test_tlim():
-    pytest.importorskip('unlzw')
+    nav = gr.load(R/'ceda2100.18e', tlim=('2018-07-29T11', '2018-07-29T12'))
 
-    nav = gr.load(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
-
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
 
     assert (times == [datetime(2018, 7, 29, 11, 50), datetime(2018, 7, 29, 12)]).all()
-# %% past end of file
-    nav = gr.load(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+
+def test_tlim_past_eof():
+    nav = gr.load(R/'p1462100.18g', tlim=('2018-07-29T23:45', '2018-07-30'))
+
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 7, 29, 23, 45)
 
 
 def test_galileo():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'ceda2100.18e.Z')
+    nav = gr.load(R/'ceda2100.18e')
 
     E18 = nav.sel(sv='E18').dropna(dim='time', how='all')
-    assert E18.time.values.astype('datetime64[us]').astype(datetime) == datetime(2018, 7, 29, 12, 40)
+    assert gr.to_datetime(E18.time) == datetime(2018, 7, 29, 12, 40)
 
     assert E18.to_array().values.squeeze() == approx([6.023218797054e-3, -2.854960712284e-11, 0.,
                                                       76, 79.53125, 3.006910964197e-09, -1.308337580849, 6.468966603279e-06,
@@ -131,7 +97,7 @@ def test_gps():
 
     nav = gr.load(R/'brdc2800.15n.Z')
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime).tolist()
+    times = gr.to_datetime(nav.time)
     assert times[1] == datetime(2015, 10, 7, 1, 59, 28)
 
     nav1 = nav.sel(time='2015-10-07T01:59:28').dropna(dim='sv', how='all')
@@ -148,10 +114,17 @@ def test_gps():
 def test_small():
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r2all.nc', group='NAV', autoclose=True)
+    truth = xarray.open_dataset(R/'r2all.nc', group='NAV')
     nav = gr.load(R/'demo.10n')
 
     assert nav.equals(truth)
+
+
+def test_ionospheric_correction():
+    nav = gr.load(R/"14601736.18n")
+    assert nav.attrs['ionospheric_corr_GPS'] == approx(
+                    [0.4657e-08,  0.1490e-07, -0.5960e-07, -0.1192e-06,
+                     0.8192e+05,  0.9830e+05, -0.6554e+05, -0.5243e+06])
 
 
 if __name__ == '__main__':

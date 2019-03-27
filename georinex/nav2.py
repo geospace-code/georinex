@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Sequence, Optional
+from typing import Dict, Union, Any, Sequence
 from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
+import io
 from .io import opener, rinexinfo
+from .common import rinex_string_to_float
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {'G': 7, 'R': 3, 'E': 7}   # number of additional SV lines
 
 
-def rinexnav2(fn: Path,
+def rinexnav2(fn: Union[TextIO, str, Path],
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
@@ -22,7 +24,8 @@ def rinexnav2(fn: Path,
     http://gage14.upc.es/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
     ftp://igs.org/pub/data/format/rinex211.txt
     """
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     Lf = 19  # string length per field
 
@@ -64,8 +67,9 @@ def rinexnav2(fn: Path,
             raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {header["sys"]}  {fn}')
 # %% read data
         for ln in f:
-            time = _timenav(ln)
-            if time is None:  # blank or garbage line
+            try:
+                time = _timenav(ln)
+            except ValueError:
                 continue
 
             if tlim is not None:
@@ -87,8 +91,6 @@ def rinexnav2(fn: Path,
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('  ', ' ').replace(' -', '-').replace('\n', ''))
 
-    if not raws:
-        return None
 # %% parse
     svs = [s.replace(' ', '0') for s in svs]
     svu = sorted(set(svs))
@@ -123,10 +125,28 @@ def rinexnav2(fn: Path,
         if k is None:
             continue
         nav[k] = (('time', 'sv'), data[i, :, :])
+
+    # GLONASS uses kilometers to report its ephemeris.
+    # Convert to meters here to be consistent with NAV3 implementation.
+    if svtype == 'R':
+        for name in ['X', 'Y', 'Z', 'dX', 'dY', 'dZ', 'dX2', 'dY2', 'dZ2']:
+            nav[name] *= 1e3
+
 # %% other attributes
     nav.attrs['version'] = header['version']
-    nav.attrs['filename'] = fn.name
+    nav.attrs['svtype'] = [svtype]  # Use list for consistency with NAV3.
     nav.attrs['rinextype'] = 'nav'
+    if isinstance(fn, Path):
+        nav.attrs['filename'] = fn.name
+
+    if 'ION ALPHA' in header and 'ION BETA' in header:
+        alpha = header['ION ALPHA']
+        alpha = [rinex_string_to_float(alpha[2 + i*12:2 + (i+1)*12])
+                 for i in range(4)]
+        beta = header['ION BETA']
+        beta = [rinex_string_to_float(beta[2 + i*12:2 + (i+1)*12])
+                for i in range(4)]
+        nav.attrs['ionospheric_corr_GPS'] = np.hstack((alpha, beta))
 
     return nav
 
@@ -136,7 +156,12 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
         fn = f
         with fn.open('r') as f:
             return navheader2(f)
-
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unknown filetype {type(f)}')
 # %%verify RINEX version, and that it's NAV
     hdr = rinexinfo(f)
     if int(hdr['version']) != 2:
@@ -145,36 +170,30 @@ def navheader2(f: TextIO) -> Dict[str, Any]:
     for ln in f:
         if 'END OF HEADER' in ln:
             break
-
-        hdr[ln[60:]] = ln[:60]
+        kind, content = ln[60:].strip(), ln[:60]
+        hdr[kind] = content
 
     return hdr
 
 
-def _timenav(ln: str) -> Optional[datetime]:
-    """
-    Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
-    Python < 3.7 supports microseconds.
-    """
-    try:
-        year = int(ln[3:5])
-        if 80 <= year <= 99:
-            year += 1900
-        elif year < 80:  # because we might pass in four-digit year
-            year += 2000
-        else:
-            raise ValueError(f'unknown year format {year}')
+def _timenav(ln: str) -> datetime:
 
-        return datetime(year=year,
-                        month=int(ln[6:8]),
-                        day=int(ln[9:11]),
-                        hour=int(ln[12:14]),
-                        minute=int(ln[15:17]),
-                        second=int(float(ln[17:20])),
-                        microsecond=int(float(ln[17:22]) % 1 * 1000000)
-                        )
-    except ValueError:
-        return None
+    year = int(ln[3:5])
+    if 80 <= year <= 99:
+        year += 1900
+    elif year < 80:  # because we might pass in four-digit year
+        year += 2000
+    else:
+        raise ValueError(f'unknown year format {year}')
+
+    return datetime(year=year,
+                    month=int(ln[6:8]),
+                    day=int(ln[9:11]),
+                    hour=int(ln[12:14]),
+                    minute=int(ln[15:17]),
+                    second=int(float(ln[17:20])),
+                    microsecond=int(float(ln[17:22]) % 1 * 1000000)
+                    )
 
 
 def _skip(f: TextIO, Nl: int):
@@ -182,7 +201,7 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def navtime2(fn: Path) -> xarray.DataArray:
+def navtime2(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     read all times in RINEX 2 NAV file
     """
@@ -195,21 +214,13 @@ def navtime2(fn: Path) -> xarray.DataArray:
             if not ln:
                 break
 
-            time = _timenav(ln)
-            if time is None:
+            try:
+                time = _timenav(ln)
+            except ValueError:
                 continue
 
             times.append(time)
 
             _skip(f, Nl[hdr['systems']])
 
-    if not times:
-        return None
-
-    times = np.unique(times)
-
-    timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'filename': fn})
-
-    return timedat
+    return np.unique(times)

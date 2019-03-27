@@ -3,17 +3,20 @@ from pathlib import Path
 import xarray
 import logging
 import numpy as np
-from io import BytesIO
+import math
+import io
 from datetime import datetime
 from .io import opener, rinexinfo
-from typing import Dict, List, Any, Sequence, Optional
+from .common import rinex_string_to_float
+from typing import Dict, Union, List, Any, Sequence
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
+Lf = 19  # string length per field
 
 
-def rinexnav3(fn: Path,
+def rinexnav3(fn: Union[TextIO, str, Path],
               use: Sequence[str] = None,
               tlim: Sequence[datetime] = None) -> xarray.Dataset:
     """
@@ -24,9 +27,8 @@ def rinexnav3(fn: Path,
 
     The "eof" stuff is over detection of files that may or may not have a trailing newline at EOF.
     """
-    Lf = 19  # string length per field
-
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     svs = []
     raws = []
@@ -41,8 +43,9 @@ def rinexnav3(fn: Path,
             if line.startswith('\n'):  # EOF
                 break
 
-            time = _time(line)
-            if time is None:  # blank or garbage line
+            try:
+                time = _time(line)
+            except ValueError:  # blank or garbage line
                 continue
 
             if tlim is not None:
@@ -77,17 +80,11 @@ def rinexnav3(fn: Path,
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
-    if not raws:
-        return None
 # %% parse
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, 'ns') for t in times])
-    nav: xarray.Dataset = None
+    nav = xarray.Dataset({}, coords={'time': [], 'sv': []})
     svu = sorted(set(svs))
-
-    if len(svu) == 0:
-        logging.warning('no specified data found in {fn}')
-        return None
 
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
@@ -96,24 +93,14 @@ def rinexnav3(fn: Path,
         if tu.size != t[svi].size:
             logging.warning(f'duplicate times detected on SV {sv}, using first of duplicate times')
             """ I have seen that the data rows match identically when times are duplicated"""
-# %% check for optional GPS "fit interval" presence
-        cf = fields[sv[0]]
-        testread = np.genfromtxt(BytesIO(raws[svi[0]].encode('ascii')), delimiter=Lf)
-# %% patching for Spare entries, some receivers include, and some don't include...
-        if sv[0] == 'G' and len(cf) == testread.size + 1:
-            cf = cf[:-1]
-        elif sv[0] == 'C' and len(cf) == testread.size - 1:
-            cf.insert(20, 'spare')
-        elif sv[0] == 'E' and len(cf) == testread.size - 1:
-            cf.insert(22, 'spare')
 
-        if testread.size != len(cf):
-            raise ValueError(f'{sv[0]} NAV data @ {tu} is not the same length as the number of fields.')
+        cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
 
         darr = np.empty((svi.size, len(cf)))
 
         for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+            darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')),
+                                       delimiter=Lf)
 
 # %% discard duplicated times
 
@@ -128,7 +115,7 @@ def rinexnav3(fn: Path,
 
             dsf[f] = (('time', 'sv'), d[:, None])
 
-        if nav is None:
+        if len(nav) == 0:
             nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
         else:
             nav = xarray.merge((nav,
@@ -136,10 +123,30 @@ def rinexnav3(fn: Path,
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
+
+    # Add ionospheric correction coefficients if exist.
+    if 'IONOSPHERIC CORR' in header:
+        corr = header['IONOSPHERIC CORR']
+        if 'GPSA' in corr and 'GPSB' in corr:
+            nav.attrs['ionospheric_corr_GPS'] = np.hstack((corr['GPSA'],
+                                                           corr['GPSB']))
+        if 'GAL' in corr:
+            nav.attrs['ionospheric_corr_GAL'] = corr['GAL']
+        if 'QZSA' in corr and 'QZSB' in corr:
+            nav.attrs['ionospheric_corr_QZS'] = np.hstack((corr['QZSA'],
+                                                           corr['QZSB']))
+        if 'BDSA' in corr and 'BDSB' in corr:
+            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['BDSA'],
+                                                           corr['BDSB']))
+        if 'IRNA' in corr and 'IRNB' in corr:
+            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['IRNA'],
+                                                           corr['IRNB']))
+
     nav.attrs['version'] = header['version']
-    nav.attrs['filename'] = fn.name
     nav.attrs['svtype'] = svtypes
     nav.attrs['rinextype'] = 'nav'
+    if isinstance(fn, Path):
+        nav.attrs['filename'] = fn.name
 
     return nav
 
@@ -149,24 +156,75 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def _time(ln: str) -> Optional[datetime]:
+def _time(ln: str) -> datetime:
 
-    try:
-        return datetime(year=int(ln[4:8]),
-                        month=int(ln[9:11]),
-                        day=int(ln[12:14]),
-                        hour=int(ln[15:17]),
-                        minute=int(ln[18:20]),
-                        second=int(ln[21:23]))
-    except ValueError:
-        return None
+    return datetime(year=int(ln[4:8]),
+                    month=int(ln[9:11]),
+                    day=int(ln[12:14]),
+                    hour=int(ln[15:17]),
+                    minute=int(ln[18:20]),
+                    second=int(ln[21:23]))
+
+
+def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
+    """
+    check for optional spare fields, or GPS "fit interval" field
+
+    You might find a new way that NAV3 files are irregular--please open a
+    GitHub Issue or Pull Request.
+    """
+    numval = math.ceil(len(raw) / Lf)  # need this for irregularly defined files
+# %% patching for Spare entries, some receivers include, and some don't include...
+    if sys == 'G':
+        if numval == 30:
+            cf = cf[:-1]
+        elif numval == 29:
+            cf = cf[:-2]
+    elif sys == 'C':
+        if numval == 27:
+            cf = cf[:20] + [cf[21]] + cf[23:29]
+        elif numval == 28:
+            cf = cf[:22] + cf[23:29]
+        elif numval == 29:
+            cf = cf[:29]
+        elif numval == 30:
+            cf = cf[:30]
+    elif sys == 'J':
+        if numval == 29:
+            cf = cf[:29]
+        elif numval == 30:
+            cf = cf[:30]
+    elif sys == 'E':
+        if numval == 29:  # only one trailing spare fields
+            cf = cf[:-2]
+        elif numval == 28:  # zero trailing spare fields
+            cf = cf[:-3]
+        elif numval == 27:  # no middle or trailing spare fields
+            cf = cf[:22] + cf[23:-3]
+    elif sys == 'I':
+        if numval == 28:
+            cf = cf[:28]
+
+    if numval != len(cf):
+        raise ValueError(f'System {sys} NAV data is not the same length as the number of fields.')
+
+    return cf
 
 
 def _newnav(ln: str, sv: str) -> List[str]:
 
     if sv.startswith('G'):
         """
-        ftp://igs.org/pub/data/format/rinex303.pdf page A-23 - A-24
+        ftp://igs.org/pub/data/format/rinex303.pdf
+
+        pages:
+        G: A23-A24
+        E: A25-A28
+        R: A29-A30
+        J: A31-A32
+        C: A33-A34
+        S: A35-A36
+        I: A37-A39
         """
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODE', 'Crs', 'DeltaN', 'M0',
@@ -175,26 +233,30 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
-                  'TransTime', 'FitIntvl']
+                  'TransTime', 'FitIntvl', 'spare0', 'spare1']
+        assert len(fields) == 31
     elif sv.startswith('C'):  # pg A-33  Beidou Compass BDT
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'AODE', 'Crs', 'DeltaN', 'M0',
                   'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
                   'Toe', 'Cic', 'Omega0', 'Cis',
                   'Io', 'Crc', 'omega', 'OmegaDot',
-                  'IDOT', 'BDTWeek',
+                  'IDOT', 'spare0', 'BDTWeek', 'spare1',
                   'SVacc', 'SatH1', 'TGD1', 'TGD2',
-                  'TransTime', 'AODC']
+                  'TransTime', 'AODC', 'spare2', 'spare3']
+        assert len(fields) == 31
     elif sv.startswith('R'):  # pg. A-29   GLONASS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'FreqNum',
                   'Z', 'dZ', 'dZ2', 'AgeOpInfo']
+        assert len(fields) == 15
     elif sv.startswith('S'):  # pg. A-35 SBAS
         fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
                   'X', 'dX', 'dX2', 'health',
                   'Y', 'dY', 'dY2', 'URA',
                   'Z', 'dZ', 'dZ2', 'IODN']
+        assert len(fields) == 15
     elif sv.startswith('J'):  # pg. A-31  QZSS
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODE', 'Crs', 'DeltaN', 'M0',
@@ -203,7 +265,8 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag',
                   'SVacc', 'health', 'TGD', 'IODC',
-                  'TransTime', 'FitIntvl']
+                  'TransTime', 'FitIntvl', 'spare0', 'spare1']
+        assert len(fields) == 31
     elif sv.startswith('E'):  # pg. A-25 Galileo Table A8
         fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
                   'IODnav', 'Crs', 'DeltaN', 'M0',
@@ -211,8 +274,22 @@ def _newnav(ln: str, sv: str) -> List[str]:
                   'Toe', 'Cic', 'Omega0', 'Cis',
                   'Io', 'Crc', 'omega', 'OmegaDot',
                   'IDOT', 'DataSrc', 'GALWeek',
+                  'spare0',
                   'SISA', 'health', 'BGDe5a', 'BGDe5b',
-                  'TransTime']
+                  'TransTime',
+                  'spare1', 'spare2', 'spare3']
+        assert len(fields) == 31
+    elif sv.startswith('I'):
+        fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
+                  'IODEC', 'Crs', 'DeltaN', 'M0',
+                  'Cuc', 'Eccentricity', 'Cus', 'sqrtA',
+                  'Toe', 'Cic', 'Omega0', 'Cis',
+                  'Io', 'Crc', 'omega', 'OmegaDot',
+                  'IDOT', 'spare0', 'BDTWeek', 'spare1',
+                  'URA', 'health', 'TGD', 'spare2',
+                  'TransTime',
+                  'spare3', 'spare4', 'spare5']
+        assert len(fields) == 31
     else:
         raise ValueError(f'Unknown SV type {sv[0]}')
 
@@ -224,6 +301,12 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
         fn = f
         with fn.open('r') as f:
             return navheader3(f)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unsure of input data type {type(f)}')
 
     hdr = rinexinfo(f)
     assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 2.x files'
@@ -233,12 +316,23 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
         if 'END OF HEADER' in ln:
             break
 
-        hdr[ln[60:]] = ln[:60]
+        kind, content = ln[60:].strip(), ln[:60]
+        if kind == "IONOSPHERIC CORR":
+            if kind not in hdr:
+                hdr[kind] = {}
+
+            coeff_kind = content[:4].strip()
+            N = 3 if coeff_kind == 'GAL' else 4
+            # RINEX 3.04 table A5 page A19
+            coeff = [rinex_string_to_float(content[5 + i*12:5 + (i+1)*12]) for i in range(N)]
+            hdr[kind][coeff_kind] = coeff
+        else:
+            hdr[kind] = content
 
     return hdr
 
 
-def navtime3(fn: Path) -> xarray.DataArray:
+def navtime3(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     return all times in RINEX file
     """
@@ -248,20 +342,12 @@ def navtime3(fn: Path) -> xarray.DataArray:
         navheader3(f)  # skip header
 
         for line in f:
-            time = _time(line)
-            if not time:
+            try:
+                time = _time(line)
+            except ValueError:
                 continue
 
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
 
-    if not times:
-        return None
-
-    times = np.unique(times)
-
-    timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'filename': fn})
-
-    return timedat
+    return np.unique(times)

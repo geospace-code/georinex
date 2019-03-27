@@ -1,51 +1,16 @@
 #!/usr/bin/env python
 import pytest
 import xarray
-import tempfile
 from pytest import approx
 from pathlib import Path
-import georinex as gr
-import numpy as np
 from datetime import datetime
+import georinex as gr
 #
 R = Path(__file__).parent / 'data'
 
 
-def test_blank():
-    fn = R/'blank.10o'
-    obs = gr.load(fn)
-    assert obs is None
-
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-        assert not (outdir / (fn.name + '.nc')).is_file()
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal():
-    fn = R/'minimal.10o'
-    obs = gr.load(fn)
-    assert isinstance(obs, xarray.Dataset), f'{type(obs)} should be xarray.Dataset'
-
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-
-        outfn = (outdir / (fn.name + '.nc'))
-        assert outfn.is_file()
-        assert obs.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-    times = gr.gettime(fn)
-    assert np.isnan(times.interval)
-
-    assert obs.fast_processing
-
-
 def test_fast_slow():
-    fn = R/'minimal.10o'
+    fn = R/'minimal2.10o'
     fobs = gr.load(fn, fast=True)
     sobs = gr.load(fn, fast=False)
 
@@ -75,7 +40,7 @@ def test_meas_continuation():
               'L6', 'C6', 'S6', 'L7', 'C7', 'S7', 'L8', 'C8', 'S8']:
         assert v in obs
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(obs.time)
     assert times.size == 9
 
     assert obs.fast_processing
@@ -147,7 +112,7 @@ def test_meas_miss():
     assert obs.fast_processing
 # %% measurement not in any system
     obs = gr.load(fn, meas='nonsense')
-    assert obs is None
+    assert len(obs) == 0
 # %% wildcard
     obs = gr.load(fn, meas='P')
     assert 'L1' not in obs
@@ -162,9 +127,11 @@ def test_mangled_data():
 
     obs = gr.load(fn)
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(obs.time)
 
-    assert (times == (datetime(2018, 6, 22, 6, 17, 30), datetime(2018, 6, 22, 6, 17, 45), datetime(2018, 6, 22, 6, 18))).all()
+    assert (times == (datetime(2018, 6, 22, 6, 17, 30),
+                      datetime(2018, 6, 22, 6, 17, 45),
+                      datetime(2018, 6, 22, 6, 18))).all()
 
     assert not obs.fast_processing
 
@@ -174,7 +141,7 @@ def test_mangled_times():
 
     obs = gr.load(fn)
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(obs.time)
 
     assert times
 
@@ -188,24 +155,23 @@ def test_Z_lzw():
 
     hdr = gr.rinexheader(fn)
 
-    assert hdr['t0'] <= obs.time[0].values.astype('datetime64[us]').astype(datetime)
+    assert hdr['t0'] <= gr.to_datetime(obs.time[0])
 
     assert not obs.fast_processing
 
 
 def test_tlim():
-    pytest.importorskip('unlzw')
+    """
+    Important test, be sure it's runnable on all systems
+    """
+    obs = gr.load(R/'york0440.zip', tlim=('2015-02-13T23:59', '2015-02-14T00:00'))
 
-    obs = gr.load(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
+    times = gr.to_datetime(obs.time)
 
-    times = obs.time.values.astype('datetime64[us]').astype(datetime).tolist()
+    assert (times == [datetime(2015, 2, 13, 23, 59, 0),
+                      datetime(2015, 2, 13, 23, 59, 30)]).all()
 
-    assert times == [datetime(2018, 1, 27, 0, 19),
-                     datetime(2018, 1, 27, 0, 19, 15),
-                     datetime(2018, 1, 27, 0, 19, 30),
-                     datetime(2018, 1, 27, 0, 19, 45)]
-
-    assert not obs.fast_processing
+    assert obs.fast_processing
 
 
 def test_one_sv():
@@ -214,27 +180,26 @@ def test_one_sv():
     assert len(obs.sv) == 1
     assert obs.sv.item() == 'G13'
 
-    times = gr.gettime(R/'rinex2onesat.10o').values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(gr.gettime(R/'rinex2onesat.10o'))
 
     assert (times == [datetime(2010, 3, 5, 0, 0), datetime(2010, 3, 5, 0, 0, 30)]).all()
 
     assert obs.fast_processing
 
 
-def test_all_systems():
+@pytest.mark.parametrize('use', (None, ' ', '', ['G', 'R', 'S']))
+def test_all_systems(tmp_path, use):
     """
     ./ReadRinex.py tests/demo.10o -o r2all.nc
     ./ReadRinex.py tests/demo.10n -o r2all.nc
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2all.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2all.nc', group='OBS')
 # %% test reading all satellites
-    for u in (None, ' ', '', ['G', 'R', 'S']):
-        print('use', u)
-        obs = gr.load(R/'demo.10o', use=u)
-        assert obs.equals(truth)
-        assert obs.fast_processing
+    obs = gr.load(R/'demo.10o', use=use)
+    assert obs.equals(truth)
+    assert obs.fast_processing
 
     assert obs.position == pytest.approx([4789028.4701, 176610.0133, 4195017.031])
     try:
@@ -245,23 +210,23 @@ def test_all_systems():
     obs = gr.rinexobs(R / 'r2all.nc')
     assert obs.equals(truth)
 # %% test write .nc
-    with tempfile.TemporaryDirectory() as d:
-        outfn = Path(d)/'testout.nc'
-        gr.rinexobs(R/'demo.10o', outfn=Path(d)/'testout.nc')
-        assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
+    outdir = tmp_path
+    outfn = outdir / 'testout.nc'
+    gr.rinexobs(R/'demo.10o', outfn=outdir / 'testout.nc')
+    assert outfn.is_file() and 50000 > outfn.stat().st_size > 30000
 
 
-def test_one_system():
+@pytest.mark.parametrize('use', ('G', ['G']))
+def test_one_system(use):
     """./ReadRinex.py tests/demo.10o -u G -o r2G.nc
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2G.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2G.nc', group='OBS')
 
-    for u in ('G', ['G']):
-        obs = gr.load(R/'demo.10o', use=u)
-        assert obs.equals(truth)
-        assert obs.fast_processing
+    obs = gr.load(R/'demo.10o', use=use)
+    assert obs.equals(truth)
+    assert obs.fast_processing
 
 
 def test_multi_system():
@@ -269,7 +234,7 @@ def test_multi_system():
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS', autoclose=True)
+    truth = xarray.open_dataset(R / 'r2GR.nc', group='OBS')
 
     obs = gr.load(R/'demo.10o', use=('G', 'R'))
     assert obs.equals(truth)
@@ -309,6 +274,25 @@ def test_meas_onesys_indicators():
 
     assert C1.sel(sv='G07').values == approx([22227666.76, 25342359.37])
     assert obs.fast_processing
+
+
+@pytest.mark.parametrize('fn, tname',
+                         [('demo.10o', 'GPS'),
+                          ('default_time_system2.10o', 'GLO')])
+def test_time_system(fn, tname):
+    obs = gr.load(R/fn)
+    assert obs.attrs['time_system'] == tname
+
+
+@pytest.mark.parametrize('interval, expected_len', [(None, 9),
+                                                    (0, 9),
+                                                    (15, 9),
+                                                    (35, 4)])
+def test_interval(interval, expected_len):
+    obs = gr.load(R/'ab430140.18o.zip', interval=interval)
+    times = gr.to_datetime(obs.time)
+
+    assert len(times) == expected_len
 
 
 if __name__ == '__main__':

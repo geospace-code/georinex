@@ -24,8 +24,8 @@ R    3 L1C C1C S1C                                          SYS / # / OBS TYPES
 S    3 L1C C1C S1C                                          SYS / # / OBS TYPES
 DBHZ                                                        SIGNAL STRENGTH UNIT
     30.000                                                  INTERVAL
-  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS
-  2010     3     5    23    59    30.0000000     GPS        TIME OF LAST OBS
+  2010     3     5     0     0     0.0000000    GPS         TIME OF FIRST OBS
+  2010     3     5    23    59    30.0000000    GPS         TIME OF LAST OBS
      1                                                      RCV CLOCK OFFS APPL
 G CC2NONCC          p1c1bias.hist @ goby.nrl.navy.mil       SYS / DCBS APPLIED
 G PAGES             igs05.atx @ igscb.jpl.nasa.gov          SYS / PCVS APPLIED

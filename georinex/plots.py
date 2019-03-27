@@ -112,6 +112,15 @@ def navtimeseries(nav: xarray.Dataset):
 
             if ((lat < -57) | (lat > 57)).any():
                 logging.warning('GPS inclination ~ 55 degrees')
+        elif sv[0] == 'E':
+            ecef = keplerian2ecef(nav.sel(sv=sv))
+            lat, lon, alt = pm.ecef2geodetic(*ecef)
+
+            if ((alt < 23e6) | (alt > 24e6)).any():
+                logging.warning('unrealistic Galileo satellite altitudes')
+
+            if ((lat < -57) | (lat > 57)).any():
+                logging.warning('Galileo inclination ~ 56 degrees')
 
         else:
             continue

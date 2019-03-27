@@ -7,6 +7,8 @@ import io
 import os
 from typing.io import TextIO
 from typing import Union, Dict, Any
+from .common import rinex_version
+
 try:
     import unlzw
 except ImportError:
@@ -16,50 +18,50 @@ R = Path(__file__).resolve().parents[1]
 
 
 @contextmanager
-def opener(fn: Path, header: bool = False, verbose: bool = False) -> TextIO:
+def opener(fn: Union[TextIO, Path],
+           header: bool = False,
+           verbose: bool = False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
-    if fn.is_dir():
-        raise FileNotFoundError(f'{fn} is a directory; I need a file')
+    if isinstance(fn, str):
+        fn = Path(fn).expanduser()
 
-    if verbose:
-        if fn.stat().st_size > 100e6:
-            print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
-    if fn.suffixes == ['.crx', '.gz']:
-        if header:
-            with gzip.open(fn, 'rt') as f:
-                yield f
-        else:
-            with gzip.open(fn, 'rt') as g:
-                f = io.StringIO(_opencrx(g))
-                yield f
-    elif fn.suffix == '.crx' or str(fn)[-1] == 'd':
-        if header:
-            with fn.open('r') as f:
-                yield f
-        else:
-            with fn.open('r') as g:
-                f = io.StringIO(_opencrx(g))
-                yield f
-    elif fn.suffix == '.gz':
-        with gzip.open(fn, 'rt') as f:
-            yield f
-    elif fn.suffix == '.zip':
-        with zipfile.ZipFile(fn, 'r') as z:
-            flist = z.namelist()
-            for rinexfn in flist:
-                with z.open(rinexfn, 'r') as bf:
-                    f = io.TextIOWrapper(bf, newline=None)
-                    yield f
-    elif fn.suffix == '.Z':
-        if unlzw is None:
-            raise ImportError('pip install unlzw')
-        with fn.open('rb') as zu:
-            with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
-                yield f
-
+    if isinstance(fn, io.StringIO):
+        yield fn
     else:
-        with fn.open('r') as f:
-            yield f
+        if verbose:
+            if fn.stat().st_size > 100e6:
+                print(f'opening {fn.stat().st_size/1e6} MByte {fn.name}')
+
+        if fn.suffix == '.gz':
+            with gzip.open(fn, 'rt') as f:
+                version, is_crinex = rinex_version(f.readline(80))
+                f.seek(0)
+
+                if is_crinex and not header:
+                    f = io.StringIO(_opencrx(f))
+                yield f
+        elif fn.suffix == '.zip':
+            with zipfile.ZipFile(fn, 'r') as z:
+                flist = z.namelist()
+                for rinexfn in flist:
+                    with z.open(rinexfn, 'r') as bf:
+                        f = io.TextIOWrapper(bf, newline=None)
+                        yield f
+        elif fn.suffix == '.Z':
+            if unlzw is None:
+                raise ImportError('pip install unlzw')
+            with fn.open('rb') as zu:
+                with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
+                    yield f
+
+        else:  # assume not compressed (or Hatanaka)
+            with fn.open('r') as f:
+                version, is_crinex = rinex_version(f.readline(80))
+                f.seek(0)
+
+                if is_crinex and not header:
+                    f = io.StringIO(_opencrx(f))
+                yield f
 
 
 def _opencrx(f: TextIO) -> str:
@@ -90,34 +92,46 @@ def _opencrx(f: TextIO) -> str:
 
 def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     """verify RINEX version"""
+
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
-        if fn.suffixes == ['.crx', '.gz']:
-            with gzip.open(fn, 'rt') as z:
-                return rinexinfo(io.StringIO(z.read(80)))
-        elif fn.suffixes == ['.crx', '.d']:
-            with fn.open('r') as f:
-                return rinexinfo(io.StringIO(f.read(80)))
-        else:
-            with opener(fn) as f:
-                return rinexinfo(f)
+        with opener(fn) as f:
+            return rinexinfo(f)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
 
     try:
         line = f.readline(80)  # don't choke on binary files
-        if not isinstance(line, str) or line[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
-            raise ValueError
-        info = {'version': float(line[:9]),  # yes :9
-                'filetype': line[20],
-                'systems': line[40],
-                'hatanaka': line[20:40] == 'COMPACT RINEX FORMAT'}
 
-        if info['systems'] == ' ':
-            if info['filetype'] == 'N' and int(info['version']) == 2:  # type: ignore
-                info['systems'] = 'G'
+        version = rinex_version(line)[0]
+        
+        file_type = line[20]
+        if int(version) == 2:
+            if file_type == 'N':
+                system = 'G'
+            elif file_type == 'G':
+                system = 'R'
+            elif file_type == 'E':
+                system = 'E'
             else:
-                info['systems'] = info['filetype']
-    except (ValueError, UnicodeDecodeError) as e:
+                system = line[40]
+        else:
+            system = line[40]
+
+        if line[20] in ('O', 'C'):
+            rinex_type = 'obs'
+        elif line[20] == 'N' or 'NAV' in line[20:40]:
+            rinex_type = 'nav'
+        else:
+            rinex_type = line[20]
+
+        info = {'version': version,
+                'filetype': file_type,
+                'rinextype': rinex_type,
+                'systems': system}
+
+    except (TypeError, AttributeError, ValueError, UnicodeDecodeError) as e:
         # keep ValueError for consistent user error handling
         raise ValueError(f'not a known/valid RINEX file.  {e}')
 

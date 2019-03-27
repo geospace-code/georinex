@@ -37,13 +37,11 @@ def eachfile(fn: Path, verbose: bool = False):
             print(f'{fn.name}: {e}')
         return
 
-    if times is None:
-        return
 # %% output
     try:
         ostr = (f"{fn.name}:"
-                f" {times[0].values.astype('datetime64[us]').item().isoformat()}"
-                f" {times[-1].values.astype('datetime64[us]').item().isoformat()}")
+                f" {times[0].isoformat()}"
+                f" {times[-1].isoformat()}")
     except IndexError:
         return
 

@@ -1,43 +1,16 @@
 #!/usr/bin/env python
 from pathlib import Path
-import georinex as gr
 import pytest
+from pytest import approx
 import xarray
-import tempfile
 from datetime import datetime
+import georinex as gr
 #
 R = Path(__file__).parent / 'data'
 
 
-def test_blank():
-    fn = R/'blank3.10n'
-    nav = gr.load(fn)
-    assert nav is None
-
-    with tempfile.TemporaryDirectory() as outdir:
-        gr.load(fn, outdir)
-
-    times = gr.gettime(fn)
-    assert times is None
-
-
-def test_minimal():
-    fn = R/'minimal3.10n'
-
-    nav = gr.load(fn)
-    assert isinstance(nav, xarray.Dataset)
-
-    with tempfile.TemporaryDirectory() as outdir:
-        outdir = Path(outdir)
-        gr.load(fn, outdir)
-        outfn = (outdir / (fn.name + '.nc'))
-        assert outfn.is_file()
-
-        assert nav.equals(gr.load(outfn)), f'{outfn}  {fn}'
-
-
 def test_time():
-    times = gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz').values.astype('datetime64[us]').astype(datetime)
+    times = gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz')
 
     assert times[0] == datetime(2018, 4, 24, 8)
     assert times[-1] == datetime(2018, 6, 20, 22)
@@ -47,111 +20,48 @@ def test_tlim():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn, tlim=('2018-07-29T08', '2018-07-29T09'))
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
 
     assert (times == [datetime(2018, 7, 29, 8, 20), datetime(2018, 7, 29, 8, 50)]).all()
-# %% beyond end of file
+
+
+def test_tlim_past_eof():
+    fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn, tlim=('2018-07-29T23', '2018-07-29T23:30'))
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
 
     assert times == datetime(2018, 7, 29, 23)
 
 
-def test_qzss():
-    """./ReadRinex.py -q tests/qzss3.14n -o r3qzss.nc
-    """
-    pytest.importorskip('netCDF4')
+@pytest.mark.parametrize('filename, sv, shape',
+                         [('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'S36', (542, 16)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'G05', (7, 30)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'C05', (25, 29)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'E05', (45, 28)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'R05', (19, 16))],
+                         ids=['SBAS', 'GPS', 'BDS', 'GAL', 'GLO'])
+def test_large(filename, sv, shape):
 
-    truth = gr.load(R/'r3qzss.nc')
-    nav = gr.load(R/'qzss3.14n')
-    assert nav.equals(truth)
+    nav = gr.load(R / filename, use=sv[0])
 
+    assert nav.svtype[0] == sv[0] and len(nav.svtype) == 1
 
-def test_large_galileo():
-    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.load(fn, use='E')
+    dat = nav.sel(sv=sv).dropna(how='all', dim='time').to_dataframe()
+    assert dat.shape == shape
 
-    assert nav.svtype[0] == 'E' and len(nav.svtype) == 1
-
-    E05 = nav.sel(sv='E05').dropna(how='all', dim='time').to_dataframe()
-    assert E05.shape[0] == 45  # manually counted from file
-    assert E05.shape[1] == 28  # by Galileo NAV3 def'n
-
-    assert E05.notnull().all().all()
+    assert dat.notnull().all().all()
 
 
-def test_large_beidou():
-    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.load(fn, use='C')
-
-    assert nav.svtype[0] == 'C' and len(nav.svtype) == 1
-
-    C05 = nav.sel(sv='C05').dropna(how='all', dim='time').to_dataframe()
-    assert C05.shape[0] == 25  # manually counted from file
-    assert C05.shape[1] == 29  # by Beidou NAV3 def'n
-
-    assert C05.notnull().all().all()
-
-
-def test_large_gps():
-    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.load(fn, use='G')
-
-    assert nav.svtype[0] == 'G' and len(nav.svtype) == 1
-
-    G05 = nav.sel(sv='G05').dropna(how='all', dim='time').to_dataframe()
-    assert G05.shape[0] == 7  # manually counted from file
-    assert G05.shape[1] == 30  # by GPS NAV3 def'n
-
-    assert G05.notnull().all().all()
-
-
-def test_large_sbas():
-    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.load(fn, use='S')
-
-    assert nav.svtype[0] == 'S' and len(nav.svtype) == 1
-
-    S36 = nav.sel(sv='S36').dropna(how='all', dim='time').to_dataframe()
-    assert S36.shape[0] == 542  # manually counted from file
-    assert S36.shape[1] == 16  # by SBAS NAV3 def'n
-
-    assert S36.notnull().all().all()
-
-
-def test_large_glonass():
-    fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
-    nav = gr.load(fn, use='R')
-
-    assert nav.svtype[0] == 'R' and len(nav.svtype) == 1
-
-    R05 = nav.sel(sv='R05').dropna(how='all', dim='time').to_dataframe()
-    assert R05.shape[0] == 19  # manually counted from file
-    assert R05.shape[1] == 16  # by GLONASS NAV3 def'n
-
-    assert R05.notnull().all().all()
-
-
-def test_large():
+@pytest.mark.parametrize('sv, size',
+                         [('C05', 25), ('E05', 45), ('G05', 7), ('R05', 19), ('S36', 542)])
+def test_large_all(sv, size):
     fn = R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'
     nav = gr.load(fn)
     assert sorted(nav.svtype) == ['C', 'E', 'G', 'R', 'S']
 
-    C05 = nav.sel(sv='C05').dropna(how='all', dim='time').to_dataframe()
-    assert C05.shape[0] == 25  # manually counted from file
-
-    E05 = nav.sel(sv='E05').dropna(how='all', dim='time').to_dataframe()
-    assert E05.shape[0] == 45  # manually counted from file
-
-    G05 = nav.sel(sv='G05').dropna(how='all', dim='time').to_dataframe()
-    assert G05.shape[0] == 7  # manually counted from file
-
-    R05 = nav.sel(sv='R05').dropna(how='all', dim='time').to_dataframe()
-    assert R05.shape[0] == 19
-
-    S36 = nav.sel(sv='S36').dropna(how='all', dim='time').to_dataframe()
-    assert S36.shape[0] == 542  # manually counted from file
+    dat = nav.sel(sv=sv).dropna(how='all', dim='time').to_dataframe()
+    assert dat.shape[0] == size  # manually counted from file
 
 
 def test_mixed():
@@ -163,7 +73,7 @@ def test_mixed():
     assert isinstance(nav, xarray.Dataset)
     assert sorted(nav.svtype) == ['C', 'E', 'G', 'R']
 
-    times = nav.time.values.astype('datetime64[us]').astype(datetime)
+    times = gr.to_datetime(nav.time)
 
     assert times.size == 15
 # %% full flle test
@@ -186,38 +96,38 @@ def test_mixed():
     assert E05.time.size == 22  # duplications in file at same time--> take first time
 
 
-def test_sbas():
-    """./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
-    """
-    pytest.importorskip('netCDF4')
-
-    truth = xarray.open_dataset(R/'r3sbas.nc', group='NAV', autoclose=True)
-    nav = gr.load(R/'demo3.10n')
-
-    assert nav.equals(truth)
-
-
-def test_gps():
-    """./ReadRinex.py -q tests/demo.17n -o r3gps.nc
-    """
-    pytest.importorskip('netCDF4')
-
-    truth = xarray.open_dataset(R/'r3gps.nc', group='NAV', autoclose=True)
-    nav = gr.load(R/'demo.17n')
-
-    assert nav.equals(truth)
-
-
-def test_galileo():
+@pytest.mark.parametrize('rfn, ncfn',
+                         [('galileo3.15n', 'r3galileo.nc'),
+                          ('demo.17n', 'r3gps.nc'),
+                          ('qzss3.14n', 'r3qzss.nc'),
+                          ('demo3.10n', 'r3sbas.nc')],
+                         ids=['GAL', 'GPS', 'QZSS', 'SBAS'])
+def test_ref(rfn, ncfn):
     """
     ./ReadRinex.py -q tests/galileo3.15n -o r3galileo.nc
+    ./ReadRinex.py -q tests/demo.17n -o r3gps.nc
+    ./ReadRinex.py -q tests/qzss3.14n -o r3qzss.nc
+    ./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
     """
     pytest.importorskip('netCDF4')
 
-    truth = xarray.open_dataset(R/'r3galileo.nc', group='NAV', autoclose=True)
-    nav = gr.load(R/'galileo3.15n')
+    truth = gr.load(R/ncfn)
+    nav = gr.load(R/rfn)
 
     assert nav.equals(truth)
+
+
+def test_ionospheric_correction():
+    nav = gr.load(R/"demo.17n")
+
+    assert nav.attrs['ionospheric_corr_GPS'] == approx(
+                    [1.1176e-08, -1.4901e-08, -5.9605e-08, 1.1921e-07,
+                     9.8304e04, -1.1469e05, -1.9661e05, 7.2090e05])
+
+    nav = gr.load(R/"galileo3.15n")
+
+    assert nav.attrs['ionospheric_corr_GAL'] == approx(
+                    [0.1248e+03, 0.5039, 0.2377e-01])
 
 
 if __name__ == '__main__':

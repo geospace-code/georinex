@@ -2,6 +2,9 @@ from pathlib import Path
 from typing import Tuple, Dict, Any, Optional, Sequence, List
 from datetime import datetime
 from dateutil.parser import parse
+from typing import Union
+from typing.io import TextIO
+import io
 import xarray
 import pandas
 from .io import rinexinfo
@@ -27,14 +30,15 @@ def globber(path: Path, glob: Sequence[str]) -> List[Path]:
     return flist
 
 
-def gettime(fn: Path) -> xarray.DataArray:
+def gettime(fn: Union[TextIO, str, Path]) -> xarray.DataArray:
     """
     get times in RINEX 2/3 file
     Note: in header,
         * TIME OF FIRST OBS is mandatory
         * TIME OF LAST OBS is optional
     """
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
     assert int(info['version']) in (1, 2, 3), 'Wrong RINEX version'
@@ -60,20 +64,24 @@ def gettime(fn: Path) -> xarray.DataArray:
     return times
 
 
-def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
+def getlocations(flist: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
     """
     retrieve locations of GNSS receivers
 
     Requires pymap3d.ecef2geodetic
     """
-    if isinstance(flist, Path):
+    if isinstance(flist, (Path, io.StringIO)):
         flist = [flist]
 
-    locs = pandas.DataFrame(index=[f.name for f in flist],
-                            columns=['lat', 'lon', 'interval'])
+    if isinstance(flist[0], io.StringIO):
+        locs = pandas.DataFrame(index=['0'],
+                                columns=['lat', 'lon', 'interval'])
+    else:
+        locs = pandas.DataFrame(index=[f.name for f in flist],
+                                columns=['lat', 'lon', 'interval'])
 
     for f in flist:
-        if f.suffix == '.nc':
+        if isinstance(f, Path) and f.suffix == '.nc':
             dat = xarray.open_dataset(f, group='OBS')
             hdr = dat.attrs
         else:
@@ -82,43 +90,46 @@ def getlocations(flist: Sequence[Path]) -> pandas.DataFrame:
             except ValueError:
                 continue
 
+        if isinstance(f, Path):
+            key = f.name
+        else:
+            key = '0'
+
         if 'position_geodetic' not in hdr:
             continue
 
-        locs.loc[f.name, 'lat'] = hdr['position_geodetic'][0]
-        locs.loc[f.name, 'lon'] = hdr['position_geodetic'][1]
+        locs.loc[key, 'lat'] = hdr['position_geodetic'][0]
+        locs.loc[key, 'lon'] = hdr['position_geodetic'][1]
         if 'interval' in hdr and hdr['interval'] is not None:
-            locs.loc[f.name, 'interval'] = hdr['interval']
+            locs.loc[key, 'interval'] = hdr['interval']
 
     locs = locs.loc[locs.loc[:, ['lat', 'lon']].notna().all(axis=1), :]
 
     return locs
 
 
-def rinextype(fn: Path) -> str:
+def rinextype(fn: Union[TextIO, Path]) -> str:
     """
-    based on file extension only, does not actually inspect the file--that comes later
+    determine if input file is NetCDF, OBS or NAV
     """
-    if fn.suffix in ('.gz', '.zip', '.Z'):
-        fnl = fn.stem.lower()
-    else:
-        fnl = fn.name.lower()
 
-    if fnl.endswith(('o', 'O', 'o.rnx', 'o.crx', 'd', 'D')):
-        return 'obs'
-    elif fnl.endswith(('e', 'g', 'n', 'n.rnx')):
-        return 'nav'
-    elif fn.suffix.endswith('.nc'):
+
+    if isinstance(fn, Path) and fn.suffix.endswith('.nc'):
         return 'nc'
     else:
-        raise ValueError(f"I dont know what type of file you're trying to read: {fn}")
+        info = rinexinfo(fn)['rinextype']
+        if isinstance(fn, io.StringIO):
+            fn.seek(0)
+
+        return info
 
 
-def rinexheader(fn: Path) -> Dict[str, Any]:
+def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     """
     retrieve RINEX 2/3 header as unparsed dict()
     """
-    fn = Path(fn).expanduser()
+    if isinstance(fn, (str, Path)):
+        fn = Path(fn).expanduser()
 
     info = rinexinfo(fn)
     rtype = rinextype(fn)
@@ -129,14 +140,14 @@ def rinexheader(fn: Path) -> Dict[str, Any]:
         elif rtype == 'nav':
             hdr = navheader2(fn)
         else:
-            raise ValueError(f'Unknown rinex type in {fn}')
+            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
     elif int(info['version']) == 3:
         if rtype == 'obs':
             hdr = obsheader3(fn)
         elif rtype == 'nav':
             hdr = navheader3(fn)
         else:
-            raise ValueError(f'Unknown rinex type in {fn}')
+            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 
@@ -154,3 +165,15 @@ def _tlim(tlim: Tuple[datetime, datetime] = None) -> Optional[Tuple[datetime, da
         raise ValueError(f'Not sure what time limits are: {tlim}')
 
     return tlim
+
+
+def to_datetime(times: xarray.DataArray) -> datetime:
+    if not isinstance(times, xarray.DataArray):
+        return times
+
+    t = times.values.astype('datetime64[us]').astype(datetime)
+
+    if not isinstance(t, datetime):
+        t = t.squeeze()[()]  # might still be array, but squeezed at least
+
+    return t

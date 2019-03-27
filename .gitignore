@@ -1,10 +1,10 @@
+*.exe
 *.m~
 crx2rnx
 rnx2crx
 
 .mypy_cache/
 .pytest_cache/
-data/
 *.nc
 *.h5
 *.15*

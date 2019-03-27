@@ -2,16 +2,17 @@ from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
-from datetime import datetime
-from io import BytesIO
+from datetime import datetime, timedelta
+import io
 import xarray
-from typing import Dict, List, Tuple, Any, Sequence
+from typing import Dict, Union, List, Tuple, Any, Sequence
 from typing.io import TextIO
 try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
 #
+from .common import determine_time_system, rinex_version, _check_time_interval
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 SBAS = 100  # offset for ID
 GLONASS = 37
@@ -19,18 +20,38 @@ QZSS = 192
 BEIDOU = 0
 
 
-def rinexobs3(fn: Path,
+def rinexobs3(fn: Union[TextIO, str, Path],
               use: Sequence[str] = None,
               tlim: Tuple[datetime, datetime] = None,
               useindicators: bool = False,
               meas: Sequence[str] = None,
-              verbose: bool = False) -> xarray.Dataset:
+              verbose: bool = False,
+              *,
+              fast: bool = False,
+              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
 
+    fn: RINEX OBS 3 filename
     use: 'G'  or ['G', 'R'] or similar
+
+    tlim: read between these time bounds
+    useindicators: SSI, LLI are output
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
+
+    fast:
+          TODO: FUTURE, not yet enabled for OBS3
+          speculative preallocation based on minimum SV assumption and file size.
+          Avoids double-reading file and more complicated linked lists.
+          Believed that Numpy array should be faster than lists anyway.
+          Reduce Nsvmin if error (let us know)
+
+    interval: allows decimating file read by time e.g. every 5 seconds.
+                Useful to speed up reading of very large RINEX files
     """
+
+    interval = _check_time_interval(interval)
+
     if isinstance(use, str):
         use = [use]
 
@@ -44,9 +65,11 @@ def rinexobs3(fn: Path,
         meas = None
 # %% allocate
     # times = obstime3(fn)
-    data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
-    if tlim is not None:
-        assert isinstance(tlim[0], datetime), 'time bounds are specified as datetime.datetime'
+    data = xarray.Dataset({}, coords={'time': [], 'sv': []})
+    if tlim is not None and not isinstance(tlim[0], datetime):
+        raise TypeError('time bounds are specified as datetime.datetime')
+
+    last_epoch = None
 # %% loop
     with opener(fn, verbose=verbose) as f:
         hdr = obsheader3(f, use, meas)
@@ -56,9 +79,9 @@ def rinexobs3(fn: Path,
                 break
 
             try:
-                time = _timeobs(ln, fn)
+                time = _timeobs(ln)
             except ValueError:  # garbage between header and RINEX data
-                logging.error(f'garbage detected in {fn}, trying to parse at next time step')
+                logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
 # %% get SV indices
             # Number of visible satellites this time %i3  pg. A13
@@ -76,19 +99,29 @@ def rinexobs3(fn: Path,
                 elif time > tlim[1]:
                     break
 
+            if interval is not None:
+                if last_epoch is None:  # initialization
+                    last_epoch = time
+                else:
+                    if time - last_epoch < interval:
+                        continue
+                    else:
+                        last_epoch += interval
+
             if verbose:
                 print(time, end="\r")
 
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
-    if data is None:  # all outside time bounds, etc.
-        return
 # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
-    data.attrs['filename'] = fn.name
     data.attrs['version'] = hdr['version']
     data.attrs['rinextype'] = 'obs'
+    data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
+    data.attrs['time_system'] = determine_time_system(hdr)
+    if isinstance(fn, Path):
+        data.attrs['filename'] = fn.name
 
     try:
         data.attrs['position'] = hdr['position']
@@ -102,12 +135,12 @@ def rinexobs3(fn: Path,
     return data
 
 
-def _timeobs(ln: str, fn: Path) -> datetime:
+def _timeobs(ln: str) -> datetime:
     """
     convert time from RINEX 3 OBS text to datetime
     """
     if not ln.startswith('>'):  # pg. A13
-        raise ValueError(f'RINEX 3 line beginning > is not present in {fn}')
+        raise ValueError(f'RINEX 3 line beginning > is not present')
 
     return datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
                     hour=int(ln[13:15]), minute=int(ln[16:18]),
@@ -115,27 +148,19 @@ def _timeobs(ln: str, fn: Path) -> datetime:
                     microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
 
-def obstime3(fn: Path, verbose: bool = False) -> xarray.DataArray:
+def obstime3(fn: Union[TextIO, Path],
+             verbose: bool = False) -> np.ndarray:
     """
     return all times in RINEX file
     """
     times = []
-    hdr = obsheader3(fn)
 
     with opener(fn, verbose=verbose) as f:
         for ln in f:
             if ln.startswith('>'):
-                times.append(_timeobs(ln, fn))
+                times.append(_timeobs(ln))
 
-    if not times:
-        return None
-
-    timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'filename': fn,
-                                      'interval': hdr['interval']})
-
-    return timedat
+    return np.asarray(times)
 
 
 def _epoch(data: xarray.Dataset, raw: str,
@@ -147,7 +172,7 @@ def _epoch(data: xarray.Dataset, raw: str,
     """
     block processing of each epoch (time step)
     """
-    darr = np.atleast_2d(np.genfromtxt(BytesIO(raw.encode('ascii')),
+    darr = np.atleast_2d(np.genfromtxt(io.BytesIO(raw.encode('ascii')),
                                        delimiter=(14, 1, 1) * hdr['Fmax']))
 # %% assign data for each time step
     for sk in hdr['fields']:  # for each satellite system type (G,R,S, etc.)
@@ -173,17 +198,13 @@ def _epoch(data: xarray.Dataset, raw: str,
         if verbose:
             print(time, '\r', end='')
 
-        if data is None:
-            # , attrs={'toffset':toffset})
-            data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
-        else:
-            if len(hdr['fields']) == 1:  # one satellite system selected, faster to process
-                data = xarray.concat((data,
-                                      xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})),
-                                     dim='time')
-            else:  # general case, slower for different satellite systems all together
-                data = xarray.merge((data,
-                                     xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})))
+        epoch_data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
+        if len(data) == 0:
+            data = epoch_data
+        elif len(hdr['fields']) == 1:  # one satellite system selected, faster to process
+            data = xarray.concat((data, epoch_data), dim='time')
+        else:  # general case, slower for different satellite systems all together
+            data = xarray.merge((data, epoch_data))
 
     return data
 
@@ -215,9 +236,15 @@ def obsheader3(f: TextIO,
         fn = f
         with opener(fn, header=True) as f:
             return obsheader3(f)
+    elif isinstance(f, io.StringIO):
+        f.seek(0)
+    elif isinstance(f, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'Unknown input filetype {type(f)}')
 # %% first line
     ln = f.readline()
-    hdr = {'version': float(ln[:9]),  # yes :9
+    hdr = {'version': rinex_version(ln)[0],
            'systems': ln[40],
            }
     for ln in f:

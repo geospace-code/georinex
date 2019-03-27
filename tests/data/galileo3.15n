@@ -1,6 +1,6 @@
      3.03           N: GNSS NAV DATA    E: GALILEO NAV DATA RINEX VERSION / TYPE
 NetR9 5.01          Receiver Operator   20150619 000000 UTC PGM / RUN BY / DATE
-GAL    .1248D+03    .5039D+00    .2377D-01   .0000D+00      IONOSPHERIC CORR
+GAL     .1248D+03   .5039D+00   .2377D-01   .0000D+00       IONOSPHERIC CORR
 GAUT   .3725290298D-08  .532907052D-14 345600 1849          TIME SYSTEM CORR
     16    17  1851    3                                     LEAP SECONDS
                                                             END OF HEADER

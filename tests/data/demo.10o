@@ -16,8 +16,8 @@ IR2200716006        ASHTECH UZ-12       CQ00                REC # / TYPE / VERS
      1     2     3   G14   G18   G19                        WAVELENGTH FACT L1/2
      7    L1    L2    P1    P2    C1    S1    S2            # / TYPES OF OBSERV 
     30.000                                                  INTERVAL            
-  2010     3     5     0     0     0.0000000     GPS        TIME OF FIRST OBS   
-  2010     3     5    23    59    30.0000000     GPS        TIME OF LAST OBS    
+  2010     3     5     0     0     0.0000000    GPS         TIME OF FIRST OBS
+  2010     3     5    23    59    30.0000000    GPS         TIME OF LAST OBS
      1                                                      RCV CLOCK OFFS APPL 
     15                                                      LEAP SECONDS        
     14                                                      # OF SATELLITES     
