@@ -92,8 +92,7 @@ def test_zip():
                               'G17', 'G19', 'G25', 'G30', 'R01', 'R02', 'R08', 'R22', 'R23', 'R24', 'S20',
                               'S31', 'S35', 'S38']).all()
 
-    times = gr.to_datetime(gr.gettime(fn))
-
+    times = gr.gettime(fn)
     assert (times == [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30),  datetime(2018, 5, 13, 1, 31)]).all()
 
     hdr = gr.rinexheader(fn)

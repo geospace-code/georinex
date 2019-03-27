@@ -20,7 +20,7 @@ def test_nav3(rinex_version, t):
         rtype = gr.rinextype(f)
         assert rtype == 'nav'
 
-        times = gr.to_datetime(gr.gettime(f))
+        times = gr.gettime(f)
         nav = gr.load(f)
 
     assert times == t

@@ -10,7 +10,7 @@ R = Path(__file__).parent / 'data'
 
 
 def test_time():
-    times = gr.to_datetime(gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz'))
+    times = gr.gettime(R/'VILL00ESP_R_20181700000_01D_MN.rnx.gz')
 
     assert times[0] == datetime(2018, 4, 24, 8)
     assert times[-1] == datetime(2018, 6, 20, 22)
