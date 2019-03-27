@@ -101,7 +101,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     else:
         Nextra = 0
 
-    times = _num_times(fn, Nextra, tlim, fast, verbose)
+    times = _num_times(fn, Nextra, tlim, verbose)
     Nt = times.size
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
@@ -111,7 +111,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
 # %% preallocate, check
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
-    toffset = None
 # %% start reading
     with opener(fn, verbose=verbose) as f:
         _skip_header(f)
@@ -156,10 +155,11 @@ def rinexsystem2(fn: Union[TextIO, Path],
             if fast:
                 times[j] = time_epoch
 
-            try:
-                toffset = ln[68:80]
-            except ValueError:
-                pass
+# Does anyone need this?
+#            try:
+#                toffset = ln[68:80]
+#            except ValueError:
+#                pass
 # %% get SV indices
             try:
                 sv = _getsvind(f, ln)
@@ -234,8 +234,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
                 else:
                     raise
 # %% output gathering
-    if fast:
-        data = data[:, :times.size, :]
+    data = data[:, :times.size, :]  # trims down for unneeded preallocated
 
     fields = []
     for field in hdr['fields']:
@@ -266,8 +265,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
 # %% attributes
     obs.attrs['version'] = hdr['version']
     obs.attrs['rinextype'] = 'obs'
-    if toffset is not None:
-        obs.attrs['toffset'] = toffset
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
@@ -284,10 +281,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
 def _num_times(fn: Path, Nextra: int,
                tlim: Optional[Tuple[datetime, datetime]],
-               fast: bool, verbose: bool) -> np.ndarray:
+               verbose: bool) -> np.ndarray:
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
-    if fast:
+    if Nextra:
         """
         estimated number of satellites per file:
             * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
@@ -306,7 +303,7 @@ def _num_times(fn: Path, Nextra: int,
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         if tlim is not None:
-            times = t[(tlim[0] <= t) & (t < tlim[1])]
+            times = t[(tlim[0] <= t) & (t <= tlim[1])]
         else:
             times = t
 
