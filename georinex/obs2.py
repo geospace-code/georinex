@@ -117,7 +117,11 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
         Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
-        times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+        t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
+        if tlim is not None:
+            times = t[(tlim[0] < t) & (t < tlim[1])]
+        else:
+            times = t
         Nt = len(times)
         if Nt < 1:
             return xarray.Dataset({})
@@ -129,6 +133,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
 # %% preallocate, check
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
+    toffset = None
 # %% start reading
     with opener(fn, verbose=verbose) as f:
         _skip_header(f)
@@ -142,9 +147,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
                 time_epoch = _timeobs(ln)
             except ValueError:
                 continue
-
-            if not fast:
-                j += 1
 
             if tlim is not None:
                 if time_epoch < tlim[0]:  # before specified start-time
@@ -162,9 +164,8 @@ def rinexsystem2(fn: Union[TextIO, Path],
                         continue
                     else:
                         last_epoch += interval
-
-            if fast:
-                j += 1
+            # j += 1 must be after all time skipping
+            j += 1
 # %% epoch flag and offset
             eflag = int(ln[28])
             if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
@@ -180,7 +181,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
             try:
                 toffset = ln[68:80]
             except ValueError:
-                toffset = None
+                pass
 # %% get SV indices
             try:
                 sv = _getsvind(f, ln)
@@ -433,7 +434,7 @@ def _getSVlist(ln: str, N: int,
 
 
 def obstime2(fn: Union[TextIO, Path],
-             verbose: bool = False) -> xarray.DataArray:
+             verbose: bool = False) -> np.ndarray:
     """
     read all times in RINEX2 OBS file
     """
@@ -452,14 +453,7 @@ def obstime2(fn: Union[TextIO, Path],
 
             _skip(f, ln, hdr['Nl_sv'])
 
-    timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'interval': hdr['interval']})
-
-    if isinstance(fn, Path):
-        timedat.attrs['filename'] = fn.name
-
-    return timedat
+    return np.asarray(times)
 
 
 def _skip(f: TextIO, ln: str,

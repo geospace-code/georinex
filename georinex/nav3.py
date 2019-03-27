@@ -332,7 +332,7 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
     return hdr
 
 
-def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
+def navtime3(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     return all times in RINEX file
     """
@@ -350,12 +350,4 @@ def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
 
-    times = np.unique(times)
-
-    timedat = xarray.DataArray(times,
-                               dims=['time'])
-
-    if isinstance(fn, Path):
-        timedat.attrs['filename'] = fn.name
-
-    return timedat
+    return np.unique(times)

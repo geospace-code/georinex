@@ -4,7 +4,6 @@ from pytest import approx
 from pathlib import Path
 import georinex as gr
 import xarray
-import numpy as np
 
 R = Path(__file__).parent / 'data'
 
@@ -43,12 +42,9 @@ def test_minimal(tmp_path, filename):
     assert dat.equals(gr.load(outfn)), f'{outfn}  {fn}'
 
     times = gr.gettime(fn)
-    assert times.dropna('time').size == 1
+    assert times.size == 1
 
     if dat.rinextype == 'obs':
-        assert isinstance(times.interval, float)
-        assert np.isnan(times.interval)
-
         if int(dat.version) == 2:
             assert dat.fast_processing
         elif int(dat.version) == 3:

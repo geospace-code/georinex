@@ -11,18 +11,14 @@ R = Path(__file__).parent / 'data'
 
 
 def test_time():
-    pytest.importorskip('unlzw')
-
-    times = gr.to_datetime(gr.gettime(R/'ab422100.18n.Z'))
+    times = gr.to_datetime(gr.gettime(R/'ab422100.18n'))
 
     assert times[0] == datetime(2018, 7, 29, 1, 59, 44)
     assert times[-1] == datetime(2018, 7, 30)
 
 
 def test_data():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'ab422100.18n.Z')
+    nav = gr.load(R/'ab422100.18n')
 
     nav0 = nav.sel(time='2018-07-29T03:59:44').dropna(dim='sv', how='all')
 
@@ -66,9 +62,7 @@ def test_mangled2():
 
 
 def test_tlim():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'ceda2100.18e.Z', tlim=('2018-07-29T11', '2018-07-29T12'))
+    nav = gr.load(R/'ceda2100.18e', tlim=('2018-07-29T11', '2018-07-29T12'))
 
     times = gr.to_datetime(nav.time)
 
@@ -76,9 +70,7 @@ def test_tlim():
 
 
 def test_tlim_past_eof():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'p1462100.18g.Z', tlim=('2018-07-29T23:45', '2018-07-30'))
+    nav = gr.load(R/'p1462100.18g', tlim=('2018-07-29T23:45', '2018-07-30'))
 
     times = gr.to_datetime(nav.time)
 
@@ -86,9 +78,7 @@ def test_tlim_past_eof():
 
 
 def test_galileo():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'ceda2100.18e.Z')
+    nav = gr.load(R/'ceda2100.18e')
 
     E18 = nav.sel(sv='E18').dropna(dim='time', how='all')
     assert gr.to_datetime(E18.time) == datetime(2018, 7, 29, 12, 40)

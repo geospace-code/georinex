@@ -48,6 +48,12 @@ def load(rinexfn: Union[TextIO, str, Path],
         else:
             raise ValueError(f'not sure what output is wanted: {out}')
 # %% main program
+    if tlim is not None:
+        if len(tlim) != 2:
+            raise ValueError('time bounds are specified as start stop')
+        if tlim[1] < tlim[0]:
+            raise ValueError('stop time must be after start time')
+
     if rtype == 'nav':
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
     elif rtype == 'obs':

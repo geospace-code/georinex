@@ -201,7 +201,7 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
+def navtime2(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     read all times in RINEX 2 NAV file
     """
@@ -223,12 +223,4 @@ def navtime2(fn: Union[TextIO, Path]) -> xarray.DataArray:
 
             _skip(f, Nl[hdr['systems']])
 
-    times = np.unique(times)
-
-    timedat = xarray.DataArray(times,
-                               dims=['time'])
-
-    if isinstance(fn, Path):
-        timedat.attrs['filename'] = fn.name
-
-    return timedat
+    return np.unique(times)

@@ -149,26 +149,18 @@ def _timeobs(ln: str) -> datetime:
 
 
 def obstime3(fn: Union[TextIO, Path],
-             verbose: bool = False) -> xarray.DataArray:
+             verbose: bool = False) -> np.ndarray:
     """
     return all times in RINEX file
     """
     times = []
-    hdr = obsheader3(fn)
 
     with opener(fn, verbose=verbose) as f:
         for ln in f:
             if ln.startswith('>'):
                 times.append(_timeobs(ln))
 
-    timedat = xarray.DataArray(times,
-                               dims=['time'],
-                               attrs={'interval': hdr['interval']})
-
-    if isinstance(fn, Path):
-        timedat.attrs['filename'] = fn.name
-
-    return timedat
+    return np.asarray(times)
 
 
 def _epoch(data: xarray.Dataset, raw: str,

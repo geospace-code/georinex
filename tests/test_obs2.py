@@ -153,18 +153,17 @@ def test_Z_lzw():
 
 
 def test_tlim():
-    pytest.importorskip('unlzw')
-
-    obs = gr.load(R/'ac660270.18o.Z', tlim=('2018-01-27T00:19', '2018-01-27T00:19:45'))
+    """
+    Important test, be sure it's runnable on all systems
+    """
+    obs = gr.load(R/'york0440.zip', tlim=('2015-02-13T23:59', '2015-02-14T00:00'))
 
     times = gr.to_datetime(obs.time)
 
-    assert (times == [datetime(2018, 1, 27, 0, 19),
-                      datetime(2018, 1, 27, 0, 19, 15),
-                      datetime(2018, 1, 27, 0, 19, 30),
-                      datetime(2018, 1, 27, 0, 19, 45)]).all()
+    assert (times == [datetime(2015, 2, 13, 23, 59, 0),
+                      datetime(2015, 2, 13, 23, 59, 30)]).all()
 
-    assert not obs.fast_processing
+    assert obs.fast_processing
 
 
 def test_one_sv():
