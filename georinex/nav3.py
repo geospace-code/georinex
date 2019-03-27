@@ -8,7 +8,7 @@ import io
 from datetime import datetime
 from .io import opener, rinexinfo
 from .common import rinex_string_to_float
-from typing import Dict, Union, List, Any, Sequence, Optional
+from typing import Dict, Union, List, Any, Sequence
 from typing.io import TextIO
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
@@ -43,8 +43,9 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             if line.startswith('\n'):  # EOF
                 break
 
-            time = _time(line)
-            if time is None:  # blank or garbage line
+            try:
+                time = _time(line)
+            except ValueError:  # blank or garbage line
                 continue
 
             if tlim is not None:
@@ -79,17 +80,11 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
-    if not raws:
-        return None
 # %% parse
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, 'ns') for t in times])
-    nav: xarray.Dataset = None
+    nav = xarray.Dataset({}, coords={'time': [], 'sv': []})
     svu = sorted(set(svs))
-
-    if len(svu) == 0:
-        logging.warning('no specified data found in {fn}')
-        return None
 
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
@@ -120,7 +115,7 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 
             dsf[f] = (('time', 'sv'), d[:, None])
 
-        if nav is None:
+        if len(nav) == 0:
             nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
         else:
             nav = xarray.merge((nav,
@@ -161,17 +156,14 @@ def _skip(f: TextIO, Nl: int):
         pass
 
 
-def _time(ln: str) -> Optional[datetime]:
+def _time(ln: str) -> datetime:
 
-    try:
-        return datetime(year=int(ln[4:8]),
-                        month=int(ln[9:11]),
-                        day=int(ln[12:14]),
-                        hour=int(ln[15:17]),
-                        minute=int(ln[18:20]),
-                        second=int(ln[21:23]))
-    except ValueError:
-        return None
+    return datetime(year=int(ln[4:8]),
+                    month=int(ln[9:11]),
+                    day=int(ln[12:14]),
+                    hour=int(ln[15:17]),
+                    minute=int(ln[18:20]),
+                    second=int(ln[21:23]))
 
 
 def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
@@ -350,8 +342,9 @@ def navtime3(fn: Union[TextIO, Path]) -> xarray.DataArray:
         navheader3(f)  # skip header
 
         for line in f:
-            time = _time(line)
-            if not time:
+            try:
+                time = _time(line)
+            except ValueError:
                 continue
 
             times.append(time)

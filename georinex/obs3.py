@@ -65,7 +65,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
         meas = None
 # %% allocate
     # times = obstime3(fn)
-    data: xarray.Dataset = None  # data = xarray.Dataset(coords={'time': times, 'sv': None})
+    data = xarray.Dataset({}, coords={'time': [], 'sv': []})
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are specified as datetime.datetime')
 
@@ -81,7 +81,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
             try:
                 time = _timeobs(ln)
             except ValueError:  # garbage between header and RINEX data
-                logging.error(f'garbage detected in {fn}, trying to parse at next time step')
+                logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
 # %% get SV indices
             # Number of visible satellites this time %i3  pg. A13
@@ -113,8 +113,6 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
-    if data is None:  # all outside time bounds, etc.
-        return
 # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
@@ -208,17 +206,13 @@ def _epoch(data: xarray.Dataset, raw: str,
         if verbose:
             print(time, '\r', end='')
 
-        if data is None:
-            # , attrs={'toffset':toffset})
-            data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
-        else:
-            if len(hdr['fields']) == 1:  # one satellite system selected, faster to process
-                data = xarray.concat((data,
-                                      xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})),
-                                     dim='time')
-            else:  # general case, slower for different satellite systems all together
-                data = xarray.merge((data,
-                                     xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})))
+        epoch_data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
+        if len(data) == 0:
+            data = epoch_data
+        elif len(hdr['fields']) == 1:  # one satellite system selected, faster to process
+            data = xarray.concat((data, epoch_data), dim='time')
+        else:  # general case, slower for different satellite systems all together
+            data = xarray.merge((data, epoch_data))
 
     return data
 

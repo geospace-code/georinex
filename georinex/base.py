@@ -129,8 +129,6 @@ def rinexnav(fn: Union[TextIO, str, Path],
     else:
         raise LookupError(f'unknown RINEX  {info}  {fn}')
 
-    if nav is None:
-        return None
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
@@ -185,8 +183,6 @@ def rinexobs(fn: Union[TextIO, str, Path],
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 
-    if obs is None:
-        return None
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()

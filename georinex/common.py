@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
-from typing import Tuple, Union, Optional
+from typing import Tuple, Dict, Any
 try:
     import psutil
 except ImportError:
@@ -42,7 +42,7 @@ def check_ram(memneed: int, fn: Path):
                            'try fast=False to reduce RAM usage, raise a GitHub Issue to let us help')
 
 
-def determine_time_system(header: dict) -> str:
+def determine_time_system(header: Dict[str, Any]) -> str:
     """Determine which time system is used in an observation file."""
     # Current implementation is quite inconsistent in terms what is put into
     # header.
@@ -66,22 +66,23 @@ def determine_time_system(header: dict) -> str:
     elif file_type == 'M':
         # Else the type is mixed and the time system must be specified in
         # TIME OF FIRST OBS row.
-        ts = header['TIME OF FIRST OBS'][48:51]
+        ts = header['TIME OF FIRST OBS'][48:51].strip()
     else:
         raise ValueError(f'unknown file type {file_type}')
 
     return ts
 
 
-def _check_time_interval(interval: Union[float, int, timedelta, None]) -> Optional[timedelta]:
-    if interval is not None:
-        if isinstance(interval, (float, int)):
-            if interval < 0:
-                raise ValueError('time interval must be non-negative')
-            interval = timedelta(seconds=interval)
-        elif isinstance(interval, timedelta):
-            pass
-        else:
-            raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
+def _check_time_interval(interval: Any) -> timedelta:
+    if isinstance(interval, (float, int)):
+        if interval < 0:
+            raise ValueError('time interval must be non-negative')
+        interval = timedelta(seconds=interval)
+    elif isinstance(interval, timedelta):
+        pass
+    elif interval is None:
+        pass
+    else:
+        raise TypeError('expect time interval in seconds (float,int) or datetime.timedelta')
 
     return interval

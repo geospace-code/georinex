@@ -6,7 +6,7 @@ import io
 from math import ceil
 from datetime import datetime, timedelta
 import xarray
-from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
+from typing import List, Union, Any, Dict, Tuple, Sequence
 from typing.io import TextIO
 try:
     from pymap3d import ecef2geodetic
@@ -31,21 +31,18 @@ def rinexobs2(fn: Path,
     if use is None or not use[0].strip():
         use = ('C', 'E', 'G', 'J', 'R', 'S')
 
-    obs = None
+    obs = xarray.Dataset({}, coords={'time': [], 'sv': []})
+    attrs: Dict[str, Any] = {}
     for u in use:
         o = rinexsystem2(fn, system=u, tlim=tlim,
                          useindicators=useindicators, meas=meas,
                          verbose=verbose,
                          fast=fast, interval=interval)
-        if o is not None:
-            if obs is None:
-                attrs = o.attrs
-                obs = o
-            else:
-                obs = xarray.merge((obs, o))
+        if len(o) > 0:
+            attrs = o.attrs
+            obs = xarray.merge((obs, o))
 
-    if obs is not None:
-        obs.attrs = attrs
+    obs.attrs = attrs
 
     return obs
 
@@ -95,7 +92,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
     if hdr['systems'] != 'M' and system != hdr['systems']:
         logging.debug(f'system {system} in {fn} was not present')
-        return
+        return xarray.Dataset({})
 
     if fast:
         Nextra = _fast_alloc(fn, hdr['Nl_sv'])
@@ -109,8 +106,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
         estimated number of satellites per file:
             * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
         """
-        assert isinstance(Nextra, int)
-
         if isinstance(fn, Path):
             filesize = fn.stat().st_size
         elif isinstance(fn, io.StringIO):
@@ -125,7 +120,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
         times = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         Nt = len(times)
         if Nt < 1:
-            return
+            return xarray.Dataset({})
 
     Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
 # %% optional RAM check
@@ -133,9 +128,6 @@ def rinexsystem2(fn: Union[TextIO, Path],
     check_ram(memneed, fn)
 # %% preallocate, check
     data = np.empty((Npages, Nt, Nsvsys))
-    if data.size == 0:
-        return
-
     data.fill(np.nan)
 # %% start reading
     with opener(fn, verbose=verbose) as f:
@@ -146,8 +138,9 @@ def rinexsystem2(fn: Union[TextIO, Path],
         last_epoch = None
 # %% time handling / skipping
         for ln in f:
-            time_epoch = _timeobs(ln)
-            if time_epoch is None:  # junk / unexpected line
+            try:
+                time_epoch = _timeobs(ln)
+            except ValueError:
                 continue
 
             if not fast:
@@ -189,7 +182,11 @@ def rinexsystem2(fn: Union[TextIO, Path],
             except ValueError:
                 toffset = None
 # %% get SV indices
-            sv = _getsvind(f, ln)
+            try:
+                sv = _getsvind(f, ln)
+            except ValueError as e:
+                logging.debug(e)
+                continue
 # %% select one, a few, or all satellites
             iuse = [i for i, s in enumerate(sv) if s[0] == system]
             if len(iuse) == 0:
@@ -254,15 +251,12 @@ def rinexsystem2(fn: Union[TextIO, Path],
                         data[i, j, isv] = darr[:, k]
             except IndexError as e:
                 if fast:
-                    raise RuntimeError(f'this error may be a result of "fast" mode, try fast=False  {e}')
+                    raise RuntimeError(f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}')
                 else:
                     raise
 # %% output gathering
     if fast:
         data = data[:, :len(times), :]
-
-    if np.isnan(data).all():  # don't use darr=None sentinel, due to meas= cases
-        return
 
     fields = []
     for field in hdr['fields']:
@@ -411,6 +405,9 @@ def obsheader2(f: TextIO,
 
 
 def _getsvind(f: TextIO, ln: str) -> List[str]:
+    if len(ln) < 32:
+        raise ValueError(f'satellite index line truncated:  {ln}')
+
     Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
     # get first 12 SV ID's
     sv = _getSVlist(ln, min(12, Nsv), [])
@@ -422,7 +419,7 @@ def _getsvind(f: TextIO, ln: str) -> List[str]:
         n -= 12
 
     if Nsv != len(sv):
-        raise LookupError('satellite list read incorrectly')
+        raise ValueError('satellite list read incorrectly')
 
     return sv
 
@@ -446,8 +443,9 @@ def obstime2(fn: Union[TextIO, Path],
         hdr = obsheader2(f)
 
         for ln in f:
-            time_epoch = _timeobs(ln)
-            if time_epoch is None:
+            try:
+                time_epoch = _timeobs(ln)
+            except ValueError:
                 continue
 
             times.append(time_epoch)
@@ -506,34 +504,27 @@ def _timehdr(ln: str) -> datetime:
                     microsecond=usec)
 
 
-def _timeobs(ln: str) -> Optional[datetime]:
-    """
-    Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
-    Python < 3.7 supports microseconds.
-    """
+def _timeobs(ln: str) -> datetime:
+
+    year = int(ln[1:3])
+    if year < 80:
+        year += 2000
+    else:
+        year += 1900
+
     try:
-        year = int(ln[1:3])
-        if year < 80:
-            year += 2000
-        else:
-            year += 1900
+        usec = int(float(ln[16:26]) % 1 * 1000000)
+    except ValueError:
+        usec = 0
 
-        try:
-            usec = int(float(ln[16:26]) % 1 * 1000000)
-        except ValueError:
-            usec = 0
-
-        return datetime(year=year,
-                        month=int(ln[4:6]),
-                        day=int(ln[7:9]),
-                        hour=int(ln[10:12]),
-                        minute=int(ln[13:15]),
-                        second=int(ln[16:18]),
-                        microsecond=usec
-                        )
-    except ValueError:  # garbage between header and RINEX data
-        logging.info(f'garbage detected in RINEX file')
-        return None
+    return datetime(year=year,
+                    month=int(ln[4:6]),
+                    day=int(ln[7:9]),
+                    hour=int(ln[10:12]),
+                    minute=int(ln[13:15]),
+                    second=int(ln[16:18]),
+                    microsecond=usec
+                    )
 
 
 def _skip_header(f: TextIO):
@@ -560,14 +551,19 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
         _skip_header(f)
 # %% find the first line with time (sometimes a blank line or two after header)
         for ln in f:
-            t = _timeobs(ln)
+            try:
+                t = _timeobs(ln)
+            except ValueError:
+                continue
+
             if isinstance(t, datetime):
                 break
 
-        if t is None:
+        try:
+            _getsvind(f, ln)
+        except ValueError as e:
+            logging.debug(e)
             return 0
-
-        _getsvind(f, ln)
 
         raw = [f.readline() for _ in range(Nl_sv)]
 

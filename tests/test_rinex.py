@@ -15,7 +15,7 @@ def test_blank(tmp_path, filename):
     fn = R/filename
 
     dat = gr.load(fn)
-    assert dat is None
+    assert dat.time.size == 0
 
     outdir = tmp_path
     gr.load(fn, outdir)
@@ -84,4 +84,4 @@ def test_dont_care_file_extension():
 
 
 if __name__ == '__main__':
-    pytest.main(['-x', __file__])
+    pytest.main([__file__])

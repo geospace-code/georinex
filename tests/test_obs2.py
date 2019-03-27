@@ -104,7 +104,7 @@ def test_meas_miss():
     assert obs.fast_processing
 # %% measurement not in any system
     obs = gr.load(fn, meas='nonsense')
-    assert obs is None
+    assert len(obs) == 0
 # %% wildcard
     obs = gr.load(fn, meas='P')
     assert 'L1' not in obs
