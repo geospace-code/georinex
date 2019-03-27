@@ -147,7 +147,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
                 print(time_epoch, end="\r")
 
             if fast:
-                times[j] = time_epoch
+                try:
+                    times[j] = time_epoch
+                except IndexError as e:
+                    raise IndexError(f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}')
 
 # Does anyone need this?
 #            try:
@@ -209,24 +212,19 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
 # %% select only "used" satellites
             isv = [int(s[1:])-1 for s in gsv]
-            try:
-                for i, k in enumerate(hdr['fields_ind']):
-                    if useindicators:
-                        data[i*3, j, isv] = darr[:, k*3]
-                        # FIXME which other should be excluded?
-                        ind = i if meas is not None else k
-                        if hdr['fields'][ind] not in ('S1', 'S2'):
-                            if hdr['fields'][ind] in ('L1', 'L2'):
-                                data[i*3+1, j, isv] = darr[:, k*3+1]
 
-                            data[i*3+2, j, isv] = darr[:, k*3+2]
-                    else:
-                        data[i, j, isv] = darr[:, k]
-            except IndexError as e:
-                if fast:
-                    raise RuntimeError(f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}')
+            for i, k in enumerate(hdr['fields_ind']):
+                if useindicators:
+                    data[i*3, j, isv] = darr[:, k*3]
+                    # FIXME which other should be excluded?
+                    ind = i if meas is not None else k
+                    if hdr['fields'][ind] not in ('S1', 'S2'):
+                        if hdr['fields'][ind] in ('L1', 'L2'):
+                            data[i*3+1, j, isv] = darr[:, k*3+1]
+
+                        data[i*3+2, j, isv] = darr[:, k*3+2]
                 else:
-                    raise
+                    data[i, j, isv] = darr[:, k]
 # %% output gathering
     data = data[:, :times.size, :]  # trims down for unneeded preallocated
 
