@@ -119,7 +119,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     else:  # strict preallocation by double-reading file, OK for < 100 MB files
         t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         if tlim is not None:
-            times = t[(tlim[0] < t) & (t < tlim[1])]
+            times = t[(tlim[0] <= t) & (t < tlim[1])]
         else:
             times = t
         Nt = len(times)
