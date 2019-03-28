@@ -1,4 +1,3 @@
-from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
@@ -12,7 +11,9 @@ try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
-from .common import determine_time_system, check_ram, rinex_version, _check_time_interval
+
+from .io import opener, rinexinfo
+from .common import determine_time_system, check_ram, _check_time_interval
 
 
 def rinexobs2(fn: Path,
@@ -111,7 +112,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
 # %% start reading
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         _skip_header(f)
 
 # %% process data
@@ -285,7 +286,7 @@ def _num_times(fn: Path, Nextra: int,
         that have been decompressed in memory only--there is no on-disk
         uncompressed file.
         """
-        with opener(fn, verbose=verbose) as f:
+        with opener(fn) as f:
             f.seek(0, io.SEEK_END)
             filesize = f.tell()
             f.seek(0, io.SEEK_SET)  # NEED THIS for io.StringIO input from user!
@@ -320,7 +321,7 @@ def obsheader2(f: TextIO,
     if not meas or not meas[0].strip():
         meas = None
 
-    hdr: Dict[str, Any] = {}
+    hdr = rinexinfo(f)
     Nobs = 0  # not None due to type checking
 
     for ln in f:
@@ -341,8 +342,11 @@ def obsheader2(f: TextIO,
         else:  # concatenate
             hdr[h] += " " + c
 # %% useful values
-    hdr['version'] = rinex_version(hdr['RINEX VERSION / TYPE'])[0]
-    hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+    try:
+        hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+    except KeyError:
+        pass
+
     hdr['Nobs'] = Nobs
     # 5 observations per line (incorporating LLI, SSI)
     hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)
@@ -351,46 +355,54 @@ def obsheader2(f: TextIO,
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
         if ecef2geodetic is not None:
             hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
-    except KeyError:
+    except (KeyError, ValueError):
         pass
 # %% observation types
-    hdr['fields'] = hdr['# / TYPES OF OBSERV']
-    if Nobs != len(hdr['fields']):
-        raise ValueError(f'{f.name} header read incorrectly')
+    try:
+        hdr['fields'] = hdr['# / TYPES OF OBSERV']
+        if Nobs != len(hdr['fields']):
+            raise ValueError(f'{f.name} header read incorrectly')
 
-    if isinstance(meas, (tuple, list, np.ndarray)):
-        ind = np.zeros(len(hdr['fields']), dtype=bool)
-        for m in meas:
-            for i, f in enumerate(hdr['fields']):
-                if f.startswith(m):
-                    ind[i] = True
+        if isinstance(meas, (tuple, list, np.ndarray)):
+            ind = np.zeros(len(hdr['fields']), dtype=bool)
+            for m in meas:
+                for i, f in enumerate(hdr['fields']):
+                    if f.startswith(m):
+                        ind[i] = True
 
-        hdr['fields_ind'] = np.nonzero(ind)[0]
-    else:
-        ind = slice(None)
-        hdr['fields_ind'] = np.arange(Nobs)
+            hdr['fields_ind'] = np.nonzero(ind)[0]
+        else:
+            ind = slice(None)
+            hdr['fields_ind'] = np.arange(Nobs)
 
-    hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
+        hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
+    except KeyError:
+        pass
 
     hdr['Nobsused'] = hdr['Nobs']
     if useindicators:
         hdr['Nobsused'] *= 3
 
 # %%
-    if '# OF SATELLITES' in hdr:
+    try:
         hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
+    except (KeyError, ValueError):
+        pass
 # %% time
-    hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+    try:
+        hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+    except (KeyError, ValueError):
+        pass
 
     try:
         hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
-    except KeyError:
+    except (KeyError, ValueError):
         pass
 
     try:  # This key is OPTIONAL
         hdr['interval'] = float(hdr['INTERVAL'][:10])
     except (KeyError, ValueError):
-        hdr['interval'] = np.nan  # do NOT set it to None or it breaks NetCDF writing
+        pass
 
     return hdr
 
@@ -429,7 +441,7 @@ def obstime2(fn: Union[TextIO, Path],
     read all times in RINEX2 OBS file
     """
     times = []
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         # Capture header info
         hdr = obsheader2(f)
 

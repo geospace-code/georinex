@@ -99,16 +99,6 @@ def test_zip():
     assert hdr['t0'] <= times[0]
 
 
-def test_tlim():
-    fn = R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz'
-    obs = gr.load(fn, tlim=('2018-07-29T01:17', '2018-07-29T01:18'))
-
-    times = gr.to_datetime(obs.time)
-
-    assert (times == [datetime(2018, 7, 29, 1, 17), datetime(2018, 7, 29, 1, 17, 15),
-                      datetime(2018, 7, 29, 1, 17, 45), datetime(2018, 7, 29, 1, 18)]).all()
-
-
 def test_bad_system():
     """ Z and Y are not currently used by RINEX """
     with pytest.raises(KeyError):
@@ -181,19 +171,6 @@ def tests_all_indicators():
 def test_time_system(fn, tname):
     obs = gr.load(R/fn)
     assert obs.attrs['time_system'] == tname
-
-
-@pytest.mark.parametrize('interval, expected_len', [(None, 14),
-                                                    (15, 14),
-                                                    (35, 8)])
-def test_interval(interval, expected_len):
-
-    obs = gr.load(R/'CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', interval=interval,
-                  tlim=('2018-07-29T01:00', '2018-07-29T01:05'))
-
-    times = gr.to_datetime(obs.time)
-
-    assert len(times) == expected_len
 
 
 if __name__ == '__main__':

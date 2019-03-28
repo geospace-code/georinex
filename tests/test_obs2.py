@@ -138,34 +138,6 @@ def test_mangled_times():
     assert times
 
 
-def test_Z_lzw():
-    pytest.importorskip('unlzw')
-
-    fn = R/'ac660270.18o.Z'
-
-    obs = gr.load(fn)
-
-    hdr = gr.rinexheader(fn)
-
-    assert hdr['t0'] <= gr.to_datetime(obs.time[0])
-
-    assert not obs.fast_processing
-
-
-def test_tlim():
-    """
-    Important test, be sure it's runnable on all systems
-    """
-    obs = gr.load(R/'york0440.zip', tlim=('2015-02-13T23:59', '2015-02-14T00:00'))
-
-    times = gr.to_datetime(obs.time)
-
-    assert (times == [datetime(2015, 2, 13, 23, 59, 0),
-                      datetime(2015, 2, 13, 23, 59, 30)]).all()
-
-    assert obs.fast_processing
-
-
 def test_one_sv():
     obs = gr.load(R / 'rinex2onesat.10o')
 
@@ -274,17 +246,6 @@ def test_meas_onesys_indicators():
 def test_time_system(fn, tname):
     obs = gr.load(R/fn)
     assert obs.attrs['time_system'] == tname
-
-
-@pytest.mark.parametrize('interval, expected_len', [(None, 9),
-                                                    (0, 9),
-                                                    (15, 9),
-                                                    (35, 4)])
-def test_interval(interval, expected_len):
-    obs = gr.load(R/'ab430140.18o.zip', interval=interval)
-    times = gr.to_datetime(obs.time)
-
-    assert len(times) == expected_len
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ from .obs2 import rinexobs2
 from .obs3 import rinexobs3
 from .nav2 import rinexnav2
 from .nav3 import rinexnav3
-from .utils import rinextype, _tlim
+from .utils import _tlim
 
 # for NetCDF compression. too high slows down with little space savings.
 ENC = {'zlib': True, 'complevel': 1, 'fletcher32': True}
@@ -35,8 +35,6 @@ def load(rinexfn: Union[TextIO, str, Path],
 
     if isinstance(rinexfn, (str, Path)):
         rinexfn = Path(rinexfn).expanduser()
-# %% detect type of Rinex file
-    rtype = rinextype(rinexfn)
 # %% determine if/where to write NetCDF4/HDF5 output
     outfn = None
     if out:
@@ -54,13 +52,15 @@ def load(rinexfn: Union[TextIO, str, Path],
         if tlim[1] < tlim[0]:
             raise ValueError('stop time must be after start time')
 
-    if rtype == 'nav':
+    info = rinexinfo(rinexfn)
+
+    if info['rinextype'] == 'nav':
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
-    elif rtype == 'obs':
+    elif info['rinextype'] == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
                         verbose=verbose, fast=fast, interval=interval)
-    elif rtype == 'nc':
+    elif rinexfn.suffix == '.nc':
         # outfn not used here, because we already have the converted file!
         try:
             nav = rinexnav(rinexfn)

@@ -9,10 +9,10 @@ R = Path(__file__).parent / 'data'
 
 
 @pytest.mark.timeout(30)
-def test_obs3_gz(request):
-    exe = request.config.cache.get('exe', None)
-    if exe['nocrx']:
-        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+def test_obs3_gz():
+
+    if not gr.crxexe():
+        pytest.skip(f'crx2rnx not found')
 
     fn = R / 'CEBR00ESP_R_20182000000_01D_30S_MO.crx.gz'
 
@@ -34,10 +34,9 @@ def test_obs3_gz(request):
 
 
 @pytest.mark.timeout(30)
-def test_obs3(request):
-    exe = request.config.cache.get('exe', None)
-    if exe['nocrx']:
-        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+def test_obs3():
+    if not gr.crxexe():
+        pytest.skip(f'crx2rnx not found')
 
     fn = R / 'P43300USA_R_20190012056_17M_15S_MO.crx'
 
