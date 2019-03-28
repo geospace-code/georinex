@@ -3,7 +3,7 @@ group: travis_latest
 dist: xenial
 
 git:
-  depth: 3
+  depth: 25
   quiet: true
 
 matrix:
@@ -12,13 +12,15 @@ matrix:
     python: 3.7
     install:
     - make --quiet install -C rnxcmp
-    - pip install -e .[tests,cov]
+    - pip install -e .[tests,io,cov]
     script: 
     - flake8
     - mypy . --ignore-missing-imports
     after_success:
     - pytest --cov
     - coveralls
+  - os: linux
+    python: 3.6
   - os: osx
     language: sh
     install: 
@@ -32,6 +34,9 @@ matrix:
     install:
     - mingw32-make install CC=gcc -C rnxcmp
     - pip install -e .[tests]
+
+
+install: pip install -e .[tests,io]
 
 script: pytest -rsv
 

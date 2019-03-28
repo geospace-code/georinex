@@ -4,6 +4,11 @@ from pathlib import Path
 
 import georinex as gr
 
+try:
+    import netCDF4
+except ImportError:
+    netCDF4 = None
+
 R = Path(__file__).parent / 'data'
 
 
@@ -15,6 +20,10 @@ R = Path(__file__).parent / 'data'
                                              (R/'r2all.nc', 'obs', 2.11)],
                          ids=['obs2', 'obs3', 'nav2', 'nav3', 'Cobs1', 'NetCDF_obs2'])
 def test_header(fn, rtype, vers):
+
+    if fn.suffix == '.nc' and netCDF4 is None:
+        pytest.skip('no netCDF4')
+
     hdr = gr.rinexheader(fn)
     assert isinstance(hdr, dict)
     assert rtype in hdr['rinextype']
