@@ -176,7 +176,7 @@ def rinexobs(fn: Union[TextIO, str, Path],
 # %% version selection
     info = rinexinfo(fn)
 
-    if int(info['version']) == 2:
+    if int(info['version']) in (1, 2):
         obs = rinexobs2(fn, use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
                         verbose=verbose,
