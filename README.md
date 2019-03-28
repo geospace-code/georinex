@@ -413,3 +413,7 @@ UNAVCO RINEX 2 data:
 ### Hatanaka compressed RINEX .crx
 The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx` as noted in the Install section.
 There are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
+
+Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation
+          Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.
+(available at http://www.gsi.go.jp/ENGLISH/Bulletin55.html)

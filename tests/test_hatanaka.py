@@ -21,7 +21,7 @@ def test_obs2():
 
     assert obs.time.size == 3
     assert obs.sv.size == 9
-    assert obs['S1'].values[0,:3] == pytest.approx([44., 41., 51.])
+    assert obs['S1'].values[0, :3] == pytest.approx([44., 41., 51.])
 
 
 @pytest.mark.timeout(30)
