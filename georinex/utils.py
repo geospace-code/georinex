@@ -6,8 +6,9 @@ from typing import Union
 from typing.io import TextIO
 import io
 import xarray
+import numpy as np
 import pandas
-from .io import rinexinfo
+from .io import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
 from .nav2 import navtime2, navheader2
@@ -30,36 +31,48 @@ def globber(path: Path, glob: Sequence[str]) -> List[Path]:
     return flist
 
 
-def gettime(fn: Union[TextIO, str, Path]) -> xarray.DataArray:
+def gettime(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     get times in RINEX 2/3 file
     Note: in header,
         * TIME OF FIRST OBS is mandatory
         * TIME OF LAST OBS is optional
+
+    Parameters
+    ----------
+
+    fn : pathlib.Path or io.StringIO
+        RINEX file or stream to process
+
+    Returns
+    -------
+
+    times : numpy.ndarray of datetime.datetime
+        1-D vector of epochs in file
     """
-    if isinstance(fn, (str, Path)):
-        fn = Path(fn).expanduser()
-
     info = rinexinfo(fn)
-    assert int(info['version']) in (1, 2, 3), 'Wrong RINEX version'
 
-    rtype = rinextype(fn)
+    version = info['version']
+    vers = int(version)
+    rtype = info['rinextype']
 
-    if rtype not in ('nav', 'obs'):
-        raise NotImplementedError('per-observation time is in NAV, OBS files')
 # %% select function
     if rtype == 'obs':
-        if int(info['version']) == 1 or int(info['version']) == 2:
+        if vers == 2:
             times = obstime2(fn)
-        elif int(info['version']) == 3:
+        elif vers == 3:
             times = obstime3(fn)
+        else:
+            raise ValueError(f'Unknown RINEX version {version} {fn}')
     elif rtype == 'nav':
-        if int(info['version']) == 2:
+        if vers == 2:
             times = navtime2(fn)
-        elif int(info['version']) == 3:
+        elif vers == 3:
             times = navtime3(fn)
+        else:
+            raise ValueError(f'Unknown RINEX version {version} {fn}')
     else:
-        raise ValueError(f'unknown RINEX {info}  {fn}')
+        raise ValueError(f'per-observation time is in NAV, OBS files, not {info}  {fn}')
 
     return times
 
@@ -107,47 +120,41 @@ def getlocations(flist: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
 
     return locs
 
-
-def rinextype(fn: Union[TextIO, Path]) -> str:
-    """
-    determine if input file is NetCDF, OBS or NAV
-    """
-
-
-    if isinstance(fn, Path) and fn.suffix.endswith('.nc'):
-        return 'nc'
-    else:
-        info = rinexinfo(fn)['rinextype']
-        if isinstance(fn, io.StringIO):
-            fn.seek(0)
-
-        return info
-
-
 def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     """
-    retrieve RINEX 2/3 header as unparsed dict()
+    retrieve RINEX 2/3 or CRINEX 1/3 header as unparsed dict()
     """
     if isinstance(fn, (str, Path)):
         fn = Path(fn).expanduser()
 
-    info = rinexinfo(fn)
-    rtype = rinextype(fn)
+    if isinstance(fn, Path) and fn.suffix == '.nc':
+        return rinexinfo(fn)
+    elif isinstance(fn, Path):
+        with opener(fn, header=True) as f:
+            return rinexheader(f)
+    elif isinstance(fn, io.StringIO):
+        fn.seek(0)
+    elif isinstance(fn, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unknown RINEX filetype {type(fn)}')
 
-    if int(info['version']) == 2 or int(info['version']) == 1:
-        if rtype == 'obs':
+    info = rinexinfo(fn)
+
+    if int(info['version']) in (1, 2):
+        if info['rinextype'] == 'obs':
             hdr = obsheader2(fn)
-        elif rtype == 'nav':
+        elif info['rinextype'] == 'nav':
             hdr = navheader2(fn)
         else:
-            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
+            raise ValueError(f'Unknown rinex type {info} in {fn}')
     elif int(info['version']) == 3:
-        if rtype == 'obs':
+        if info['rinextype'] == 'obs':
             hdr = obsheader3(fn)
-        elif rtype == 'nav':
+        elif info['rinextype'] == 'nav':
             hdr = navheader3(fn)
         else:
-            raise ValueError(f'Unknown rinex type {rtype} in {fn}')
+            raise ValueError(f'Unknown rinex type {info} in {fn}')
     else:
         raise ValueError(f'unknown RINEX {info}  {fn}')
 

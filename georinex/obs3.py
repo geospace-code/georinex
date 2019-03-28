@@ -12,8 +12,10 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, rinex_version, _check_time_interval
+from .common import determine_time_system, _check_time_interval
+from .io import rinexinfo
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
+
 SBAS = 100  # offset for ID
 GLONASS = 37
 QZSS = 192
@@ -71,7 +73,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 
     last_epoch = None
 # %% loop
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         hdr = obsheader3(f, use, meas)
 # %% process OBS file
         for ln in f:
@@ -155,7 +157,7 @@ def obstime3(fn: Union[TextIO, Path],
     """
     times = []
 
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         for ln in f:
             if ln.startswith('>'):
                 times.append(_timeobs(ln))
@@ -229,24 +231,16 @@ def obsheader3(f: TextIO,
     optionally, select system type and/or measurement type to greatly
     speed reading and save memory (RAM, disk)
     """
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return obsheader3(h, use, meas)
+
     fields = {}
     Fmax = 0
 
-    if isinstance(f, Path):
-        fn = f
-        with opener(fn, header=True) as f:
-            return obsheader3(f)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
 # %% first line
-    ln = f.readline()
-    hdr = {'version': rinex_version(ln)[0],
-           'systems': ln[40],
-           }
+    hdr = rinexinfo(f)
+
     for ln in f:
         if "END OF HEADER" in ln:
             break
@@ -282,19 +276,22 @@ def obsheader3(f: TextIO,
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
         if ecef2geodetic is not None:
             hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
-    except KeyError:
+    except (KeyError, ValueError):
         pass
 # %% time
-    t0s = hdr['TIME OF FIRST OBS']
-    # NOTE: must do second=int(float()) due to non-conforming files
-    hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                         hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                         microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    try:
+        t0s = hdr['TIME OF FIRST OBS']
+        # NOTE: must do second=int(float()) due to non-conforming files
+        hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
+                             hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
+                             microsecond=int(float(t0s[30:43]) % 1 * 1000000))
+    except (KeyError, ValueError):
+        pass
 
     try:
         hdr['interval'] = float(hdr['INTERVAL'][:10])
-    except KeyError:
-        hdr['interval'] = np.nan  # not None or write will fail
+    except (KeyError, ValueError):
+        pass
 # %% select specific satellite systems only (optional)
     if use is not None:
         if not set(fields.keys()).intersection(use):

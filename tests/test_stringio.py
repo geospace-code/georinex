@@ -13,12 +13,11 @@ R = Path(__file__).parent / 'data'
                                               (3, datetime(2010, 10, 18, 0, 1, 4))])
 def test_nav3(rinex_version, t):
     fn = R / f'minimal{rinex_version}.10n'
-    with fn.open('r') as f:
-        txt = f.read()
+    txt = fn.read_text()
 
     with io.StringIO(txt) as f:
-        rtype = gr.rinextype(f)
-        assert rtype == 'nav'
+        info = gr.rinexinfo(f)
+        assert info['rinextype'] == 'nav'
 
         times = gr.gettime(f)
         nav = gr.load(f)
@@ -34,8 +33,8 @@ def test_obs(rinex_version):
     txt = fn.read_text()
 
     with io.StringIO(txt) as f:
-        rtype = gr.rinextype(f)
-        assert rtype == 'obs'
+        info = gr.rinexinfo(f)
+        assert info['rinextype'] == 'obs'
 
         times = gr.gettime(f)
         obs = gr.load(f)
@@ -46,10 +45,7 @@ def test_obs(rinex_version):
 
 
 def test_locs():
-    fn = R / 'demo.10o'
-
-    with fn.open('r') as f:
-        txt = f.read()
+    txt = (R / 'demo.10o').read_text()
 
     with io.StringIO(txt) as f:
         locs = gr.getlocations(f)

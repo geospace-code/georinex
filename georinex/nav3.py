@@ -297,20 +297,12 @@ def _newnav(ln: str, sv: str) -> List[str]:
 
 
 def navheader3(f: TextIO) -> Dict[str, Any]:
-    if isinstance(f, Path):
-        fn = f
-        with fn.open('r') as f:
-            return navheader3(f)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'unsure of input data type {type(f)}')
+
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return navheader3(h)
 
     hdr = rinexinfo(f)
-    assert int(hdr['version']) == 3, 'see rinexnav2() for RINEX 2.x files'
-    assert hdr['filetype'] == 'N', 'Did not detect Nav file'
 
     for ln in f:
         if 'END OF HEADER' in ln:

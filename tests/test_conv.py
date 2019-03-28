@@ -58,20 +58,17 @@ def test_netcdf_write(tmp_path):
     """
     pytest.importorskip('netCDF4')
 
-    outdir = tmp_path
-    fn = outdir / 'rw.nc'
+    fn = tmp_path / 'rw.nc'
     obs = gr.load(R/'demo.10o', out=fn)
 
     wobs = gr.load(fn)
 
-    # MUST be under context manager for lazy loading
     assert obs.equals(wobs)
 
 
-def test_locs(request):
-    exe = request.config.cache.get('exe', None)
-    if exe['nocrx']:
-        pytest.skip(f'crx2rnx not found in {exe["Rexe"]}')
+def test_locs():
+    if not gr.crxexe():
+        pytest.skip(f'crx2rnx not found')
 
     pytest.importorskip('pymap3d')
 

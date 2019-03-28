@@ -1,4 +1,3 @@
-from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
@@ -12,7 +11,9 @@ try:
     from pymap3d import ecef2geodetic
 except ImportError:
     ecef2geodetic = None
-from .common import determine_time_system, check_ram, rinex_version, _check_time_interval
+
+from .io import opener, rinexinfo
+from .common import determine_time_system, check_ram, _check_time_interval
 
 def rinexobs2(fn: Path,
               use: Sequence[str] = None,
@@ -109,7 +110,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
 # %% start reading
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         _skip_header(f)
 
 # %% process data
@@ -284,7 +285,7 @@ def _num_times(fn: Path, Nextra: int,
         that have been decompressed in memory only--there is no on-disk
         uncompressed file.
         """
-        with opener(fn, verbose=verbose) as f:
+        with opener(fn) as f:
             f.seek(0, io.SEEK_END)
             filesize = f.tell()
             f.seek(0, io.SEEK_SET)  # NEED THIS for io.StringIO input from user!
@@ -304,20 +305,14 @@ def _num_times(fn: Path, Nextra: int,
 def obsheader2(f: TextIO,
                useindicators: bool = False,
                meas: Sequence[str] = None) -> Dict[str, Any]:
-    
-    if isinstance(f, Path):
-        fn = f
-        with opener(fn, header=True) as f:
-            return obsheader2(f, useindicators, meas)
-    elif isinstance(f, str):
-        f = open(f, 'r')
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
+    """
+    End users should use rinexheader()
+    """
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return obsheader2(h, useindicators, meas)
 
+    f.seek(0)
 # %% selection
     if isinstance(meas, str):
         meas = [meas]
@@ -325,7 +320,7 @@ def obsheader2(f: TextIO,
     if not meas or not meas[0].strip():
         meas = None
 
-    hdr: Dict[str, Any] = {}
+    hdr = rinexinfo(f)
     Nobs = 0  # not None due to type checking
 
     for ln in f:
@@ -338,28 +333,19 @@ def obsheader2(f: TextIO,
         if '# / TYPES OF OBSERV' in h:
             if Nobs == 0:
                 Nobs = int(c[:6])
-
-            c = c[6:].split()  # NOT within "if Nobs"
-            
-# %%
-        if h not in hdr: # Header label
+                hdr[h] = c[6:].split()
+            else:
+                hdr[h] += c[6:].split()
+        elif h not in hdr:  # Header label
             hdr[h] = c  # string with info
         else:  # concatenate
-            if isinstance(hdr[h], str):
-                hdr[h] += " " + c
-            elif isinstance(hdr[h], list):
-                hdr[h] += c
-            else:
-                raise ValueError(f'not sure what {c} is')
+            hdr[h] += " " + c
 # %% useful values
     try:
-        hdr['version'] = float(hdr['RINEX VERSION / TYPE'][:9])  # %9.2f
-    except:
-        pass
-    try:
         hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
-    except:
+    except KeyError:
         pass
+
     hdr['Nobs'] = Nobs
     # 5 observations per line (incorporating LLI, SSI)
     hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)
@@ -368,17 +354,14 @@ def obsheader2(f: TextIO,
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
         if ecef2geodetic is not None:
             hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
-    except KeyError:
+    except (KeyError, ValueError):
         pass
 # %% observation types
     try:
         hdr['fields'] = hdr['# / TYPES OF OBSERV']
-    except:
-        pass
-    try:
         if Nobs != len(hdr['fields']):
             raise ValueError(f'{f.name} header read incorrectly')
-    
+
         if isinstance(meas, (tuple, list, np.ndarray)):
             ind = np.zeros(len(hdr['fields']), dtype=bool)
             for m in meas:
@@ -392,30 +375,33 @@ def obsheader2(f: TextIO,
             hdr['fields_ind'] = np.arange(Nobs)
 
         hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
-    
-        hdr['Nobsused'] = hdr['Nobs']
-        if useindicators:
-            hdr['Nobsused'] *= 3
-    except:
+    except KeyError:
         pass
+    
+    hdr['Nobsused'] = hdr['Nobs']
+    if useindicators:
+        hdr['Nobsused'] *= 3
 
 # %%
-    if '# OF SATELLITES' in hdr:
+    try:
         hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
+    except (KeyError, ValueError):
+        pass
 # %% time
     try:
         hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
-    except:
+    except (KeyError, ValueError):
         pass
+
     try:
         hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
-    except KeyError:
+    except (KeyError, ValueError):
         pass
 
     try:  # This key is OPTIONAL
         hdr['interval'] = float(hdr['INTERVAL'][:10])
     except (KeyError, ValueError):
-        hdr['interval'] = np.nan  # do NOT set it to None or it breaks NetCDF writing
+        pass
 
     return hdr
 
@@ -454,7 +440,7 @@ def obstime2(fn: Union[TextIO, Path],
     read all times in RINEX2 OBS file
     """
     times = []
-    with opener(fn, verbose=verbose) as f:
+    with opener(fn) as f:
         # Capture header info
         hdr = obsheader2(f)
         for ln in f:

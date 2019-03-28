@@ -61,14 +61,6 @@ def test_mangled2():
                       datetime(2018, 8, 29, 23, 59, 44)]).all()
 
 
-def test_tlim():
-    nav = gr.load(R/'ceda2100.18e', tlim=('2018-07-29T11', '2018-07-29T12'))
-
-    times = gr.to_datetime(nav.time)
-
-    assert (times == [datetime(2018, 7, 29, 11, 50), datetime(2018, 7, 29, 12)]).all()
-
-
 def test_tlim_past_eof():
     nav = gr.load(R/'p1462100.18g', tlim=('2018-07-29T23:45', '2018-07-30'))
 
@@ -93,9 +85,7 @@ def test_galileo():
 
 
 def test_gps():
-    pytest.importorskip('unlzw')
-
-    nav = gr.load(R/'brdc2800.15n.Z')
+    nav = gr.load(R/'brdc2800.15n')
 
     times = gr.to_datetime(nav.time)
     assert times[1] == datetime(2015, 10, 7, 1, 59, 28)

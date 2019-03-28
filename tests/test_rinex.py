@@ -18,6 +18,7 @@ def test_blank_read(tmp_path, filename):
 
 @pytest.mark.parametrize('filename', blanks)
 def test_blank_write(tmp_path, filename):
+    pytest.importorskip('netCDF4')
     gr.load(R/filename, tmp_path)
 
 
@@ -28,7 +29,8 @@ def test_blank_times(filename):
 
 
 @pytest.mark.parametrize('filename',
-                         ['minimal2.10n', 'minimal3.10n', 'minimal2.10o', 'minimal3.10o'])
+                         ['minimal2.10n', 'minimal3.10n', 'minimal2.10o', 'minimal3.10o'],
+                         ids=['nav2', 'nav3', 'obs2', 'obs3'])
 def test_minimal(tmp_path, filename):
     pytest.importorskip('netCDF4')
 
@@ -37,12 +39,9 @@ def test_minimal(tmp_path, filename):
     dat = gr.load(fn)
     assert isinstance(dat, xarray.Dataset), f'{type(dat)} should be xarray.Dataset'
 
-    outdir = tmp_path
-    gr.load(fn, outdir)
+    gr.load(fn, tmp_path)
 
-    outfn = (outdir / (fn.name + '.nc'))
-    assert outfn.is_file()
-
+    outfn = (tmp_path / (fn.name + '.nc'))
     assert dat.equals(gr.load(outfn)), f'{outfn}  {fn}'
 
     times = gr.gettime(fn)
@@ -53,23 +52,6 @@ def test_minimal(tmp_path, filename):
             assert dat.fast_processing
         elif int(dat.version) == 3:
             assert not dat.fast_processing  # FIXME: update when OBS3 fast processing is added.
-
-
-@pytest.mark.parametrize('fn, version',
-                         [('demo.10o', 2),
-                          ('demo3.10o', 3),
-                          ('demo.10n', 2),
-                          ('demo3.10n', 3)],
-                         ids=['OBS2', 'OBS3', 'NAV2', 'NAV3'])
-def test_header(fn, version):
-    hdr = gr.rinexheader(R/fn)
-    inf = gr.rinexinfo(R/fn)
-
-    assert isinstance(hdr, dict)
-    assert int(hdr['version']) == version
-
-    if inf['filetype'] == 'O':
-        assert len(hdr['position']) == 3
 
 
 def test_dont_care_file_extension():

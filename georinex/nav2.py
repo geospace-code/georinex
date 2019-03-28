@@ -6,7 +6,7 @@ from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
-import io
+
 from .io import opener, rinexinfo
 from .common import rinex_string_to_float
 #
@@ -89,7 +89,10 @@ def rinexnav2(fn: Union[TextIO, str, Path],
             for i, ln in zip(range(Nl[header['systems']]), f):
                 raw += ln[STARTCOL2:79]
             # one line per SV
-            raws.append(raw.replace('D', 'E').replace('  ', ' ').replace(' -', '-').replace('\n', ''))
+            # NOTE: Sebastijan added .replace('  ', ' ').replace(' -', '-')
+            # here, I would like to see a file that needs this first, to be sure
+            # I'm not needlessly slowing down reading or creating new problems.
+            raws.append(raw.replace('D', 'E').replace('\n', ''))
 
 # %% parse
     svs = [s.replace(' ', '0') for s in svs]
@@ -152,20 +155,14 @@ def rinexnav2(fn: Union[TextIO, str, Path],
 
 
 def navheader2(f: TextIO) -> Dict[str, Any]:
-    if isinstance(f, Path):
-        fn = f
-        with fn.open('r') as f:
-            return navheader2(f)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'unknown filetype {type(f)}')
-# %%verify RINEX version, and that it's NAV
+    """
+    For RINEX NAV version 2 only. End users should use rinexheader()
+    """
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return navheader2(h)
+
     hdr = rinexinfo(f)
-    if int(hdr['version']) != 2:
-        raise ValueError('see rinexnav3() for RINEX 3.0 files')
 
     for ln in f:
         if 'END OF HEADER' in ln:

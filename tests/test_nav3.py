@@ -16,15 +16,6 @@ def test_time():
     assert times[-1] == datetime(2018, 6, 20, 22)
 
 
-def test_tlim():
-    fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
-    nav = gr.load(fn, tlim=('2018-07-29T08', '2018-07-29T09'))
-
-    times = gr.to_datetime(nav.time)
-
-    assert (times == [datetime(2018, 7, 29, 8, 20), datetime(2018, 7, 29, 8, 50)]).all()
-
-
 def test_tlim_past_eof():
     fn = R/'CEDA00USA_R_20182100000_01D_MN.rnx.gz'
     nav = gr.load(fn, tlim=('2018-07-29T23', '2018-07-29T23:30'))
