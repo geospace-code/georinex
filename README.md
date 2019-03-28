@@ -63,7 +63,6 @@ make install -C rnxcmp
 ```
 
 #### Windows
-Windows as usual is more difficult to compile code on.
 For optional Hatanaka converter on Windows, assuming you have
 [installed MinGW compiler on Windows](https://www.scivision.co/windows-gcc-gfortran-cmake-make-install/):
 ```posh
@@ -81,7 +80,7 @@ python -m pytest
 ```
 
 ```
-133 passed, 8 skipped
+155 passed, 1 skipped
 ```
 
 

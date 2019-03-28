@@ -34,12 +34,7 @@ def test_bad(tmp_path):
     pat = '*o'
 
     with pytest.raises(TypeError):
-        outdir = tmp_path
-        gr.batch_convert(outdir, pat)
-
-    with pytest.raises(FileNotFoundError):
-        outdir = tmp_path
-        gr.batch_convert(outdir, pat, outdir)
+        gr.batch_convert(tmp_path, pat)
 
 
 if __name__ == '__main__':
