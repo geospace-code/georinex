@@ -18,6 +18,7 @@ def test_blank_read(tmp_path, filename):
 
 @pytest.mark.parametrize('filename', blanks)
 def test_blank_write(tmp_path, filename):
+    pytest.importorskip('netCDF4')
     gr.load(R/filename, tmp_path)
 
 
@@ -63,12 +64,11 @@ def test_minimal(tmp_path, filename):
                          ids=['OBS2', 'OBS3', 'NAV2', 'NAV3'])
 def test_header(fn, version):
     hdr = gr.rinexheader(R/fn)
-    inf = gr.rinexinfo(R/fn)
 
     assert isinstance(hdr, dict)
     assert int(hdr['version']) == version
 
-    if inf['filetype'] == 'O':
+    if 'fields' in hdr:
         assert len(hdr['position']) == 3
 
 

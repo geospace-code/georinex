@@ -12,8 +12,10 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, rinex_version, _check_time_interval
+from .common import determine_time_system, _check_time_interval
+from .io import rinexinfo
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
+
 SBAS = 100  # offset for ID
 GLONASS = 37
 QZSS = 192
@@ -229,24 +231,16 @@ def obsheader3(f: TextIO,
     optionally, select system type and/or measurement type to greatly
     speed reading and save memory (RAM, disk)
     """
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return obsheader3(h, use, meas)
+
     fields = {}
     Fmax = 0
 
-    if isinstance(f, Path):
-        fn = f
-        with opener(fn, header=True) as f:
-            return obsheader3(f)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
 # %% first line
-    ln = f.readline()
-    hdr = {'version': rinex_version(ln)[0],
-           'systems': ln[40],
-           }
+    hdr = rinexinfo(f)
+
     for ln in f:
         if "END OF HEADER" in ln:
             break

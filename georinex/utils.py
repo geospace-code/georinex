@@ -7,7 +7,7 @@ from typing.io import TextIO
 import io
 import xarray
 import pandas
-from .io import rinexinfo
+from .io import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
 from .nav2 import navtime2, navheader2
@@ -43,7 +43,7 @@ def gettime(fn: Union[TextIO, str, Path]) -> xarray.DataArray:
     info = rinexinfo(fn)
     assert int(info['version']) in (2, 3)
 
-    rtype = rinextype(fn)
+    rtype = info['rinextype']
 
     if rtype not in ('nav', 'obs'):
         raise NotImplementedError('per-observation time is in NAV, OBS files')
@@ -128,7 +128,14 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     retrieve RINEX 2/3 header as unparsed dict()
     """
     if isinstance(fn, (str, Path)):
-        fn = Path(fn).expanduser()
+        with opener(fn, header=True) as f:
+            return rinexheader(f)
+    elif isinstance(fn, io.StringIO):
+        fn.seek(0)
+    elif isinstance(fn, io.TextIOWrapper):
+        pass
+    else:
+        raise TypeError(f'unknown filetype {type(fn)}')
 
     info = rinexinfo(fn)
     rtype = rinextype(fn)

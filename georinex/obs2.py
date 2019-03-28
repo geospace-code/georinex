@@ -305,18 +305,14 @@ def _num_times(fn: Path, Nextra: int,
 def obsheader2(f: TextIO,
                useindicators: bool = False,
                meas: Sequence[str] = None) -> Dict[str, Any]:
+    """
+    End users should use rinexheader()
+    """
+    if isinstance(f, (str, Path)):
+        with opener(f, header=True) as h:
+            return obsheader2(h, useindicators, meas)
 
-    if isinstance(f, Path):
-        fn = f
-        with opener(fn, header=True) as f:
-            return obsheader2(f, useindicators, meas)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
-    elif isinstance(f, io.TextIOWrapper):
-        pass
-    else:
-        raise TypeError(f'Unknown input filetype {type(f)}')
-
+    f.seek(0)
 # %% selection
     if isinstance(meas, str):
         meas = [meas]
@@ -337,18 +333,13 @@ def obsheader2(f: TextIO,
         if '# / TYPES OF OBSERV' in h:
             if Nobs == 0:
                 Nobs = int(c[:6])
-
-            c = c[6:].split()  # NOT within "if Nobs"
-# %%
-        if h not in hdr:  # Header label
+                hdr[h] = c[6:].split()
+            else:
+                hdr[h] += c[6:].split()
+        elif h not in hdr:  # Header label
             hdr[h] = c  # string with info
         else:  # concatenate
-            if isinstance(hdr[h], str):
-                hdr[h] += " " + c
-            elif isinstance(hdr[h], list):
-                hdr[h] += c
-            else:
-                raise ValueError(f'not sure what {c} is')
+            hdr[h] += " " + c
 # %% useful values
     hdr['version'] = rinex_version(hdr['RINEX VERSION / TYPE'])[0]
     hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]

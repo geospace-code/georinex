@@ -25,7 +25,8 @@ def opener(fn: Union[TextIO, Path],
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
 
-    if isinstance(fn, io.StringIO):
+    if isinstance(fn, (io.StringIO, io.TextIOBase)):
+        fn.seek(0)
         yield fn
     else:
         if verbose:
@@ -45,7 +46,8 @@ def opener(fn: Union[TextIO, Path],
                 flist = z.namelist()
                 for rinexfn in flist:
                     with z.open(rinexfn, 'r') as bf:
-                        f = io.TextIOWrapper(bf, newline=None)
+                        f = io.TextIOWrapper(bf, newline=None,
+                                             encoding='ascii', errors='ignore')
                         yield f
         elif fn.suffix == '.Z':
             if unlzw is None:
@@ -94,8 +96,8 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
 
         with opener(fn) as f:
             return rinexinfo(f)
-    elif isinstance(f, io.StringIO):
-        f.seek(0)
+
+    f.seek(0)
 
     try:
         line = f.readline(80)  # don't choke on binary files
