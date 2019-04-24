@@ -1,10 +1,24 @@
 from pathlib import Path
 from datetime import timedelta
 from typing import Dict, Any
+import numpy as np
+import logging
 try:
     import psutil
 except ImportError:
     psutil = None
+
+
+def check_unique_times(times: np.ndarray) -> bool:
+    Nuniq = np.unique(times).size
+    Ntimes = times.size
+
+    ok = Ntimes == Nuniq
+
+    if not ok:
+        logging.error(f'only {Nuniq} times out of {Ntimes} are unique times')
+
+    return ok
 
 
 def rinex_string_to_float(s: str) -> float:

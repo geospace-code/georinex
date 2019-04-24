@@ -13,9 +13,9 @@ matrix:
     install:
     - make --quiet install -C rnxcmp
     - pip install -e .[tests,io,cov]
-    script: 
+    script:
     - flake8
-    - mypy . --ignore-missing-imports
+    - mypy .
     after_success:
     - pytest --cov
     - coveralls
@@ -23,7 +23,7 @@ matrix:
     python: 3.6
   - os: osx
     language: sh
-    install: 
+    install:
     - make --quiet install -C rnxcmp
     - pip3 install -e .[tests]
   - os: windows

@@ -8,6 +8,7 @@ import io
 import xarray
 import numpy as np
 import pandas
+
 from .io import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
