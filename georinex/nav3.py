@@ -4,12 +4,12 @@ import xarray
 import logging
 import numpy as np
 import math
-import io
 from datetime import datetime
-from .io import opener, rinexinfo
-from .common import rinex_string_to_float
 from typing import Dict, Union, List, Any, Sequence
 from typing.io import TextIO
+#
+from .io import opener, rinexinfo
+from .common import rinex_string_to_float
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
@@ -91,29 +91,32 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 
         tu, iu = np.unique(t[svi], return_index=True)
         if tu.size != t[svi].size:
-            logging.warning(f'duplicate times detected on SV {sv}, using first of duplicate times')
+            logging.info(f'duplicate times detected on SV {sv}, using first of duplicate times')
             """ I have seen that the data rows match identically when times are duplicated"""
 
         cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
-
-        darr = np.empty((svi.size, len(cf)))
+        gi = [i for i, c in enumerate(cf) if not c.startswith(('spare', 'FitIntvl'))]
+        darr = np.empty((svi.size, len(gi)))
 
         for j, i in enumerate(svi):
-            darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')),
-                                       delimiter=Lf)
-
+            # darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+            try:
+                darr[j, :] = [float(raws[i][Lf*k:Lf*(k+1)]) for k in gi]
+            except ValueError:
+                logging.info(f'malformed line for {sv}')
+                darr[j, :] = np.nan
 # %% discard duplicated times
 
         darr = darr[iu, :]
 
         dsf = {}
-        for (f, d) in zip(cf, darr.T):
-            if sv[0] in ('R', 'S') and f in ('X', 'dX', 'dX2',
-                                             'Y', 'dY', 'dY2',
-                                             'Z', 'dZ', 'dZ2'):
+        for (i, d) in zip(gi, darr.T):
+            if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
+                                                 'Y', 'dY', 'dY2',
+                                                 'Z', 'dZ', 'dZ2'):
                 d *= 1000  # km => m
 
-            dsf[f] = (('time', 'sv'), d[:, None])
+            dsf[cf[i]] = (('time', 'sv'), d[:, None])
 
         if len(nav) == 0:
             nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})

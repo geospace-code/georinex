@@ -27,8 +27,8 @@ def test_tlim_past_eof():
 
 @pytest.mark.parametrize('filename, sv, shape',
                          [('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'S36', (542, 16)),
-                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'G05', (7, 30)),
-                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'C05', (25, 29)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'G05', (7, 29)),
+                          ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'C05', (25, 28)),
                           ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'E05', (45, 28)),
                           ('VILL00ESP_R_20181700000_01D_MN.rnx.gz', 'R05', (19, 16))],
                          ids=['SBAS', 'GPS', 'BDS', 'GAL', 'GLO'])
@@ -95,10 +95,10 @@ def test_mixed():
                          ids=['GAL', 'GPS', 'QZSS', 'SBAS'])
 def test_ref(rfn, ncfn):
     """
-    ./ReadRinex.py -q tests/galileo3.15n -o r3galileo.nc
-    ./ReadRinex.py -q tests/demo.17n -o r3gps.nc
-    ./ReadRinex.py -q tests/qzss3.14n -o r3qzss.nc
-    ./ReadRinex.py -q tests/demo3.10n -o r3sbas.nc
+    python ReadRinex.py tests/data/galileo3.15n -o r3galileo.nc
+    python ReadRinex.py tests/data/demo.17n -o r3gps.nc
+    python ReadRinex.py tests/data/qzss3.14n -o r3qzss.nc
+    python ReadRinex.py tests/data/demo3.10n -o r3sbas.nc
     """
     pytest.importorskip('netCDF4')
 
