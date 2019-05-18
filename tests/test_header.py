@@ -11,6 +11,8 @@ except ImportError:
 
 R = Path(__file__).parent / 'data'
 
+# TBD
+# rinexheader returns a dict with 'rinextype', 'version', 'position'
 
 @pytest.mark.parametrize('fn, rtype, vers', [(R/'minimal2.10o', 'obs', 2.11),
                                              (R/'minimal3.10o', 'obs', 3.01),

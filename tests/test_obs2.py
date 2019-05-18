@@ -8,7 +8,8 @@ import georinex as gr
 #
 R = Path(__file__).parent / 'data'
 
-
+# TBD
+# Remove this stupid test
 def test_fast_slow():
     fn = R/'minimal2.10o'
     fobs = gr.load(fn, fast=True)

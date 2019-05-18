@@ -11,6 +11,8 @@ import georinex as gr
 
 R = Path(__file__).parent / 'data'
 
+# TBD
+# rinexheader returns a dict with 't0'
 
 def test_obs2():
     pytest.importorskip('unlzw')

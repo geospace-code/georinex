@@ -15,6 +15,7 @@ def test_blank_read(tmp_path, filename):
     dat = gr.load(R/filename)
     assert dat.time.size == 0
 
+# TBD where is the assertion here
 
 @pytest.mark.parametrize('filename', blanks)
 def test_blank_write(tmp_path, filename):
@@ -27,6 +28,8 @@ def test_blank_times(filename):
     times = gr.gettime(R/filename)
     assert times.size == 0
 
+# TBD
+# Remove fast processing
 
 @pytest.mark.parametrize('filename',
                          ['minimal2.10n', 'minimal3.10n', 'minimal2.10o', 'minimal3.10o'],
