@@ -1,25 +1,16 @@
 #!/usr/bin/env python
-import pytest
-import xarray
-from pytest import approx
 from pathlib import Path
 from datetime import datetime
+from pytest import approx
+
+import pytest
+import xarray
+
 import georinex as gr
-#
+
 R = Path(__file__).parent / 'data'
 
-# TBD
-# Remove this stupid test
-def test_fast_slow():
-    fn = R/'minimal2.10o'
-    fobs = gr.load(fn, fast=True)
-    sobs = gr.load(fn, fast=False)
-
-    assert fobs.equals(sobs)
-
-    assert fobs.fast_processing
-    assert not sobs.fast_processing
-
+# removed test_fast_slow()
 
 def test_meas_continuation():
     """
