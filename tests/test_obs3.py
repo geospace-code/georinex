@@ -9,9 +9,6 @@ import georinex as gr
 #
 R = Path(__file__).parent / 'data'
 
-# TBD
-# Change measurement list according to new format
-
 def test_contents():
     """
     test specifying specific measurements
@@ -19,46 +16,40 @@ def test_contents():
     """
     fn = R/'demo3.10o'
     obs = gr.load(fn)
-    for v in ['L1C', 'L2P', 'C1P', 'C2P', 'C1C', 'S1C', 'S1P', 'S2P']:
+    for v in ['G-L1C', 'G-L2P', 'G-C1P', 'G-C2P', 'G-C1C', 'G-S1P', 'G-S2P']:
         assert v in obs
-    assert len(obs.data_vars) == 8
+    for v in ['R-L1C', 'R-C1C', 'R-S1C']:
+        assert v in obs
 
-# TBD
-# Change measurement according to new format
-# Change sv according to new format
-# C1C.shape should be (2,10)
+    assert len(obs.data_vars) == 10
 
 def test_meas_one():
     fn = R/'demo3.10o'
-    obs = gr.load(fn, meas='C1C')
-    assert 'L1C' not in obs
+    obs = gr.load(fn, meas='G-C1C')
+    assert 'G-L1C' not in obs
+    assert 'R-L1C' not in obs
 
-    C1C = obs['C1C']
-    assert C1C.shape == (2, 14)  # two times, 14 SVs overall for all systems in this file
+    C1C = obs['G-C1C']
+    assert C1C.shape == (2, 10)  # two times, 14 SVs overall for all systems in this file
 
-    assert (C1C.sel(sv='G07') == approx([22227666.76, 25342359.37])).all()
-
-# TBD
-# Change measurement according to new format
-# Change sv according to new format
-# Check shapes according to files
+    assert (C1C.sel(sv=7) == approx([22227666.76, 25342359.37])).all()
 
 def test_meas_two():
     """two NON-SEQUENTIAL measurements"""
     fn = R/'demo3.10o'
-    obs = gr.load(fn, meas=['L1C', 'S1C'])
-    assert 'L2P' not in obs
+    obs = gr.load(fn, meas=['G-L1C', 'G-S1P'])
+    assert 'G-L2P' not in obs
 
-    L1C = obs['L1C']
-    assert L1C.shape == (2, 14)
-    assert (L1C.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
+    L1C = obs['G-L1C']
+    assert L1C.shape == (2, 10)
+    assert (L1C.sel(sv=7) == approx([118767195.32608, 133174968.81808])).all()
 
-    S1C = obs['S1C']
-    assert S1C.shape == (2, 14)
+    S1P = obs['G-S1P']
+    assert S1P.shape == (2, 10)
 
-    assert (S1C.sel(sv='R23') == approx([39., 79.])).all()
+    assert (S1P.sel(sv=13) == approx([42., 62.])).all()
 
-    C1C = gr.load(fn, meas='C1C')
+    C1C = gr.load(fn, meas='G-C1C')
     assert not C1C.equals(L1C)
 
 # TBD
