@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import pytest
-from pytest import approx
-import xarray
-import numpy as np
 from pathlib import Path
 from datetime import datetime
+from pytest import approx
+
+import pytest
 import georinex as gr
 #
 R = Path(__file__).parent / 'data'
