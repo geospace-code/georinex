@@ -1,12 +1,16 @@
-from .io import opener
-from pathlib import Path
-import numpy as np
-import logging
-from datetime import datetime, timedelta
 import io
-import xarray
+import logging
+from itertools import chain
+from pathlib import Path
+from datetime import datetime, timedelta
 from typing import Dict, Union, List, Tuple, Any, Sequence
 from typing.io import TextIO
+
+import xarray
+import numpy as np
+
+from .io import opener
+
 try:
     from pymap3d import ecef2geodetic
 except ImportError:
@@ -231,95 +235,92 @@ def obsheader3(f: TextIO,
     optionally, select system type and/or measurement type to greatly
     speed reading and save memory (RAM, disk)
     """
-    if isinstance(f, (str, Path)):
-        with opener(f, header=True) as h:
-            return obsheader3(h, use, meas)
+    # if isinstance(f, (str, Path)):
+    #     with opener(f, header=True) as h:
+    #         return obsheader3(h, use, meas)
 
+    hdr = {}
+    hdr['attr'] = rinexinfo(f)
+    hdr['meas'] = {}
     fields = {}
-    Fmax = 0
-
-# %% first line
-    hdr = rinexinfo(f)
 
     for ln in f:
         if "END OF HEADER" in ln:
             break
 
-        h = ln[60:80]
-        c = ln[:60]
-        if 'SYS / # / OBS TYPES' in h:
-            k = c[0]
-            fields[k] = c[6:60].split()
-            N = int(c[3:6])
-# %% maximum number of fields in a file, to allow fast Numpy parse.
-            Fmax = max(N, Fmax)
+        c, h = ln[:60], ln[60:80]
 
-            n = N-13
-            while n > 0:  # Rinex 3.03, pg. A6, A7
-                ln = f.readline()
-                assert 'SYS / # / OBS TYPES' in ln[60:]
-                fields[k] += ln[6:60].split()
-                n -= 13
-
-            assert len(fields[k]) == N
-
+        if 'MARKER NAME' in h:
+            hdr['attr']['name'] = c.strip()
             continue
 
-        if h.strip() not in hdr:  # Header label
-            hdr[h.strip()] = c  # don't strip for fixed-width parsers
-            # string with info
-        else:  # concatenate to the existing string
-            hdr[h.strip()] += " " + c
+        satsys = ''
+        if 'SYS / # / OBS TYPES' in h:
+            satsys = c[0]
+            fields[satsys] = c[6:60].split()
+            cnt = n = int(c[3:6])
+            while n-13 > 0:  # Rinex 3.03, pg. A6, A7
+                ln = f.readline()
+                assert 'SYS / # / OBS TYPES' in ln[60:80]
+                fields[satsys] += ln[6:60].split()
+                n -= 13
 
-# %% list with x,y,z cartesian (OPTIONAL)
-    try:
-        hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
-        if ecef2geodetic is not None:
-            hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
-    except (KeyError, ValueError):
-        pass
-# %% time
-    try:
-        t0s = hdr['TIME OF FIRST OBS']
-        # NOTE: must do second=int(float()) due to non-conforming files
-        hdr['t0'] = datetime(year=int(t0s[:6]), month=int(t0s[6:12]), day=int(t0s[12:18]),
-                             hour=int(t0s[18:24]), minute=int(t0s[24:30]), second=int(float(t0s[30:36])),
-                             microsecond=int(float(t0s[30:43]) % 1 * 1000000))
-    except (KeyError, ValueError):
-        pass
+            assert len(fields[satsys]) == cnt
+            continue
 
-    try:
-        hdr['interval'] = float(hdr['INTERVAL'][:10])
-    except (KeyError, ValueError):
-        pass
+        if 'APPROX POSITION XYZ' in h:
+            hdr['attr']['pos'] = np.array([float(v) for v in c.split()])
+            if ecef2geodetic is not None:
+                hdr['attr']['pos_geo'] = ecef2geodetic(*hdr['attr']['pos'])
+            continue
+
+        if 'TIME OF FIRST OBS' in h:
+            hdr['attr']['time_system'] = c[48:51].strip()
+            hdr['attr']['t0'] = datetime(
+                year=int(c[:6]), month=int(c[6:12]), day=int(c[12:18]),
+                hour=int(c[18:24]), minute=int(c[24:30]),
+                second=int(float(c[30:36])),
+                microsecond=int(float(c[30:43]) % 1 * 1000000))
+            continue
+
+        if 'INTERVAL' in h:
+            hdr['attr']['interval'] = float(c[:10])
+            continue
+
 # %% select specific satellite systems only (optional)
+    set_sys = set(fields.keys())
+    set_meas = set(chain.from_iterable(fields.values()))
     if use is not None:
-        if not set(fields.keys()).intersection(use):
+        set_use = set(use)
+        if set_use - set_sys:
             raise KeyError(f'system type {use} not found in RINEX file')
 
-        fields = {k: fields[k] for k in use if k in fields}
+        set_sys -= set_use
+        for sys in set_sys:
+            del fields[sys]
+        set_sys = set_use
 
-    # perhaps this could be done more efficiently, but it's probably low impact on overall program.
-    # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
-    sysind = {}
-    if isinstance(meas, (tuple, list, np.ndarray)):
-        for sk in fields:  # iterate over each system
-            # ind = np.isin(fields[sk], meas)  # boolean vector
-            ind = np.zeros(len(fields[sk]), dtype=bool)
-            for m in meas:
-                for i, f in enumerate(fields[sk]):
-                    if f.startswith(m):
-                        ind[i] = True
+    if meas is not None:
+        set_usemeas = set(meas)
+        if set_usemeas - set_meas:
+            raise KeyError(f'measurement type {meas} not found in RINEX file')
 
-            fields[sk] = np.array(fields[sk])[ind].tolist()
-            sysind[sk] = np.empty(Fmax*3, dtype=bool)  # *3 due to LLI, SSI
-            for j, i in enumerate(ind):
-                sysind[sk][j*3:j*3+3] = i
-    else:
-        sysind = {k: slice(None) for k in fields}
+        for sys in set_sys:
+            fields[sys] = list(set_usemeas.intersection(fields[sys]))
+            if not fields[sys]:
+                del fields[sys]
 
-    hdr['fields'] = fields
-    hdr['fields_ind'] = sysind
-    hdr['Fmax'] = Fmax
+    # Note: Make a test case for correct filtering of (use, meas)
 
+    if not fields:
+        raise ValueError('required system(s)/measurement(s) not present')
+
+    for sys in fields:
+        for meas in fields[sys]:
+            hdr['meas'][sys + '-' + meas] = {
+                'len': None, 'idx': None,
+                'data': {'time': None, 'sv': None, 'val': None}
+            }
+
+    # TBD add indicator
     return hdr
