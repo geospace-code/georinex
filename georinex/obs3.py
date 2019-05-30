@@ -73,7 +73,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     # times = obstime3(fn)
     data = xarray.Dataset({}, coords={'time': [], 'sv': []})
     if tlim is not None and not isinstance(tlim[0], datetime):
-        raise TypeError('time bounds are specified as datetime.datetime')
+        raise TypeError('time bounds are not specified as datetime.datetime')
 
     last_epoch = None
 # %% loop
@@ -85,13 +85,22 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 break
 
             try:
-                time = _timeobs(ln)
+                time, in_range = _timeobs(ln, tlim, last_epoch, interval)
             except ValueError:  # garbage between header and RINEX data
                 logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
-# %% get SV indices
+
             # Number of visible satellites this time %i3  pg. A13
             Nsv = int(ln[33:35])
+            if in_range == -1:
+                for _ in range(Nsv):
+                    next(f)
+                continue
+
+            if in_range == 1:
+                break
+
+            last_epoch = time
 
             sv = []
             raw = ''
@@ -99,26 +108,10 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 sv.append(ln[:3])
                 raw += ln[3:]
 
-            if tlim is not None:
-                if time < tlim[0]:
-                    continue
-                elif time > tlim[1]:
-                    break
-
-            if interval is not None:
-                if last_epoch is None:  # initialization
-                    last_epoch = time
-                else:
-                    if time - last_epoch < interval:
-                        continue
-                    else:
-                        last_epoch += interval
-
             if verbose:
                 print(time, end="\r")
 
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
-
 # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
@@ -141,18 +134,27 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     return data
 
 
-def _timeobs(ln: str) -> datetime:
+def _timeobs(ln: str, tlim: Tuple[datetime, datetime], last_epoch: datetime, interval: timedelta) -> Tuple[datetime, int]:
     """
     convert time from RINEX 3 OBS text to datetime
     """
-    if not ln.startswith('>'):  # pg. A13
-        raise ValueError(f'RINEX 3 line beginning > is not present')
 
-    return datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
-                    hour=int(ln[13:15]), minute=int(ln[16:18]),
-                    second=int(ln[19:21]),
-                    microsecond=int(float(ln[19:29]) % 1 * 1000000))
+    curr_time = datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
+                         hour=int(ln[13:15]), minute=int(ln[16:18]),
+                         second=int(ln[19:21]),
+                         microsecond=int(float(ln[19:29]) % 1 * 1000000))
 
+    in_range = 0
+    if tlim is not None:
+        if curr_time < tlim[0]:
+            in_range = -1
+        if curr_time > tlim[1]:
+            in_range = 1
+
+    if interval is not None and last_epoch is not None and in_range == 0:
+        in_range = -1 if (curr_time - last_epoch < interval) else 0
+
+    return (curr_time, in_range)
 
 def obstime3(fn: Union[TextIO, Path],
              verbose: bool = False) -> np.ndarray:
