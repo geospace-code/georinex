@@ -79,6 +79,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 # %% loop
     with opener(fn) as f:
         hdr = obsheader3(f, use, meas)
+        print(hdr); quit()
 # %% process OBS file
         for ln in f:
             if not ln.startswith('>'):  # end of file
@@ -245,6 +246,7 @@ def obsheader3(f: TextIO,
     hdr['attr'] = rinexinfo(f)
     hdr['meas'] = {}
     fields = {}
+    sysmeas_idx = {}
 
     for ln in f:
         if "END OF HEADER" in ln:
@@ -268,6 +270,8 @@ def obsheader3(f: TextIO,
                 n -= 13
 
             assert len(fields[satsys]) == cnt
+            for idx, sysmeas in enumerate(fields[satsys]):
+                sysmeas_idx[satsys+'-'+sysmeas] = idx
             continue
 
         if 'APPROX POSITION XYZ' in h:
@@ -319,8 +323,9 @@ def obsheader3(f: TextIO,
 
     for sys in fields:
         for meas in fields[sys]:
-            hdr['meas'][sys + '-' + meas] = {
-                'len': None, 'idx': None,
+            k = sys + '-' + meas
+            hdr['meas'][k] = {
+                'idx': sysmeas_idx[k],
                 'data': {'time': None, 'sv': None, 'val': None}
             }
 
