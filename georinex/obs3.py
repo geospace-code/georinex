@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Union, List, Tuple, Any, Sequence
 from typing.io import TextIO
 
-import xarray
+import xarray as xr
 import numpy as np
 
 from .io import opener
@@ -34,7 +34,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
               verbose: bool = False,
               *,
               fast: bool = False,
-              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
+              interval: Union[float, int, timedelta] = None) -> xr.Dataset:
     """
     process RINEX 3 OBS data
 
@@ -69,17 +69,16 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 
     if not meas or not meas[0].strip():
         meas = None
-# %% allocate
     # times = obstime3(fn)
-    data = xarray.Dataset({}, coords={'time': [], 'sv': []})
+
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are not specified as datetime.datetime')
 
     last_epoch = None
 # %% loop
     with opener(fn) as f:
-        hdr = obsheader3(f, use, meas)
-        print(hdr); quit()
+        hdr, sysmeas_idx = obsheader3(f, use, meas)
+        dict_meas = hdr['meas']
 # %% process OBS file
         for ln in f:
             if not ln.startswith('>'):  # end of file
@@ -102,35 +101,47 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 break
 
             last_epoch = time
+            obsd = {}
+            for _, eln in zip(range(Nsv), f):
+                obsd = _epoch(obsd, sysmeas_idx, eln[3:], int(eln[1:3]),
+                               eln[0], useindicators, verbose)
 
-            sv = []
-            raw = ''
-            for i, ln in zip(range(Nsv), f):
-                sv.append(ln[:3])
-                raw += ln[3:]
+            for k in obsd:
+                dict_meas[k]['time'].append(time)
+                dict_meas[k]['sv'].append(obsd[k]['sv'])
+                dict_meas[k]['val'].append(obsd[k]['val'])
 
             if verbose:
                 print(time, end="\r")
 
-            data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
-# %% patch SV names in case of "G 7" => "G07"
-    data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
-# %% other attributes
-    data.attrs['version'] = hdr['version']
-    data.attrs['rinextype'] = 'obs'
-    data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
-    data.attrs['time_system'] = determine_time_system(hdr)
+            # data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
+    # generate data arrays
+    data = []
+    for sm in dict_meas:
+        alltime = dict_meas[sm]['time']
+        allsv = np.sort(np.array(list(set([sv for svl in dict_meas[sm]['sv'] for sv in svl]))))
+        valarray = np.empty((len(alltime), len(allsv)))
+        valarray[:] = np.nan
+        for i, (svl, ml) in enumerate(zip(dict_meas[sm]['sv'], dict_meas[sm]['val'])):
+            idx = np.searchsorted(allsv, svl)
+            valarray[i, idx] = ml
+        data.append(xr.DataArray(valarray, coords=[alltime, allsv], dims=['time', 'sv'], name=sm))
+
+    data = xr.merge(data)
+    # add attributes
+    data.attrs['version'] = hdr['attr']['version']
+    data.attrs['rinextype'] = hdr['attr']['rinextype']
+    data.attrs['name'] = hdr['attr']['name']
+    data.attrs['time_system'] = hdr['attr']['time_system']
     if isinstance(fn, Path):
         data.attrs['filename'] = fn.name
 
     try:
-        data.attrs['position'] = hdr['position']
-        if ecef2geodetic is not None:
-            data.attrs['position_geodetic'] = hdr['position_geodetic']
+        data.attrs['position'] = hdr['attr']['pos']
+        # if ecef2geodetic is not None:
+        #     data.attrs['position_geodetic'] = hdr['position_geodetic']
     except KeyError:
         pass
-
-    # data.attrs['toffset'] = toffset
 
     return data
 
@@ -172,51 +183,37 @@ def obstime3(fn: Union[TextIO, Path],
     return np.asarray(times)
 
 
-def _epoch(data: xarray.Dataset, raw: str,
-           hdr: Dict[str, Any],
-           time: datetime,
-           sv: List[str],
+def _epoch(obsd: Dict[str, Any],
+           sysmeas_idx: Dict[str, int],
+           line: str,
+           sv: int,
+           sys: str,
            useindicators: bool,
-           verbose: bool) -> xarray.Dataset:
+           verbose: bool) -> (Dict[str, Any]):
     """
-    block processing of each epoch (time step)
+    processing of each line in epoch (time step)
     """
-    darr = np.atleast_2d(np.genfromtxt(io.BytesIO(raw.encode('ascii')),
-                                       delimiter=(14, 1, 1) * hdr['Fmax']))
-# %% assign data for each time step
-    for sk in hdr['fields']:  # for each satellite system type (G,R,S, etc.)
-        # satellite indices "si" to extract from this time's measurements
-        si = [i for i, s in enumerate(sv) if s[0] in sk]
-        if len(si) == 0:  # no SV of this system "sk" at this time
+    parts = [line[i:i+16].strip() for i in range(0, len(line), 16)]
+
+    gen_filter_meas = ((sm, sysmeas_idx[sm]) for sm in sysmeas_idx if sys+'-' in sm)
+
+    for (sm, idx) in gen_filter_meas:
+        if idx >= len(parts):
             continue
+        val = np.nan
+        # TBD : need to include indicators for processing
+        try:
+            val = float(parts[idx])
+        except ValueError:
+            val = float(parts[idx].split()[0])
 
-        # measurement indices "di" to extract at this time step
-        di = hdr['fields_ind'][sk]
-        garr = darr[si, :]
-        garr = garr[:, di]
+        if sm not in obsd:
+            obsd[sm] = {'sv': [], 'val': []}
 
-        gsv = np.array(sv)[si]
+        obsd[sm]['sv'].append(sv)
+        obsd[sm]['val'].append(val)
 
-        dsf: Dict[str, tuple] = {}
-        for i, k in enumerate(hdr['fields'][sk]):
-            dsf[k] = (('time', 'sv'), np.atleast_2d(garr[:, i*3]))
-
-            if useindicators:
-                dsf = _indicators(dsf, k, garr[:, i*3+1:i*3+3])
-
-        if verbose:
-            print(time, '\r', end='')
-
-        epoch_data = xarray.Dataset(dsf, coords={'time': [time], 'sv': gsv})
-        if len(data) == 0:
-            data = epoch_data
-        elif len(hdr['fields']) == 1:  # one satellite system selected, faster to process
-            data = xarray.concat((data, epoch_data), dim='time')
-        else:  # general case, slower for different satellite systems all together
-            data = xarray.merge((data, epoch_data))
-
-    return data
-
+    return obsd
 
 def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
     """
@@ -232,7 +229,7 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
 
 def obsheader3(f: TextIO,
                use: Sequence[str] = None,
-               meas: Sequence[str] = None) -> Dict[str, Any]:
+               meas: Sequence[str] = None) -> (Dict[str, Any], Dict[str, int]):
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
@@ -325,9 +322,8 @@ def obsheader3(f: TextIO,
         for meas in fields[sys]:
             k = sys + '-' + meas
             hdr['meas'][k] = {
-                'idx': sysmeas_idx[k],
-                'data': {'time': None, 'sv': None, 'val': None}
+                'time': [], 'sv': [], 'val': []
             }
 
     # TBD add indicator
-    return hdr
+    return hdr, sysmeas_idx
