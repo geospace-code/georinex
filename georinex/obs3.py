@@ -328,5 +328,9 @@ def obsheader3(f: TextIO,
                 'time': [], 'sv': [], 'val': []
             }
 
+    for sysmeas in list(sysmeas_idx.keys()):
+        if sysmeas not in hdr['meas']:
+            del sysmeas_idx[sysmeas]
+
     # TBD add indicator
     return hdr, sysmeas_idx
