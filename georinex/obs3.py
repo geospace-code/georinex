@@ -200,6 +200,10 @@ def _epoch(obsd: Dict[str, Any],
     for (sm, idx) in gen_filter_meas:
         if idx >= len(parts):
             continue
+
+        if not parts[idx]:
+            continue
+
         val = np.nan
         # TBD : need to include indicators for processing
         try:
@@ -320,8 +324,7 @@ def obsheader3(f: TextIO,
 
     for sys in fields:
         for meas in fields[sys]:
-            k = sys + '-' + meas
-            hdr['meas'][k] = {
+            hdr['meas'][sys + '-' + meas] = {
                 'time': [], 'sv': [], 'val': []
             }
 
