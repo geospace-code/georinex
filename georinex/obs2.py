@@ -86,7 +86,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
 # %% allocation
     # these values are not perfect, but seem reasonable.
     # Let us know if you needed to change them.
-    Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
+    Nsvsys = 36  # Galileo has SV ids up to 36
 
     hdr = obsheader2(fn, useindicators, meas)
 
