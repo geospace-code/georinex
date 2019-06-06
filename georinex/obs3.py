@@ -77,7 +77,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     last_epoch = None
 # %% loop
     with opener(fn) as f:
-        hdr, sysmeas_idx = obsheader3(f, use, meas)
+        hdr, sysmeas_idx = obsheader3(f, use, meas, useindicators)
         dict_meas = hdr['meas']
 # %% process OBS file
         for ln in f:
@@ -103,29 +103,34 @@ def rinexobs3(fn: Union[TextIO, str, Path],
             last_epoch = time
             obsd = {}
             for _, eln in zip(range(Nsv), f):
-                obsd = _epoch(obsd, sysmeas_idx, eln[3:], int(eln[1:3]),
-                               eln[0], useindicators, verbose)
+                obsd = _epoch(obsd, sysmeas_idx, eln[3:], int(eln[1:3]), eln[0])
 
             for k in obsd:
                 dict_meas[k]['time'].append(time)
                 dict_meas[k]['sv'].append(obsd[k]['sv'])
                 dict_meas[k]['val'].append(obsd[k]['val'])
+                if useindicators:
+                    if 'ssi' in dict_meas[k]:
+                        dict_meas[k]['ssi'].append(obsd[k]['ssi'])
+                    if 'lli' in dict_meas[k]:
+                        dict_meas[k]['lli'].append(obsd[k]['lli'])
 
             if verbose:
                 print(time, end="\r")
 
-            # data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
     # generate data arrays
     data = []
     for sm in dict_meas:
         alltime = dict_meas[sm]['time']
         allsv = np.sort(np.array(list(set([sv for svl in dict_meas[sm]['sv'] for sv in svl]))))
         valarray = np.empty((len(alltime), len(allsv)))
-        valarray[:] = np.nan
-        for i, (svl, ml) in enumerate(zip(dict_meas[sm]['sv'], dict_meas[sm]['val'])):
-            idx = np.searchsorted(allsv, svl)
-            valarray[i, idx] = ml
-        data.append(xr.DataArray(valarray, coords=[alltime, allsv], dims=['time', 'sv'], name=sm))
+        data.append(_gen_array(alltime, allsv, dict_meas[sm]['sv'], dict_meas[sm]['val'], np.copy(valarray), sm))
+        if 'ssi' not in dict_meas[sm]:
+            continue
+        data.append(_gen_array(alltime, allsv, dict_meas[sm]['sv'], dict_meas[sm]['ssi'], np.copy(valarray), sm+'-ssi'))
+        if 'lli' not in dict_meas[sm]:
+            continue
+        data.append(_gen_array(alltime, allsv, dict_meas[sm]['sv'], dict_meas[sm]['lli'], np.copy(valarray), sm+'-lli'))
 
     data = xr.merge(data)
     # add attributes
@@ -187,13 +192,12 @@ def _epoch(obsd: Dict[str, Any],
            sysmeas_idx: Dict[str, int],
            line: str,
            sv: int,
-           sys: str,
-           useindicators: bool,
-           verbose: bool) -> (Dict[str, Any]):
+           sys: str) -> (Dict[str, Any]):
     """
     processing of each line in epoch (time step)
     """
-    parts = [line[i:i+16].strip() for i in range(0, len(line), 16)]
+    line = line + ' '*(len(line) % 16)
+    parts = [line[i:i+16] for i in range(0, len(line), 16)]
 
     gen_filter_meas = ((sm, sysmeas_idx[sm]) for sm in sysmeas_idx if sys+'-' in sm)
 
@@ -201,39 +205,33 @@ def _epoch(obsd: Dict[str, Any],
         if idx >= len(parts):
             continue
 
-        if not parts[idx]:
+        if not parts[idx].strip():
             continue
 
-        val = np.nan
-        # TBD : need to include indicators for processing
-        try:
-            val = float(parts[idx])
-        except ValueError:
-            val = float(parts[idx].split()[0])
-
         if sm not in obsd:
-            obsd[sm] = {'sv': [], 'val': []}
+            obsd[sm] = {'sv': [], 'val': [], 'ssi': [], 'lli': []}
 
         obsd[sm]['sv'].append(sv)
-        obsd[sm]['val'].append(val)
+        obsd[sm]['val'].append(float(parts[idx][:14]))
+        obsd[sm]['ssi'].append(int(parts[idx][15]) if parts[idx][15].strip() else np.nan)
+        obsd[sm]['lli'].append(int(parts[idx][14]) if parts[idx][14].strip() else np.nan)
 
     return obsd
 
-def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
-    """
-    handle LLI (loss of lock) and SSI (signal strength)
-    """
-    if k.startswith(('L1', 'L2')):
-        d[k+'lli'] = (('time', 'sv'), np.atleast_2d(arr[:, 0]))
+def _gen_array(alltime: List[datetime], allsv: List[int],
+               sv: List[Any], val: List[Any], valarray: np.array,
+               sysname: str) -> xr.DataArray:
+    valarray[:] = np.nan
+    for i, (svl, ml) in enumerate(zip(sv, val)):
+        idx = np.searchsorted(allsv, svl)
+        valarray[i, idx] = ml
 
-    d[k+'ssi'] = (('time', 'sv'), np.atleast_2d(arr[:, 1]))
-
-    return d
-
+    return xr.DataArray(valarray, coords=[alltime, allsv], dims=['time', 'sv'], name=sysname)
 
 def obsheader3(f: TextIO,
                use: Sequence[str] = None,
-               meas: Sequence[str] = None) -> (Dict[str, Any], Dict[str, int]):
+               meas: Sequence[str] = None,
+               useindicators: bool = False) -> (Dict[str, Any], Dict[str, int]):
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
@@ -324,13 +322,17 @@ def obsheader3(f: TextIO,
 
     for sys in fields:
         for meas in fields[sys]:
-            hdr['meas'][sys + '-' + meas] = {
+            k = sys + '-' + meas
+            hdr['meas'][k] = {
                 'time': [], 'sv': [], 'val': []
             }
+            if meas.startswith(('L', 'C')) and useindicators:
+                hdr['meas'][k]['ssi'] = []
+            if meas.startswith('L') and useindicators:
+                hdr['meas'][k]['lli'] = []
 
     for sysmeas in list(sysmeas_idx.keys()):
         if sysmeas not in hdr['meas']:
             del sysmeas_idx[sysmeas]
 
-    # TBD add indicator
-    return hdr, sysmeas_idx
+    return (hdr, sysmeas_idx)
