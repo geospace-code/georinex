@@ -77,7 +77,10 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     last_epoch = None
 # %% loop
     with opener(fn) as f:
-        hdr, sysmeas_idx = obsheader3(f, use, meas, useindicators)
+        try:
+            hdr, sysmeas_idx = obsheader3(f, use, meas, useindicators)
+        except KeyError:
+            return xr.Dataset()
         dict_meas = hdr['meas']
 # %% process OBS file
         for ln in f:
@@ -136,7 +139,10 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     # add attributes
     data.attrs['version'] = hdr['attr']['version']
     data.attrs['rinextype'] = hdr['attr']['rinextype']
-    data.attrs['name'] = hdr['attr']['name']
+    try:
+        data.attrs['name'] = hdr['attr']['name']
+    except KeyError:
+        data.attrs['name'] = 'XXXX'
     data.attrs['time_system'] = hdr['attr']['time_system']
     if isinstance(fn, Path):
         data.attrs['filename'] = fn.name
@@ -151,7 +157,8 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     return data
 
 
-def _timeobs(ln: str, tlim: Tuple[datetime, datetime], last_epoch: datetime, interval: timedelta) -> Tuple[datetime, int]:
+def _timeobs(ln: str, tlim: Tuple[datetime, datetime] = None,
+             last_epoch: datetime = None, interval: timedelta = None) -> Tuple[datetime, int]:
     """
     convert time from RINEX 3 OBS text to datetime
     """
@@ -183,7 +190,7 @@ def obstime3(fn: Union[TextIO, Path],
     with opener(fn) as f:
         for ln in f:
             if ln.startswith('>'):
-                times.append(_timeobs(ln))
+                times.append(_timeobs(ln)[0])
 
     return np.asarray(times)
 
@@ -228,6 +235,19 @@ def _gen_array(alltime: List[datetime], allsv: List[int],
 
     return xr.DataArray(valarray, coords=[alltime, allsv], dims=['time', 'sv'], name=sysname)
 
+
+def _determine_time_system(systype: str) -> str:
+    dict_ts = {
+        'G': 'GPS', 'R': 'GLO', 'E': 'GAL',
+        'J': 'QZS', 'C': 'BDI', 'I': 'IRN',
+        'M': ''
+    }
+
+    if systype not in dict_ts:
+        return ''
+
+    return dict_ts[systype]
+
 def obsheader3(f: TextIO,
                use: Sequence[str] = None,
                meas: Sequence[str] = None,
@@ -243,6 +263,7 @@ def obsheader3(f: TextIO,
 
     hdr = {}
     hdr['attr'] = rinexinfo(f)
+    hdr['attr']['time_system'] = _determine_time_system(hdr['attr']['systems'])
     hdr['meas'] = {}
     fields = {}
     sysmeas_idx = {}
@@ -280,7 +301,8 @@ def obsheader3(f: TextIO,
             continue
 
         if 'TIME OF FIRST OBS' in h:
-            hdr['attr']['time_system'] = c[48:51].strip()
+            if not hdr['attr']['time_system']:
+                hdr['attr']['time_system'] = c[48:51].strip()
             hdr['attr']['t0'] = datetime(
                 year=int(c[:6]), month=int(c[6:12]), day=int(c[12:18]),
                 hour=int(c[18:24]), minute=int(c[24:30]),

@@ -20,11 +20,11 @@ def test_contents():
     for v in ['R-L1C', 'R-C1C', 'R-S1C']:
         assert v in obs
 
-    assert len(obs.data_vars) == 10
+    assert len(obs.data_vars) == 13
 
 def test_meas_one():
     fn = R/'demo3.10o'
-    obs = gr.load(fn, meas='G-C1C')
+    obs = gr.load(fn, use='G', meas='C1C')
     assert 'G-L1C' not in obs
     assert 'R-L1C' not in obs
 
@@ -36,7 +36,7 @@ def test_meas_one():
 def test_meas_two():
     """two NON-SEQUENTIAL measurements"""
     fn = R/'demo3.10o'
-    obs = gr.load(fn, meas=['G-L1C', 'G-S1P'])
+    obs = gr.load(fn, use='G', meas=['L1C', 'S1P'])
     assert 'G-L2P' not in obs
 
     L1C = obs['G-L1C']
@@ -48,7 +48,7 @@ def test_meas_two():
 
     assert (S1P.sel(sv=13) == approx([42., 62.])).all()
 
-    C1C = gr.load(fn, meas='G-C1C')
+    C1C = gr.load(fn, use='G', meas='C1C')
     assert not C1C.equals(L1C)
 
 # removed test_meas_some_missing
@@ -67,14 +67,14 @@ def test_meas_all_missing():
 def test_meas_wildcard():
     fn = R/'demo3.10o'
 
-    obs = gr.load(fn, meas='G-*')
+    obs = gr.load(fn, use='G')
     assert 'R-L1C' not in obs
     assert 'G-C1P' in obs and 'G-C2P' in obs and 'G-C1C' in obs
     assert len(obs.data_vars) == 7
 
-    obs = gr.load(fn, meas='*-L')
-    assert 'G-C1P' not in obs
-    assert 'G-L1C' in obs and 'G-L2P' in obs and 'R-L1C' in obs
+    # obs = gr.load(fn, meas='L*')
+    # assert 'G-C1P' not in obs
+    # assert 'G-L1C' in obs and 'G-L2P' in obs and 'R-L1C' in obs
 
 def test_zip():
     fn = R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip'
@@ -86,19 +86,18 @@ def test_zip():
     assert (times == [datetime(2018, 5, 13, 1, 30), datetime(2018, 5, 13, 1, 30, 30),  datetime(2018, 5, 13, 1, 31)]).all()
 
     hdr = gr.rinexheader(fn)
-    assert hdr['t0'] <= times[0]
+    assert hdr['attr']['t0'] <= times[0]
 
 # TBD
 # Add more cases to include bad system
 
 def test_bad_system():
     """ Z and Y are not currently used by RINEX """
-    with pytest.raises(KeyError):
-        gr.load(R/'demo3.10o', use='Z')
+    data = gr.load(R/'demo3.10o', use='Z')
+    assert not data
 
-    with pytest.raises(KeyError):
-        gr.load(R/'demo3.10o', use=['Z', 'Y'])
-
+    data = gr.load(R/'demo3.10o', use=['Z', 'Y'])
+    assert not data
 
 # removed test_one_system()
 

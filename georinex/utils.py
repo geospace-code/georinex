@@ -151,7 +151,7 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
             raise ValueError(f'Unknown rinex type {info} in {fn}')
     elif int(info['version']) == 3:
         if info['rinextype'] == 'obs':
-            hdr = obsheader3(fn)
+            hdr, _ = obsheader3(fn)
         elif info['rinextype'] == 'nav':
             hdr = navheader3(fn)
         else:
