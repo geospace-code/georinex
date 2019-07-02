@@ -5,9 +5,11 @@ where color & size are proportional to measurement interval (smaller is better)
 """
 from pathlib import Path
 from argparse import ArgumentParser
-import georinex as gr
-import georinex.plots as grp
 from matplotlib.pyplot import show
+
+import georinex as gr
+import georinex.plots_geo as grp
+import georinex.geo as gg
 
 
 def main():
@@ -23,7 +25,7 @@ def main():
 
     flist = gr.globber(indir, p.glob)
 
-    locs = gr.getlocations(flist)
+    locs = gg.get_locations(flist)
 
     grp.receiver_locations(locs)
 

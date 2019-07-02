@@ -9,6 +9,17 @@ git:
 matrix:
   include:
   - os: linux
+    name: Integration install
+    python: 3.7
+    install:
+    - make --quiet install -C rnxcmp
+    - python setup.py install
+    - pip install $(basename $TRAVIS_REPO_SLUG)[tests]
+    script:
+    - cd $HOME
+    - python -m pytest $TRAVIS_BUILD_DIR/tests
+  - os: linux
+    name: PEP8 MyPy Coverage
     python: 3.7
     install:
     - make --quiet install -C rnxcmp
@@ -22,21 +33,22 @@ matrix:
   - os: linux
     python: 3.6
   - os: osx
-    language: sh
+    language: minimal
     install:
     - make --quiet install -C rnxcmp
-    - pip3 install -e .[tests]
-  - os: windows
-    language: sh
-    before_install:
-    - choco install python3
-    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-    install:
-    - mingw32-make install CC=gcc -C rnxcmp
-    - pip install -e .[tests]
+    - pip3 install -e .[tests,io]
+# Windows image never starts, use AppVeyor
+#  - os: windows
+#    language: minimal
+#    before_install:
+#    - choco install python3
+#    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+#    install:
+#    - mingw32-make install CC=gcc -C rnxcmp
+#    - pip install -e .[tests]
 
 
 install: pip install -e .[tests,io]
 
-script: pytest -rsv
+script: pytest -r a -v
 

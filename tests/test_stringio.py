@@ -2,9 +2,10 @@
 import pytest
 from pytest import approx
 from pathlib import Path
-import georinex as gr
 import io
 from datetime import datetime
+
+import georinex as gr
 
 R = Path(__file__).parent / 'data'
 
@@ -45,10 +46,12 @@ def test_obs(rinex_version):
 
 
 def test_locs():
+    gg = pytest.importorskip('georinex.geo')
+
     txt = (R / 'demo.10o').read_text()
 
     with io.StringIO(txt) as f:
-        locs = gr.getlocations(f)
+        locs = gg.get_locations(f)
 
     if locs.size == 0:
         pytest.skip('no locs found')
