@@ -11,6 +11,7 @@ from .obs2 import rinexobs2
 from .obs3 import rinexobs3
 from .nav2 import rinexnav2
 from .nav3 import rinexnav3
+from .navsp3 import sp3
 from .utils import _tlim
 
 # for NetCDF compression. too high slows down with little space savings.
@@ -82,6 +83,8 @@ def load(rinexfn: Union[TextIO, str, Path],
             return obs
         else:
             raise ValueError(f'No data of known format found in {rinexfn}')
+    elif rinexfn.suffix == '.sp3':
+        return sp3(rinexfn)
     else:
         raise ValueError(f"What kind of RINEX file is: {rinexfn}")
 

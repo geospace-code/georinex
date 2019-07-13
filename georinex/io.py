@@ -121,10 +121,15 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
                     continue
                 attrs.update(dat.attrs)
             return attrs
+        
+        elif f.suffix == '.sp3':
+            return {'rinextype': 'sp3'}
 
         with opener(fn, header=True) as f:
             return rinexinfo(f)
 
+    
+    
     f.seek(0)
 
     try:
@@ -188,8 +193,10 @@ def rinex_version(s: str) -> Tuple[float, bool]:
     if len(s) >= 80:
         if s[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
             raise ValueError('The first line of the RINEX file header is corrupted.')
-
-    vers = float(s[:9])  # %9.2f
-    is_crinex = s[20:40] == 'COMPACT RINEX FORMAT'
-
-    return vers, is_crinex
+    try:
+        vers = float(s[:9])  # %9.2f
+        is_crinex = s[20:40] == 'COMPACT RINEX FORMAT'
+        return vers, is_crinex
+    except:
+        raise ('Coulnt found the rinex info in the header')
+        
