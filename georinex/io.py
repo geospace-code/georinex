@@ -110,7 +110,6 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
 
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
-
         if fn.suffix == '.nc':
             attrs: Dict[str, Any] = {'rinextype': []}
             for g in ('OBS', 'NAV'):
@@ -122,7 +121,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
                 attrs.update(dat.attrs)
             return attrs
         
-        elif f.suffix == '.sp3':
+        elif str(fn).endswith('sp3'):
             return {'rinextype': 'sp3'}
 
         with opener(fn, header=True) as f:

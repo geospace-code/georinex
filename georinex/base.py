@@ -83,7 +83,7 @@ def load(rinexfn: Union[TextIO, str, Path],
             return obs
         else:
             raise ValueError(f'No data of known format found in {rinexfn}')
-    elif rinexfn.suffix == '.sp3':
+    elif str(rinexfn).endswith('sp3'):
         return sp3(rinexfn)
     else:
         raise ValueError(f"What kind of RINEX file is: {rinexfn}")
