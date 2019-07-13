@@ -13,7 +13,7 @@ except ImportError:
     ecef2geodetic = None
 
 from .io import opener, rinexinfo
-from .common import determine_time_system, check_ram, _check_time_interval
+from .common import determine_time_system, check_ram, _check_time_interval, check_unique_times
 
 def rinexobs2(fn: Path,
               use: Sequence[str] = None,
@@ -453,7 +453,11 @@ def obstime2(fn: Union[TextIO, Path],
 
             _skip(f, ln, hdr['Nl_sv'])
 
-    return np.asarray(times)
+    times = np.asarray(times)
+
+    check_unique_times(times)
+
+    return times
 
 
 def _skip(f: TextIO, ln: str,

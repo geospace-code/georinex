@@ -5,7 +5,9 @@ print out start, stop (or all) times in RINEX file
 from pathlib import Path
 from argparse import ArgumentParser
 import georinex as gr
+import logging
 import numpy as np
+from datetime import timedelta
 
 
 def main():
@@ -17,14 +19,14 @@ def main():
 
     filename = Path(p.filename).expanduser()
 
-    print('filename: start, stop, interval')
+    print('filename: start, stop, number of times, interval')
 
     if filename.is_dir():
         flist = gr.globber(filename, p.glob)
         for f in flist:
             eachfile(f, p.verbose)
     elif filename.is_file():
-        eachfile(filename, p.quiet, p.verbose)
+        eachfile(filename, p.verbose)
     else:
         raise FileNotFoundError(f'{filename} is not a path or file')
 
@@ -38,18 +40,23 @@ def eachfile(fn: Path, verbose: bool = False):
         return
 
 # %% output
-    try:
-        ostr = (f"{fn.name}:"
-                f" {times[0].isoformat()}"
-                f" {times[-1].isoformat()}")
-    except IndexError:
+    Ntimes = times.size
+
+    if Ntimes == 0:
         return
 
-    try:
-        if ~np.isnan(times.interval):
-            ostr += f" {times.interval}"
-    except AttributeError:
-        pass
+    ostr = (f"{fn.name}:"
+            f" {times[0].isoformat()}"
+            f" {times[-1].isoformat()}"
+            f" {Ntimes}")
+
+    hdr = gr.rinexheader(fn)
+    interval = hdr.get('interval', np.nan)
+    if ~np.isnan(interval):
+        ostr += f" {interval}"
+        Nexpect = (times[-1] - times[0]) // timedelta(seconds=interval) + 1
+        if Nexpect != Ntimes:
+            logging.warning(f'{fn.name}: expected {Nexpect} but got {Ntimes} times')
 
     print(ostr)
 

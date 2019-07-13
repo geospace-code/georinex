@@ -8,6 +8,7 @@ import xarray
 from datetime import datetime
 from pytest import approx
 from pathlib import Path
+
 import georinex as gr
 #
 R = Path(__file__).parent / 'data'
@@ -70,7 +71,8 @@ def test_locs():
     if not gr.crxexe():
         pytest.skip(f'crx2rnx not found')
 
-    pytest.importorskip('pymap3d')
+    pytest.importorskip('pymap3d')  # need to have this
+    gg = pytest.importorskip('georinex.geo')
 
     pat = ['*o',
            '*O.rnx', '*O.rnx.gz',
@@ -78,7 +80,7 @@ def test_locs():
 
     flist = gr.globber(R, pat)
 
-    locs = gr.getlocations(flist)
+    locs = gg.get_locations(flist)
 
     assert locs.loc['demo.10o'].values == approx([41.3887, 2.112, 30])
 

@@ -5,6 +5,7 @@ from typing import Union, Tuple, Dict, Sequence
 from typing.io import TextIO
 from datetime import datetime, timedelta
 import logging
+
 from .io import rinexinfo
 from .obs2 import rinexobs2
 from .obs3 import rinexobs3
@@ -96,10 +97,7 @@ def batch_convert(path: Path, glob: str, out: Path,
 
     path = Path(path).expanduser()
 
-    flist = [f for f in path.glob(glob) if f.is_file()]
-
-    if len(flist) == 0:
-        raise FileNotFoundError(f'No files to convert in {path}')
+    flist = (f for f in path.glob(glob) if f.is_file())
 
     for fn in flist:
         try:

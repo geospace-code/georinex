@@ -1,13 +1,12 @@
 from pathlib import Path
-from typing import Tuple, Dict, Any, Optional, Sequence, List
+from typing import Union, Tuple, Dict, Any, Optional, Sequence, List
+from typing.io import TextIO
 from datetime import datetime
 from dateutil.parser import parse
-from typing import Union
-from typing.io import TextIO
 import io
 import xarray
 import numpy as np
-import pandas
+
 from .io import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
@@ -75,50 +74,6 @@ def gettime(fn: Union[TextIO, Path]) -> np.ndarray:
         raise ValueError(f'per-observation time is in NAV, OBS files, not {info}  {fn}')
 
     return times
-
-
-def getlocations(flist: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
-    """
-    retrieve locations of GNSS receivers
-
-    Requires pymap3d.ecef2geodetic
-    """
-    if isinstance(flist, (Path, io.StringIO)):
-        flist = [flist]
-
-    if isinstance(flist[0], io.StringIO):
-        locs = pandas.DataFrame(index=['0'],
-                                columns=['lat', 'lon', 'interval'])
-    else:
-        locs = pandas.DataFrame(index=[f.name for f in flist],
-                                columns=['lat', 'lon', 'interval'])
-
-    for f in flist:
-        if isinstance(f, Path) and f.suffix == '.nc':
-            dat = xarray.open_dataset(f, group='OBS')
-            hdr = dat.attrs
-        else:
-            try:
-                hdr = rinexheader(f)
-            except ValueError:
-                continue
-
-        if isinstance(f, Path):
-            key = f.name
-        else:
-            key = '0'
-
-        if 'position_geodetic' not in hdr:
-            continue
-
-        locs.loc[key, 'lat'] = hdr['position_geodetic'][0]
-        locs.loc[key, 'lon'] = hdr['position_geodetic'][1]
-        if 'interval' in hdr and hdr['interval'] is not None:
-            locs.loc[key, 'interval'] = hdr['interval']
-
-    locs = locs.loc[locs.loc[:, ['lat', 'lon']].notna().all(axis=1), :]
-
-    return locs
 
 def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     """

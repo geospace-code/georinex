@@ -12,7 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, _check_time_interval
+from .common import determine_time_system, _check_time_interval, check_unique_times
 from .io import rinexinfo
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 
@@ -162,7 +162,11 @@ def obstime3(fn: Union[TextIO, Path],
             if ln.startswith('>'):
                 times.append(_timeobs(ln))
 
-    return np.asarray(times)
+    times = np.asarray(times)
+
+    check_unique_times(times)
+
+    return times
 
 
 def _epoch(data: xarray.Dataset, raw: str,
