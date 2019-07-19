@@ -89,40 +89,47 @@ def rinexnav3(fn: Union[TextIO, str, Path],
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
 
-        tu, iu = np.unique(t[svi], return_index=True)
-        if tu.size != t[svi].size:
-            logging.info(f'duplicate times detected on SV {sv}, using first of duplicate times')
-            """ I have seen that the data rows match identically when times are duplicated"""
+        check = np.array([True]*t[svi].size)
+        duplicate = True
+        sv_copies = 0
+        while duplicate: # process until there are no more duplicate times
+            tu, iu = np.unique(t[svi][check], return_index=True)
+            duplicate = tu.size != t[svi][check].size
 
-        cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
-        gi = [i for i, c in enumerate(cf) if not c.startswith(('spare', 'FitIntvl'))]
-        darr = np.empty((svi.size, len(gi)))
+            cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
+            gi = [i for i, c in enumerate(cf) if not c.startswith(('spare', 'FitIntvl'))]
+            darr = np.empty((svi.size, len(gi)))
 
-        for j, i in enumerate(svi):
-            # darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')), delimiter=Lf)
-            try:
-                darr[j, :] = [float(raws[i][Lf*k:Lf*(k+1)]) for k in gi]
-            except ValueError:
-                logging.info(f'malformed line for {sv}')
-                darr[j, :] = np.nan
-# %% discard duplicated times
+            for j, i in enumerate(svi):
+                # darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+                try:
+                    darr[j, :] = [float(raws[i][Lf*k:Lf*(k+1)]) for k in gi]
+                except ValueError:
+                    logging.info(f'malformed line for {sv}')
+                    darr[j, :] = np.nan
+            # %% discard duplicated times
 
-        darr = darr[iu, :]
+            darr = darr[check, :][iu, :]
 
-        dsf = {}
-        for (i, d) in zip(gi, darr.T):
-            if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
-                                                 'Y', 'dY', 'dY2',
-                                                 'Z', 'dZ', 'dZ2'):
-                d *= 1000  # km => m
+            dsf = {}
+            for (i, d) in zip(gi, darr.T):
+                if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
+                                                    'Y', 'dY', 'dY2',
+                                                    'Z', 'dZ', 'dZ2'):
+                    d *= 1000  # km => m
 
-            dsf[cf[i]] = (('time', 'sv'), d[:, None])
+                dsf[cf[i]] = (('time', 'sv'), d[:, None])
 
-        if len(nav) == 0:
-            nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
-        else:
-            nav = xarray.merge((nav,
-                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
+            svv = sv if not sv_copies else sv + f'_{sv_copies}'
+            if len(nav) == 0:
+                nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})
+            else:
+                nav = xarray.merge((nav,
+                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})))
+                
+            sv_copies += 1
+            check[np.arange(check.size)[check][iu]] = False
+            
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
