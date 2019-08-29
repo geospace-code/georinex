@@ -37,18 +37,7 @@ matrix:
     install:
     - make --quiet install -C rnxcmp
     - pip3 install -e .[tests,io]
-# Windows image never starts, use AppVeyor
-#  - os: windows
-#    language: minimal
-#    before_install:
-#    - choco install python3
-#    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-#    install:
-#    - mingw32-make install CC=gcc -C rnxcmp
-#    - pip install -e .[tests]
-
 
 install: pip install -e .[tests,io]
 
 script: pytest -r a -v
-

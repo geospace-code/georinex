@@ -24,4 +24,3 @@ install:
 - pip install -e .[tests,io]
 
 test_script: pytest -r a -v
-

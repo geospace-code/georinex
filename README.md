@@ -1,10 +1,8 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
-[![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
-[![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
-[![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
+[![Actions Status](https://github.com/scivision/georinex/workflows/ci/badge.svg)](https://github.com/scivision/georinex/actions)
+
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
-[![Xarray badge](https://img.shields.io/badge/powered%20by-xarray-orange.svg?style=flat)](http://xarray.pydata.org/en/stable/why-xarray.html)
 
 # GeoRinex
 
@@ -64,7 +62,7 @@ make install -C rnxcmp
 
 #### Windows
 For optional Hatanaka converter on Windows, assuming you have
-[installed MinGW compiler on Windows](https://www.scivision.co/windows-gcc-gfortran-cmake-make-install/):
+[installed MinGW compiler on Windows](https://www.scivision.dev/windows-gcc-gfortran-cmake-make-install/):
 ```posh
 set CC=gcc
 mingw32-make -C rnxcmp

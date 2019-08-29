@@ -86,12 +86,11 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
 # %% get SV indices
-            # Number of visible satellites this time %i3  pg. A13
-            Nsv = int(ln[33:35])
-
             sv = []
             raw = ''
-            for i, ln in zip(range(Nsv), f):
+            # Number of visible satellites this time %i3  pg. A13
+            for _ in range(int(ln[33:35])):
+                ln = f.readline()
                 sv.append(ln[:3])
                 raw += ln[3:]
 
@@ -113,6 +112,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
             if verbose:
                 print(time, end="\r")
 
+            # this time epoch is complete, assemble the data.
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
 # %% patch SV names in case of "G 7" => "G07"

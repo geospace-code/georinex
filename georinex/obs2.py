@@ -173,7 +173,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
             raws = []
-            for i, s in enumerate(sv):
+            for s in sv:
                 # don't process discarded satellites
                 if s[0] != system:
                     for _ in range(hdr['Nl_sv']):
