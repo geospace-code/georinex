@@ -54,19 +54,7 @@ cd georinex
 python -m pip install -e .
 ```
 
-### Optional Hatanaka
-If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code by:
-```sh
-make install -C rnxcmp
-```
-
-#### Windows
-For optional Hatanaka converter on Windows, assuming you have
-[installed MinGW compiler on Windows](https://www.scivision.dev/windows-gcc-gfortran-cmake-make-install/):
-```posh
-set CC=gcc
-mingw32-make -C rnxcmp
-```
+The Hatanaka CRINEX converter automatically compiles if needed and a C compiler is available.
 
 Currently, `unlzw` doesn't work on Windows, making `.Z` files unreadable.
 
@@ -414,3 +402,10 @@ There are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
 Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation
           Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.
 (available at http://www.gsi.go.jp/ENGLISH/Bulletin55.html)
+
+#### Manual compile Hatanaka converter
+
+If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code by:
+```sh
+make install -C rnxcmp
+```

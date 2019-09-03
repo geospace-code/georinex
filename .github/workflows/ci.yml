@@ -53,8 +53,6 @@ jobs:
         python-version: 3.7
     - name: Install Python package
       run: python setup.py install
-    - name: compile
-      run: make -C rnxcmp
     - name: run Pytest
       run: |
         cd ${HOME}

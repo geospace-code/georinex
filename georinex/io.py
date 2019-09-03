@@ -1,12 +1,9 @@
 import gzip
 import zipfile
 from pathlib import Path
-import subprocess
 from contextlib import contextmanager
 import io
-import os
 import logging
-import functools
 import xarray
 from typing.io import TextIO
 from typing import Union, Dict, Any, Tuple
@@ -15,6 +12,8 @@ try:
     import unlzw
 except ImportError:
     unlzw = None
+
+from .hatanaka import opencrx
 
 
 @contextmanager
@@ -38,7 +37,7 @@ def opener(fn: Union[TextIO, Path],
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(_opencrx(f))
+                    f = io.StringIO(opencrx(f))
                 yield f
         elif fn.suffix == '.zip':
             with zipfile.ZipFile(fn, 'r') as z:
@@ -59,50 +58,10 @@ def opener(fn: Union[TextIO, Path],
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(_opencrx(f))
+                    f = io.StringIO(opencrx(f))
                 yield f
     else:
         raise OSError(f'Unsure what to do with input of type: {type(fn)}')
-
-
-@functools.lru_cache()
-def crxexe() -> str:
-    """
-    Determines if CRINEX converter is available.
-    """
-    exe = Path(__file__).resolve().parents[1] / 'rnxcmp' / 'crx2rnx'
-    if os.name == 'nt':
-        exe = exe.with_suffix('.exe')
-
-    if not exe.is_file():
-        return ''
-
-    # crx2rnx -h:  returncode == 1
-    ret = subprocess.run([str(exe), '-h'], stderr=subprocess.PIPE,
-                         universal_newlines=True)
-
-    if ret.stderr.startswith('Usage'):
-        return str(exe)
-    else:
-        return ''
-
-
-def _opencrx(f: TextIO) -> str:
-    """
-    Conversion to string is necessary because of a quirk where gzip.open() even with 'rt' doesn't decompress until read.
-
-    Nbytes is used to read first line.
-    """
-    exe = crxexe()
-
-    if not exe:
-        raise RuntimeError('Hatanka crx2rnx not available. Did you compile it per README?')
-
-    ret = subprocess.check_output([exe, '-'],
-                                  input=f.read(),
-                                  universal_newlines=True)
-
-    return ret
 
 
 def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:

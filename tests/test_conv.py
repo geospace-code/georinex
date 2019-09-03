@@ -10,7 +10,7 @@ from pytest import approx
 from pathlib import Path
 
 import georinex as gr
-#
+
 R = Path(__file__).parent / 'data'
 
 
@@ -68,9 +68,6 @@ def test_netcdf_write(tmp_path):
 
 
 def test_locs():
-    if not gr.crxexe():
-        pytest.skip(f'crx2rnx not found')
-
     pytest.importorskip('pymap3d')  # need to have this
     gg = pytest.importorskip('georinex.geo')
 
