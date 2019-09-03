@@ -39,7 +39,7 @@ def rinexobs2(fn: Path,
                          useindicators=useindicators, meas=meas,
                          verbose=verbose,
                          fast=fast, interval=interval)
-        if len(o) > 0:
+        if len(o.variables) > 0:
             attrs = o.attrs
             obs = xarray.merge((obs, o))
 
