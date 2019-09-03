@@ -92,7 +92,7 @@ def rinexnav3(fn: Union[TextIO, str, Path],
         check = np.array([True]*t[svi].size)
         duplicate = True
         sv_copies = 0
-        while duplicate: # process until there are no more duplicate times
+        while duplicate:  # process until there are no more duplicate times
             tu, iu = np.unique(t[svi][check], return_index=True)
             duplicate = tu.size != t[svi][check].size
 
@@ -114,8 +114,8 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             dsf = {}
             for (i, d) in zip(gi, darr.T):
                 if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
-                                                    'Y', 'dY', 'dY2',
-                                                    'Z', 'dZ', 'dZ2'):
+                                                     'Y', 'dY', 'dY2',
+                                                     'Z', 'dZ', 'dZ2'):
                     d *= 1000  # km => m
 
                 dsf[cf[i]] = (('time', 'sv'), d[:, None])
@@ -125,11 +125,11 @@ def rinexnav3(fn: Union[TextIO, str, Path],
                 nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})
             else:
                 nav = xarray.merge((nav,
-                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})))
-                
+                                    xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})))
+
             sv_copies += 1
             check[np.arange(check.size)[check][iu]] = False
-            
+
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
