@@ -10,6 +10,7 @@ from .obs2 import rinexobs2
 from .obs3 import rinexobs3
 from .nav2 import rinexnav2
 from .nav3 import rinexnav3
+from .sp3 import load_sp3
 from .utils import _tlim
 
 # for NetCDF compression. too high slows down with little space savings.
@@ -55,7 +56,9 @@ def load(rinexfn: Union[TextIO, str, Path],
 
     info = rinexinfo(rinexfn)
 
-    if info['rinextype'] == 'nav':
+    if info['rinextype'] == 'sp3':
+        return load_sp3(rinexfn, outfn)
+    elif info['rinextype'] == 'nav':
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
     elif info['rinextype'] == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
