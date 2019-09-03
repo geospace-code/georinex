@@ -257,6 +257,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
     obs = obs.dropna(dim='time', how='all')  # when tlim specified
 # %% attributes
     obs.attrs['version'] = hdr['version']
+    try:
+        obs.attrs['interval'] = hdr['interval']
+    except KeyError:
+        pass
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
