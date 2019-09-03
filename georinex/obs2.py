@@ -369,8 +369,9 @@ def obsheader2(f: TextIO,
 # %% observation types
     try:
         hdr['fields'] = hdr['# / TYPES OF OBSERV']
-        if Nobs != len(hdr['fields']):
-            raise ValueError(f'{f.name} header read incorrectly')
+        if hdr['Nobs'] != len(hdr['fields']):
+            logging.error(f'{f.name} number of observations declared in header does not match fields')
+            hdr['Nobs'] = len(hdr['fields'])
 
         if isinstance(meas, (tuple, list, np.ndarray)):
             ind = np.zeros(len(hdr['fields']), dtype=bool)
@@ -382,7 +383,7 @@ def obsheader2(f: TextIO,
             hdr['fields_ind'] = np.nonzero(ind)[0]
         else:
             ind = slice(None)
-            hdr['fields_ind'] = np.arange(Nobs)
+            hdr['fields_ind'] = np.arange(hdr['Nobs'])
 
         hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
     except KeyError:
