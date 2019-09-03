@@ -20,7 +20,7 @@ where ease of cross-platform install and correctness are primary goals.
 ![RINEX plot](tests/example_plot.png)
 
 
-## Inputs
+## Input data types
 
 * RINEX 3.x or RINEX 2.x
   * NAV
@@ -30,7 +30,8 @@ where ease of cross-platform install and correctness are primary goals.
   * `.Z` LZW
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
-* Python `io.StringIO` text stream RINEX
+* Python `io.StringIO` text stream RINEX'
+* .sp3 SP3-c ephemeris
 
 ## Output
 
