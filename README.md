@@ -67,9 +67,8 @@ python -m pytest
 ```
 
 ```
-155 passed, 1 skipped
+158 passed, 1 skipped
 ```
-
 
 ## Usage
 
