@@ -196,6 +196,9 @@ def rinexobs(fn: Union[TextIO, str, Path],
         wmode = _groupexists(outfn, group)
 
         enc = {k: ENC for k in obs.data_vars}
+        # Pandas >= 0.25.0 requires this, regardless of xarray version
+        if obs.time.dtype != 'datetime64[ns]':
+            obs["time"] = obs.time.astype("datetime64[ns]")
         obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
 
     return obs
