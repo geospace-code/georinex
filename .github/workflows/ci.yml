@@ -7,52 +7,41 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 3
       matrix:
-        python-version: [3.6, 3.7]
+        python-version: [3.6, '3.x']
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -e .[lint]
-    - name: Lint
-      run: flake8
-    - name: Type check
-      run: mypy .
+    - run: pip install -e .[lint]
+    - run: flake8
+    - run: mypy .
 
   integration:
     needs: [lint]
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 3
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.7]
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+    - uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -e .[tests,io]
-    - name: run Pytest
-      run: pytest -r a -v
+        python-version: '3.x'
+    - run: pip install -e .[tests,io]
+    - run: pytest -r a -v
 
   install:
     needs: [integration]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python
-      uses: actions/setup-python@v1
+    - uses: actions/setup-python@v1
       with:
-        python-version: 3.7
-    - name: Install Python package
-      run: python setup.py install
+        python-version: '3.x'
+    - run: python setup.py install
     - name: run Pytest
       run: |
         cd ${HOME}
