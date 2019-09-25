@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
-from typing import Dict, Any
+from typing import Dict, Union, Any
 import numpy as np
 import logging
 try:
@@ -67,7 +67,7 @@ def determine_time_system(header: Dict[str, Any]) -> str:
     return ts
 
 
-def _check_time_interval(interval: Any) -> timedelta:
+def check_time_interval(interval: Union[float, int, timedelta]) -> timedelta:
     if isinstance(interval, (float, int)):
         if interval < 0:
             raise ValueError('time interval must be non-negative')

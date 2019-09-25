@@ -13,7 +13,7 @@ except ImportError:
     ecef2geodetic = None
 
 from .io import opener, rinexinfo
-from .common import determine_time_system, check_ram, _check_time_interval, check_unique_times
+from .common import determine_time_system, check_ram, check_time_interval, check_unique_times
 
 
 def rinexobs2(fn: Path,
@@ -82,7 +82,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are specified as datetime.datetime')
 
-    interval = _check_time_interval(interval)
+    interval = check_time_interval(interval)
 # %% allocation
     """
     Nsvsys may need updating as GNSS systems grow.

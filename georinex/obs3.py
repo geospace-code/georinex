@@ -12,7 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, _check_time_interval, check_unique_times
+from .common import determine_time_system, check_time_interval, check_unique_times
 from .io import rinexinfo
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 
@@ -52,7 +52,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 Useful to speed up reading of very large RINEX files
     """
 
-    interval = _check_time_interval(interval)
+    interval = check_time_interval(interval)
 
     if isinstance(use, str):
         use = [use]
