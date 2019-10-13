@@ -4,47 +4,32 @@ on: [push, pull_request]
 
 jobs:
 
-  lint:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.6, '3.x']
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+    - uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - run: pip install -e .[lint]
+    - run: pip install -e .[tests,lint,io]
     - run: flake8
     - run: mypy .
+    - run: pytest
+      working-directory: tests
 
   integration:
-    needs: [lint]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: pip install -e .[tests,io]
-    - run: pytest -r a -v
-
-  install:
-    needs: [integration]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
-    - run: python setup.py install
-    - name: run Pytest
-      run: |
-        cd ${HOME}
-        python -m pip install pytest
-        python -m pip install netcdf4
-        python -m pytest ${GITHUB_WORKSPACE} -r a -v
+    - run: pip install .[tests,io]
+    - run: pytest
+      working-directory: tests
