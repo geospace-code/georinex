@@ -4,17 +4,19 @@ test console script
 """
 import pytest
 import subprocess
+import sys
 from pathlib import Path
 
 R = Path(__file__).parent / "data"
+Rexe = Path(__file__).resolve().parents[1]
 
 
 def test_convenience():
-    subprocess.check_call(["ReadRinex", str(R / "demo.10o")])
+    subprocess.check_call([sys.executable, "ReadRinex.py", str(R / "demo.10o")], cwd=Rexe)
 
 
 def test_time():
-    subprocess.check_call(["TimeRinex", str(R)])
+    subprocess.check_call([sys.executable, "TimeRinex.py", str(R)], cwd=Rexe)
 
 
 # %% convert all OBS 2 files to NetCDF4
@@ -31,7 +33,7 @@ def test_batch_convert(tmp_path, filename):
         return  # this file has no contents, hence nothing to convert to NetCDF4
 
     outdir = tmp_path
-    subprocess.check_call(["rnx2hdf5", str(R), "*o", "-o", str(outdir)])
+    subprocess.check_call([sys.executable, "rnx2hdf5.py", str(R), "*o", "-o", str(outdir)], cwd=Rexe)
 
     outfn = outdir / (filename.name + ".nc")
     assert outfn.is_file()
@@ -39,4 +41,4 @@ def test_batch_convert(tmp_path, filename):
 
 
 if __name__ == "__main__":
-    pytest.main(["-x", __file__])
+    pytest.main(["-v", __file__])
