@@ -123,9 +123,11 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     # Get interval from header or derive it from the data
     if 'interval' in hdr.keys():
         data.attrs['interval'] = hdr['interval']
-    else:
+    elif 'time' in data.coords.keys():
         # median is robust against gaps
         data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+    else:
+        data.attrs['interval'] = np.nan
 
     data.attrs['rinextype'] = 'obs'
     data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
