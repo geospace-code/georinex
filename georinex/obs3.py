@@ -119,22 +119,24 @@ def rinexobs3(fn: Union[TextIO, str, Path],
     data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
     data.attrs['version'] = hdr['version']
-    try:
+    
+    # Get interval from header or derive it from the data
+    if 'interval' in hdr.keys():
         data.attrs['interval'] = hdr['interval']
-    except KeyError:
-        pass
+    else:
+        # median is robust against gaps
+        data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        
     data.attrs['rinextype'] = 'obs'
     data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
     data.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         data.attrs['filename'] = fn.name
 
-    try:
+    if 'position' in hdr.keys():
         data.attrs['position'] = hdr['position']
         if ecef2geodetic is not None:
             data.attrs['position_geodetic'] = hdr['position_geodetic']
-    except KeyError:
-        pass
 
     # data.attrs['toffset'] = toffset
 

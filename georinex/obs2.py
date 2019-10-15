@@ -262,22 +262,26 @@ def rinexsystem2(fn: Union[TextIO, Path],
     obs = obs.dropna(dim='time', how='all')  # when tlim specified
 # %% attributes
     obs.attrs['version'] = hdr['version']
-    try:
-        obs.attrs['interval'] = hdr['interval']
-    except KeyError:
-        pass
+    
+    # Get interval from header or derive it from the data
+    if 'interval' in hdr.keys():
+        data.attrs['interval'] = hdr['interval']
+    else:
+        # median is robust against gaps
+        data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         obs.attrs['filename'] = fn.name
 
-    try:
+    if 'position' in hdr.keys():
         obs.attrs['position'] = hdr['position']
+        
+    if 'position_geodetic' in hdr.keys():
         obs.attrs['position_geodetic'] = hdr['position_geodetic']
-    except KeyError:
-        pass
-
+        
     return obs
 
 
