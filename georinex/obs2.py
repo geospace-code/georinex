@@ -265,12 +265,12 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
     # Get interval from header or derive it from the data
     if 'interval' in hdr.keys():
-        data.attrs['interval'] = hdr['interval']
-    elif 'time' in data.coords.keys():
+        obs.attrs['interval'] = hdr['interval']
+    elif 'time' in obs.coords.keys():
         # median is robust against gaps
-        data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        obs.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
     else:
-        data.attrs['interval'] = np.nan
+        obs.attrs['interval'] = np.nan
 
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
