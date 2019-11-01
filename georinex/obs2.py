@@ -268,7 +268,10 @@ def rinexsystem2(fn: Union[TextIO, Path],
         obs.attrs['interval'] = hdr['interval']
     elif 'time' in obs.coords.keys():
         # median is robust against gaps
-        obs.attrs['interval'] = np.median(np.diff(obs.time)/np.timedelta64(1, 's'))
+        try:
+            obs.attrs['interval'] = np.median(np.diff(obs.time)/np.timedelta64(1, 's'))
+        except TypeError:
+            pass
     else:
         obs.attrs['interval'] = np.nan
 
