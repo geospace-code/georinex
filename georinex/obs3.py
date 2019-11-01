@@ -125,7 +125,10 @@ def rinexobs3(fn: Union[TextIO, str, Path],
         data.attrs['interval'] = hdr['interval']
     elif 'time' in data.coords.keys():
         # median is robust against gaps
-        data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        try:
+            data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        except TypeError:
+            pass
     else:
         data.attrs['interval'] = np.nan
 
