@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
 [![Actions Status](https://github.com/scivision/georinex/workflows/ci/badge.svg)](https://github.com/scivision/georinex/actions)
-
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/scivision/georinex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/scivision/georinex/context:python)
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 
