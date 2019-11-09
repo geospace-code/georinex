@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+import sys
 from pathlib import Path
 from datetime import datetime
 from pytest import approx
 
 import pytest
+
+sys.path.insert(0,str(Path(__file__).parent / '..' ))
 import georinex as gr
 #
 R = Path(__file__).parent / 'data'
