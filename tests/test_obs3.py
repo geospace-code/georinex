@@ -15,9 +15,9 @@ def test_contents():
     """
     fn = R/'demo3.10o'
     obs = gr.load(fn)
-    for v in ['G-L1C', 'G-L2P', 'G-C1P', 'G-C2P', 'G-C1C', 'G-S1P', 'G-S2P']:
+    for v in ['G_L1C', 'G_L2P', 'G_C1P', 'G_C2P', 'G_C1C', 'G_S1P', 'G_S2P']:
         assert v in obs
-    for v in ['R-L1C', 'R-C1C', 'R-S1C']:
+    for v in ['R_L1C', 'R_C1C', 'R_S1C']:
         assert v in obs
 
     assert len(obs.data_vars) == 13
@@ -25,10 +25,10 @@ def test_contents():
 def test_meas_one():
     fn = R/'demo3.10o'
     obs = gr.load(fn, use='G', meas='C1C')
-    assert 'G-L1C' not in obs
-    assert 'R-L1C' not in obs
+    assert 'G_L1C' not in obs
+    assert 'R_L1C' not in obs
 
-    C1C = obs['G-C1C']
+    C1C = obs['G_C1C']
     assert C1C.shape == (2, 10)  # two times, 14 SVs overall for all systems in this file
 
     assert (C1C.sel(sv=7) == approx([22227666.76, 25342359.37])).all()
@@ -37,13 +37,13 @@ def test_meas_two():
     """two NON-SEQUENTIAL measurements"""
     fn = R/'demo3.10o'
     obs = gr.load(fn, use='G', meas=['L1C', 'S1P'])
-    assert 'G-L2P' not in obs
+    assert 'G_L2P' not in obs
 
-    L1C = obs['G-L1C']
+    L1C = obs['G_L1C']
     assert L1C.shape == (2, 10)
     assert (L1C.sel(sv=7) == approx([118767195.32608, 133174968.81808])).all()
 
-    S1P = obs['G-S1P']
+    S1P = obs['G_S1P']
     assert S1P.shape == (2, 10)
 
     assert (S1P.sel(sv=13) == approx([42., 62.])).all()
@@ -68,13 +68,13 @@ def test_meas_wildcard():
     fn = R/'demo3.10o'
 
     obs = gr.load(fn, use='G')
-    assert 'R-L1C' not in obs
-    assert 'G-C1P' in obs and 'G-C2P' in obs and 'G-C1C' in obs
+    assert 'R_L1C' not in obs
+    assert 'G_C1P' in obs and 'G_C2P' in obs and 'G_C1C' in obs
     assert len(obs.data_vars) == 7
 
     # obs = gr.load(fn, meas='L*')
-    # assert 'G-C1P' not in obs
-    # assert 'G-L1C' in obs and 'G-L2P' in obs and 'R-L1C' in obs
+    # assert 'G_C1P' not in obs
+    # assert 'G_L1C' in obs and 'G-L2P' in obs and 'R-L1C' in obs
 
 def test_zip():
     fn = R/'ABMF00GLP_R_20181330000_01D_30S_MO.zip'
