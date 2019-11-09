@@ -206,7 +206,7 @@ def _epoch(obsd: Dict[str, Any],
     line = line + ' '*(len(line) % 16)
     parts = [line[i:i+16] for i in range(0, len(line), 16)]
 
-    gen_filter_meas = ((sm, sysmeas_idx[sm]) for sm in sysmeas_idx if sys+'-' in sm)
+    gen_filter_meas = ((sm, sysmeas_idx[sm]) for sm in sysmeas_idx if sys+'_' in sm)
 
     for (sm, idx) in gen_filter_meas:
         if idx >= len(parts):
@@ -291,7 +291,7 @@ def obsheader3(f: TextIO,
 
             assert len(fields[satsys]) == cnt
             for idx, sysmeas in enumerate(fields[satsys]):
-                sysmeas_idx[satsys+'-'+sysmeas] = idx
+                sysmeas_idx[satsys+'_'+sysmeas] = idx
             continue
 
         if 'APPROX POSITION XYZ' in h:
@@ -344,7 +344,7 @@ def obsheader3(f: TextIO,
 
     for sys in fields:
         for meas in fields[sys]:
-            k = sys + '-' + meas
+            k = sys + '_' + meas
             hdr['meas'][k] = {
                 'time': [], 'sv': [], 'val': []
             }
