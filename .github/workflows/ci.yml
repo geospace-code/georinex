@@ -2,11 +2,13 @@ name: ci
 
 on:
   push:
-    paths-ignore:
-      - "**/*.md"
+    paths:
+    - "**.py"
   pull_request:
-    paths-ignore:
-      - "**/*.md"
+    paths:
+    - "**.py"
+
+
 
 jobs:
 
@@ -19,7 +21,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.pythonrsion }}
     - run: pip install -e .[tests,lint,io]
     - run: flake8
     - run: mypy .
