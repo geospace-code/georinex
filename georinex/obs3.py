@@ -152,8 +152,8 @@ def _timeobs(ln: str) -> datetime:
     """
     convert time from RINEX 3 OBS text to datetime
     """
-    if not ln.startswith('>'):  # pg. A13
-        raise ValueError(f'RINEX 3 line beginning > is not present')
+    if not ln.startswith('> '):  # pg. A13
+        raise ValueError(f'RINEX 3 line beginning "> " is not present')
 
     return datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
                     hour=int(ln[13:15]), minute=int(ln[16:18]),
