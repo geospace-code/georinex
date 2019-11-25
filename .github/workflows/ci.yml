@@ -2,11 +2,11 @@ name: ci
 
 on:
   push:
-    paths-ignore:
-      - "**/*.md"
+    paths:
+      - "**.py"
   pull_request:
-    paths-ignore:
-      - "**/*.md"
+    paths:
+      - "**.py"
 
 jobs:
 
