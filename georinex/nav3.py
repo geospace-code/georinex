@@ -75,8 +75,8 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
-            for _, line in zip(range(Nl[sv[0]]), f):
-                raw += line[STARTCOL3:80]
+            for _, ln in zip(range(Nl[sv[0]]), f):
+                raw += ln[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
