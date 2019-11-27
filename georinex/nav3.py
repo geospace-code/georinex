@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict, Union, List, Any, Sequence
 from typing.io import TextIO
 #
-from .io import opener, rinexinfo
+from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3

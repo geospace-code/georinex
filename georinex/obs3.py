@@ -1,4 +1,3 @@
-from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
@@ -12,8 +11,8 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
+from .rio import opener, rinexinfo
 from .common import determine_time_system, check_time_interval, check_unique_times
-from .io import rinexinfo
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 
 SBAS = 100  # offset for ID

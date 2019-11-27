@@ -7,7 +7,7 @@ import xarray
 import numpy as np
 import logging
 
-from .io import opener, rinexinfo
+from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2

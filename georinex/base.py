@@ -5,7 +5,7 @@ from typing.io import TextIO
 from datetime import datetime, timedelta
 import logging
 
-from .io import rinexinfo
+from .rio import rinexinfo
 from .obs2 import rinexobs2
 from .obs3 import rinexobs3
 from .nav2 import rinexnav2

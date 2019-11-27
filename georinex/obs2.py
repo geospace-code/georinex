@@ -12,7 +12,7 @@ try:
 except ImportError:
     ecef2geodetic = None
 
-from .io import opener, rinexinfo
+from .rio import opener, rinexinfo
 from .common import determine_time_system, check_ram, check_time_interval, check_unique_times
 
 

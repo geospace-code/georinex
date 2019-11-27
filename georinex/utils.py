@@ -7,7 +7,7 @@ import io
 import xarray
 import numpy as np
 
-from .io import rinexinfo, opener
+from .rio import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
 from .nav2 import navtime2, navheader2
