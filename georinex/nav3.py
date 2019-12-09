@@ -149,7 +149,7 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['BDSA'],
                                                            corr['BDSB']))
         if 'IRNA' in corr and 'IRNB' in corr:
-            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['IRNA'],
+            nav.attrs['ionospheric_corr_IRN'] = np.hstack((corr['IRNA'],
                                                            corr['IRNB']))
 
     nav.attrs['version'] = header['version']
