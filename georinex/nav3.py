@@ -12,7 +12,7 @@ from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
-Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
+Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3, 'I': 7}   # number of additional SV lines
 Lf = 19  # string length per field
 
 
