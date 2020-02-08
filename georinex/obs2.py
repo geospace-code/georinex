@@ -278,7 +278,8 @@ def rinexsystem2(fn: Union[TextIO, Path],
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         obs.attrs['filename'] = fn.name
-
+    if 'rxmodel' in hdr.keys():
+        obs.attrs['rxmodel'] = hdr['rxmodel']
     if 'position' in hdr.keys():
         obs.attrs['position'] = hdr['position']
 
@@ -420,7 +421,13 @@ def obsheader2(f: TextIO,
         hdr['interval'] = float(hdr['INTERVAL'][:10])
     except (KeyError, ValueError):
         pass
-
+    
+    try:
+        s = " "
+        hdr['rxmodel'] = s.join(hdr['REC # / TYPE / VERS'].split()[1:-1])
+    except (KeyError, ValueError):
+        pass
+    
     return hdr
 
 

@@ -1,6 +1,5 @@
 from pathlib import Path
 import xarray
-from numpy import array
 from typing import Union, Tuple, Dict, Sequence
 from typing.io import TextIO
 from datetime import datetime, timedelta
@@ -25,6 +24,7 @@ def load(rinexfn: Union[TextIO, str, Path],
          useindicators: bool = False,
          meas: Sequence[str] = None,
          verbose: bool = False,
+         override: bool = False,
          *,
          fast: bool = False,
          interval: Union[float, int, timedelta] = None) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
@@ -64,7 +64,8 @@ def load(rinexfn: Union[TextIO, str, Path],
     elif info['rinextype'] == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose, fast=fast, interval=interval)
+                        verbose=verbose, fast=fast, 
+                        interval=interval, override=override)
     elif rinexfn.suffix == '.nc':
         # outfn not used here, because we already have the converted file!
         try:
@@ -86,7 +87,7 @@ def load(rinexfn: Union[TextIO, str, Path],
         else:
             raise ValueError(f'No data of known format found in {rinexfn}')
     elif str(rinexfn).endswith('sp3'):
-        return sp3(rinexfn)
+        return load_sp3(rinexfn)
     else:
         raise ValueError(f"What kind of RINEX file is: {rinexfn}")
 
@@ -160,6 +161,7 @@ def rinexobs(fn: Union[TextIO, str, Path],
              useindicators: bool = False,
              meas: Sequence[str] = None,
              verbose: bool = False,
+             override: bool = False,
              *,
              fast: bool = True,
              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
@@ -194,25 +196,22 @@ def rinexobs(fn: Union[TextIO, str, Path],
         raise ValueError(f'unknown RINEX {info}  {fn}')
 
 # %% optional output write
-
     if outfn:
         outfn = Path(outfn).expanduser()
+        wmode = _groupexists(outfn, group, override)
         enc = {k: ENC for k in obs.data_vars}
-<<<<<<< HEAD
-        obs.to_netcdf(outfn, group=group, mode='w', encoding=enc)
-=======
+
         # Pandas >= 0.25.0 requires this, regardless of xarray version
         if obs.time.dtype != 'datetime64[ns]':
             obs["time"] = obs.time.astype("datetime64[ns]")
         obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
 
->>>>>>> 03998adbd379bc9cfa647bada0c149e76756b60f
     return obs
 
 
-def _groupexists(fn: Path, group: str) -> str:
+def _groupexists(fn: Path, group: str, override: bool) -> str:
     print(f'saving {group}:', fn)
-    if not fn.is_file():
+    if not fn.is_file() or override:
         return 'w'
 
     # be sure there isn't already NAV in it
