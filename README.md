@@ -1,10 +1,8 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
-[![Travis CI](https://travis-ci.org/scivision/georinex.svg?branch=master)](https://travis-ci.org/scivision/georinex)
-[![Coverage Status](https://coveralls.io/repos/github/scivision/georinex/badge.svg?branch=master)](https://coveralls.io/github/scivision/georinex?branch=master)
-[![Build status](https://ci.appveyor.com/api/projects/status/rautwf0jrn4w5v6n?svg=true)](https://ci.appveyor.com/project/scivision/georinex)
+[![Actions Status](https://github.com/scivision/georinex/workflows/ci/badge.svg)](https://github.com/scivision/georinex/actions)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/scivision/georinex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/scivision/georinex/context:python)
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
-[![Xarray badge](https://img.shields.io/badge/powered%20by-xarray-orange.svg?style=flat)](http://xarray.pydata.org/en/stable/why-xarray.html)
 
 # GeoRinex
 
@@ -22,7 +20,7 @@ where ease of cross-platform install and correctness are primary goals.
 ![RINEX plot](tests/example_plot.png)
 
 
-## Inputs
+## Input data types
 
 * RINEX 3.x or RINEX 2.x
   * NAV
@@ -32,7 +30,8 @@ where ease of cross-platform install and correctness are primary goals.
   * `.Z` LZW
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
-* Python `io.StringIO` text stream RINEX
+* Python `io.StringIO` text stream RINEX'
+* .sp3 SP3-c ephemeris
 
 ## Output
 
@@ -56,19 +55,7 @@ cd georinex
 python -m pip install -e .
 ```
 
-### Optional Hatanaka
-If you need to use `.crx` Hatanaka compressed RINEX, compile the `crx2rnx` code by:
-```sh
-make install -C rnxcmp
-```
-
-#### Windows
-For optional Hatanaka converter on Windows, assuming you have
-[installed MinGW compiler on Windows](https://www.scivision.co/windows-gcc-gfortran-cmake-make-install/):
-```posh
-set CC=gcc
-mingw32-make -C rnxcmp
-```
+The Hatanaka CRINEX converter automatically compiles if needed and a C compiler is available.
 
 Currently, `unlzw` doesn't work on Windows, making `.Z` files unreadable.
 
@@ -80,9 +67,8 @@ python -m pytest
 ```
 
 ```
-155 passed, 1 skipped
+158 passed, 1 skipped
 ```
-
 
 ## Usage
 

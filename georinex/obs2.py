@@ -12,8 +12,8 @@ try:
 except ImportError:
     ecef2geodetic = None
 
-from .io import opener, rinexinfo
-from .common import determine_time_system, check_ram, _check_time_interval, check_unique_times
+from .rio import opener, rinexinfo
+from .common import determine_time_system, check_ram, check_time_interval, check_unique_times
 
 def rinexobs2(fn: Path,
               use: Sequence[str] = None,
@@ -80,11 +80,16 @@ def rinexsystem2(fn: Union[TextIO, Path],
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError('time bounds are specified as datetime.datetime')
 
-    interval = _check_time_interval(interval)
+    interval = check_time_interval(interval)
 # %% allocation
-    # these values are not perfect, but seem reasonable.
-    # Let us know if you needed to change them.
-    Nsvsys = 35  # Beidou is 35 max, the current maximum GNSS SV count
+    """
+    Nsvsys may need updating as GNSS systems grow.
+    Let us know if you needed to change them.
+
+    Beidou is 35 max
+    Galileo is 36 max
+    """
+    Nsvsys = 36
 
     hdr = obsheader2(fn, useindicators, meas)
 
@@ -171,7 +176,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
             gsv = np.array(sv)[iuse]
 # %% assign data for each time step
             raws = []
-            for i, s in enumerate(sv):
+            for s in sv:
                 # don't process discarded satellites
                 if s[0] != system:
                     for _ in range(hdr['Nl_sv']):
@@ -255,18 +260,30 @@ def rinexsystem2(fn: Union[TextIO, Path],
     obs = obs.dropna(dim='time', how='all')  # when tlim specified
 # %% attributes
     obs.attrs['version'] = hdr['version']
-    obs.attrs['interval'] = hdr['interval']
+
+    # Get interval from header or derive it from the data
+    if 'interval' in hdr.keys():
+        obs.attrs['interval'] = hdr['interval']
+    elif 'time' in obs.coords.keys():
+        # median is robust against gaps
+        try:
+            obs.attrs['interval'] = np.median(np.diff(obs.time)/np.timedelta64(1, 's'))
+        except TypeError:
+            pass
+    else:
+        obs.attrs['interval'] = np.nan
+
     obs.attrs['rinextype'] = 'obs'
     obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         obs.attrs['filename'] = fn.name
 
-    try:
+    if 'position' in hdr.keys():
         obs.attrs['position'] = hdr['position']
+
+    if 'position_geodetic' in hdr.keys():
         obs.attrs['position_geodetic'] = hdr['position_geodetic']
-    except KeyError:
-        pass
 
     return obs
 
@@ -359,8 +376,9 @@ def obsheader2(f: TextIO,
 # %% observation types
     try:
         hdr['fields'] = hdr['# / TYPES OF OBSERV']
-        if Nobs != len(hdr['fields']):
-            raise ValueError(f'{f.name} header read incorrectly')
+        if hdr['Nobs'] != len(hdr['fields']):
+            logging.error(f'{f.name} number of observations declared in header does not match fields')
+            hdr['Nobs'] = len(hdr['fields'])
 
         if isinstance(meas, (tuple, list, np.ndarray)):
             ind = np.zeros(len(hdr['fields']), dtype=bool)
@@ -372,7 +390,7 @@ def obsheader2(f: TextIO,
             hdr['fields_ind'] = np.nonzero(ind)[0]
         else:
             ind = slice(None)
-            hdr['fields_ind'] = np.arange(Nobs)
+            hdr['fields_ind'] = np.arange(hdr['Nobs'])
 
         hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
     except KeyError:

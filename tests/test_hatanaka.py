@@ -14,9 +14,6 @@ def test_obs2():
     info = gr.rinexinfo(fn)
     assert int(info['version']) == 1
 
-    if not gr.crxexe():
-        pytest.skip(f'crx2rnx not found')
-
     obs = gr.load(fn, tlim=('2015-02-13T23:00', '2015-02-13T23:01'))
 
     assert obs.time.size == 3
@@ -32,8 +29,6 @@ def test_obs3_gz():
     info = gr.rinexinfo(fn)
     assert int(info['version']) == 3
 
-    if not gr.crxexe():
-        pytest.skip(f'crx2rnx not found')
 # %% full file
     obs = gr.load(fn, tlim=('2018-07-19T01', '2018-07-19T01:10'))
 
@@ -50,9 +45,6 @@ def test_obs3_gz():
 
 @pytest.mark.timeout(30)
 def test_obs3():
-    if not gr.crxexe():
-        pytest.skip(f'crx2rnx not found')
-
     fn = R / 'P43300USA_R_20190012056_17M_15S_MO.crx'
 
     info = gr.rinexinfo(fn)

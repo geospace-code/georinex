@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Tuple, Dict, Any, Optional, Sequence, List
+from typing import cast, Union, Tuple, Dict, Any, Sequence, List
 from typing.io import TextIO
 from datetime import datetime
 from dateutil.parser import parse
@@ -7,7 +7,7 @@ import io
 import xarray
 import numpy as np
 
-from .io import rinexinfo, opener
+from .rio import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
 from .obs3 import obstime3, obsheader3
 from .nav2 import navtime2, navheader2
@@ -116,16 +116,18 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     return hdr
 
 
-def _tlim(tlim: Tuple[datetime, datetime] = None) -> Optional[Tuple[datetime, datetime]]:
+def _tlim(tlim: Union[Tuple[str, str], Tuple[datetime, datetime]] = None) -> Tuple[datetime, datetime]:
     if tlim is None:
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = tuple(map(parse, tlim))
+        tlim = cast(Tuple[str, str], tlim)
+        tlim = (parse(tlim[0]), parse(tlim[1]))
     else:
         raise ValueError(f'Not sure what time limits are: {tlim}')
 
+    tlim = cast(Tuple[datetime, datetime], tlim)
     return tlim
 
 

@@ -1,24 +1,23 @@
 import gzip
 import zipfile
 from pathlib import Path
-import subprocess
 from contextlib import contextmanager
 import io
-import os
 import logging
-import functools
 import xarray
 from typing.io import TextIO
-from typing import Union, Dict, Any, Tuple
+import typing
 
 try:
     import unlzw
 except ImportError:
     unlzw = None
 
+from .hatanaka import opencrx
+
 
 @contextmanager
-def opener(fn: Union[TextIO, Path],
+def opener(fn: typing.Union[TextIO, Path],
            header: bool = False) -> TextIO:
     """provides file handle for regular ASCII or gzip files transparently"""
     if isinstance(fn, str):
@@ -38,7 +37,7 @@ def opener(fn: Union[TextIO, Path],
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(_opencrx(f))
+                    f = io.StringIO(opencrx(f))
                 yield f
         elif fn.suffix == '.zip':
             with zipfile.ZipFile(fn, 'r') as z:
@@ -59,59 +58,19 @@ def opener(fn: Union[TextIO, Path],
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(_opencrx(f))
+                    f = io.StringIO(opencrx(f))
                 yield f
     else:
         raise OSError(f'Unsure what to do with input of type: {type(fn)}')
 
 
-@functools.lru_cache()
-def crxexe() -> str:
-    """
-    Determines if CRINEX converter is available.
-    """
-    exe = Path(__file__).resolve().parents[1] / 'rnxcmp' / 'crx2rnx'
-    if os.name == 'nt':
-        exe = exe.with_suffix('.exe')
-
-    if not exe.is_file():
-        return ''
-
-    # crx2rnx -h:  returncode == 1
-    ret = subprocess.run([str(exe), '-h'], stderr=subprocess.PIPE,
-                         universal_newlines=True)
-
-    if ret.stderr.startswith('Usage'):
-        return str(exe)
-    else:
-        return ''
-
-
-def _opencrx(f: TextIO) -> str:
-    """
-    Conversion to string is necessary because of a quirk where gzip.open() even with 'rt' doesn't decompress until read.
-
-    Nbytes is used to read first line.
-    """
-    exe = crxexe()
-
-    if not exe:
-        raise RuntimeError('Hatanka crx2rnx not available. Did you compile it per README?')
-
-    ret = subprocess.check_output([exe, '-'],
-                                  input=f.read(),
-                                  universal_newlines=True)
-
-    return ret
-
-
-def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
+def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
     """verify RINEX version"""
 
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
         if fn.suffix == '.nc':
-            attrs: Dict[str, Any] = {'rinextype': []}
+            attrs: typing.Dict[str, typing.Any] = {'rinextype': []}
             for g in ('OBS', 'NAV'):
                 try:
                     dat = xarray.open_dataset(fn, group=g)
@@ -134,8 +93,11 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     try:
         line = f.readline(80)  # don't choke on binary files
 
+        if line.startswith('#c'):
+            return {'version': 'c',
+                    'rinextype': 'sp3'}
+
         version = rinex_version(line)[0]
-        
         file_type = line[20]
         if int(version) == 2:
             if file_type == 'N':
@@ -168,7 +130,7 @@ def rinexinfo(f: Union[Path, TextIO]) -> Dict[str, Any]:
     return info
 
 
-def rinex_version(s: str) -> Tuple[float, bool]:
+def rinex_version(s: str) -> typing.Tuple[typing.Union[float, str], bool]:
     """
 
     Parameters
@@ -184,18 +146,28 @@ def rinex_version(s: str) -> Tuple[float, bool]:
         RINEX file version
 
     is_crinex : bool
-        is it a Compacted RINEX file
+        is it a Compressed RINEX CRINEX Hatanaka file
     """
     if not isinstance(s, str):
         raise TypeError('need first line of RINEX file as string')
+    if len(s) < 2:
+        raise ValueError(f'first line of file is corrupted {s}')
 
     if len(s) >= 80:
         if s[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
             raise ValueError('The first line of the RINEX file header is corrupted.')
+
+    # %% .sp3 file
+    if s[0] == '#':
+        if s[1] != 'c':
+            raise ValueError('Georinex only handles version C of SP3 files.')
+        return 'sp3' + s[1], False
+    # %% typical RINEX files
     try:
         vers = float(s[:9])  # %9.2f
-        is_crinex = s[20:40] == 'COMPACT RINEX FORMAT'
-        return vers, is_crinex
-    except:
-        raise ('Coulnt found the rinex info in the header')
-        
+    except ValueError as err:
+        raise ValueError(f'Could not determine file version from {s[:9]}   {err}')
+
+    is_crinex = s[20:40] == 'COMPACT RINEX FORMAT'
+
+    return vers, is_crinex

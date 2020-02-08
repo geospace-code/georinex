@@ -1,4 +1,3 @@
-from .io import opener
 from pathlib import Path
 import numpy as np
 import logging
@@ -12,8 +11,8 @@ try:
 except ImportError:
     ecef2geodetic = None
 #
-from .common import determine_time_system, _check_time_interval, check_unique_times
-from .io import rinexinfo
+from .rio import opener, rinexinfo
+from .common import determine_time_system, check_time_interval, check_unique_times
 """https://github.com/mvglasow/satstat/wiki/NMEA-IDs"""
 
 SBAS = 100  # offset for ID
@@ -52,7 +51,7 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 Useful to speed up reading of very large RINEX files
     """
 
-    interval = _check_time_interval(interval)
+    interval = check_time_interval(interval)
 
     if isinstance(use, str):
         use = [use]
@@ -86,12 +85,11 @@ def rinexobs3(fn: Union[TextIO, str, Path],
                 logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
 # %% get SV indices
-            # Number of visible satellites this time %i3  pg. A13
-            Nsv = int(ln[33:35])
-
             sv = []
             raw = ''
-            for i, ln in zip(range(Nsv), f):
+            # Number of visible satellites this time %i3  pg. A13
+            for _ in range(int(ln[33:35])):
+                ln = f.readline()
                 sv.append(ln[:3])
                 raw += ln[3:]
 
@@ -113,24 +111,36 @@ def rinexobs3(fn: Union[TextIO, str, Path],
             if verbose:
                 print(time, end="\r")
 
+            # this time epoch is complete, assemble the data.
             data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
 # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(' ', '0') for s in data.sv.values.tolist()])
 # %% other attributes
     data.attrs['version'] = hdr['version']
+
+    # Get interval from header or derive it from the data
+    if 'interval' in hdr.keys():
+        data.attrs['interval'] = hdr['interval']
+    elif 'time' in data.coords.keys():
+        # median is robust against gaps
+        try:
+            data.attrs['interval'] = np.median(np.diff(data.time)/np.timedelta64(1, 's'))
+        except TypeError:
+            pass
+    else:
+        data.attrs['interval'] = np.nan
+
     data.attrs['rinextype'] = 'obs'
     data.attrs['fast_processing'] = 0  # bool is not allowed in NetCDF4
     data.attrs['time_system'] = determine_time_system(hdr)
     if isinstance(fn, Path):
         data.attrs['filename'] = fn.name
 
-    try:
+    if 'position' in hdr.keys():
         data.attrs['position'] = hdr['position']
         if ecef2geodetic is not None:
             data.attrs['position_geodetic'] = hdr['position_geodetic']
-    except KeyError:
-        pass
 
     # data.attrs['toffset'] = toffset
 
@@ -141,8 +151,8 @@ def _timeobs(ln: str) -> datetime:
     """
     convert time from RINEX 3 OBS text to datetime
     """
-    if not ln.startswith('>'):  # pg. A13
-        raise ValueError(f'RINEX 3 line beginning > is not present')
+    if not ln.startswith('> '):  # pg. A13
+        raise ValueError(f'RINEX 3 line beginning "> " is not present')
 
     return datetime(int(ln[2:6]), int(ln[7:9]), int(ln[10:12]),
                     hour=int(ln[13:15]), minute=int(ln[16:18]),

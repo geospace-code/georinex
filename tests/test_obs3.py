@@ -2,7 +2,6 @@
 import pytest
 from pytest import approx
 import xarray
-import numpy as np
 from pathlib import Path
 from datetime import datetime
 import georinex as gr
@@ -38,12 +37,12 @@ def test_meas_two():
     obs = gr.load(fn, meas=['L1C', 'S1C'])
     assert 'L2P' not in obs
 
-    L1C = obs['L1C']
+    L1C = obs['L1C'].dropna(dim='sv', how='all')
     assert L1C.shape == (2, 14)
     assert (L1C.sel(sv='G07') == approx([118767195.32608, 133174968.81808])).all()
 
-    S1C = obs['S1C']
-    assert S1C.shape == (2, 14)
+    S1C = obs['S1C'].dropna(dim='sv', how='all')
+    assert S1C.shape == (2, 4)
 
     assert (S1C.sel(sv='R23') == approx([39., 79.])).all()
 
@@ -57,14 +56,11 @@ def test_meas_some_missing():
     obs = gr.load(fn, meas=['S2P'])
     assert 'L2P' not in obs
 
-    S2P = obs['S2P']
-    assert S2P.shape == (2, 14)
+    S2P = obs['S2P'].dropna(dim='sv', how='all')
+    assert S2P.shape == (2, 10)
     assert (S2P.sel(sv='G13') == approx([40., 80.])).all()
-    # satellites that don't have a measurement are NaN
-    # either because they weren't visible at that time
-    # or simply do not make that kind of measurement at all
-    R23 = S2P.sel(sv='R23')
-    assert np.isnan(R23).all()
+
+    assert 'R23' not in S2P.sv
 
 
 def test_meas_all_missing():

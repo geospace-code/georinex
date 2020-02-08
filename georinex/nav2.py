@@ -7,7 +7,7 @@ import xarray
 import numpy as np
 import logging
 
-from .io import opener, rinexinfo
+from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 #
 STARTCOL2 = 3  # column where numerical data starts for RINEX 2
@@ -86,8 +86,8 @@ def rinexnav2(fn: Union[TextIO, str, Path],
             now get the data as one big long string per SV
             """
             raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
-            for i, ln in zip(range(Nl[header['systems']]), f):
-                raw += ln[STARTCOL2:79]
+            for _ in range(Nl[header['systems']]):
+                raw += f.readline()[STARTCOL2:79]
             # one line per SV
             # NOTE: Sebastijan added .replace('  ', ' ').replace(' -', '-')
             # here, I would like to see a file that needs this first, to be sure

@@ -256,5 +256,15 @@ def test_time_system(fn, tname):
     assert obs.attrs['time_system'] == tname
 
 
+def test_wrong_header_count():
+    """
+    tests wrong count for number of OBS2 types per @serioca #50
+    """
+    obs = gr.load(R/'wrong_obs2_count.10o')
+    S2 = obs['S2'].dropna(dim='sv', how='all')
+
+    assert S2.sel(sv='G31').item() == approx(63.)
+
+
 if __name__ == '__main__':
-    pytest.main(['-xrsv', __file__])
+    pytest.main(['-v', __file__])

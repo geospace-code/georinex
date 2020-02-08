@@ -8,11 +8,11 @@ from datetime import datetime
 from typing import Dict, Union, List, Any, Sequence
 from typing.io import TextIO
 #
-from .io import opener, rinexinfo
+from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 # constants
 STARTCOL3 = 4  # column where numerical data starts for RINEX 3
-Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3}   # number of additional SV lines
+Nl = {'C': 7, 'E': 7, 'G': 7, 'J': 7, 'R': 3, 'S': 3, 'I': 7}   # number of additional SV lines
 Lf = 19  # string length per field
 
 
@@ -75,8 +75,8 @@ def rinexnav3(fn: Union[TextIO, str, Path],
 # %% get the data as one big long string per SV, unknown # of lines per SV
             raw = line[23:80]  # NOTE: 80, files put data in the last column!
 
-            for _, line in zip(range(Nl[sv[0]]), f):
-                raw += line[STARTCOL3:80]
+            for _, ln in zip(range(Nl[sv[0]]), f):
+                raw += ln[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace('D', 'E').replace('\n', ''))
 
@@ -89,40 +89,47 @@ def rinexnav3(fn: Union[TextIO, str, Path],
     for sv in svu:
         svi = np.array([i for i, s in enumerate(svs) if s == sv])
 
-        tu, iu = np.unique(t[svi], return_index=True)
-        if tu.size != t[svi].size:
-            logging.info(f'duplicate times detected on SV {sv}, using first of duplicate times')
-            """ I have seen that the data rows match identically when times are duplicated"""
+        check = np.array([True]*t[svi].size)
+        duplicate = True
+        sv_copies = 0
+        while duplicate:  # process until there are no more duplicate times
+            tu, iu = np.unique(t[svi][check], return_index=True)
+            duplicate = tu.size != t[svi][check].size
 
-        cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
-        gi = [i for i, c in enumerate(cf) if not c.startswith(('spare', 'FitIntvl'))]
-        darr = np.empty((svi.size, len(gi)))
+            cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
+            gi = [i for i, c in enumerate(cf) if not c.startswith(('spare', 'FitIntvl'))]
+            darr = np.empty((svi.size, len(gi)))
 
-        for j, i in enumerate(svi):
-            # darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')), delimiter=Lf)
-            try:
-                darr[j, :] = [float(raws[i][Lf*k:Lf*(k+1)]) for k in gi]
-            except ValueError:
-                logging.info(f'malformed line for {sv}')
-                darr[j, :] = np.nan
-# %% discard duplicated times
+            for j, i in enumerate(svi):
+                # darr[j, :] = np.genfromtxt(io.BytesIO(raws[i].encode('ascii')), delimiter=Lf)
+                try:
+                    darr[j, :] = [float(raws[i][Lf*k:Lf*(k+1)]) for k in gi]
+                except ValueError:
+                    logging.info(f'malformed line for {sv}')
+                    darr[j, :] = np.nan
+            # %% discard duplicated times
 
-        darr = darr[iu, :]
+            darr = darr[check, :][iu, :]
 
-        dsf = {}
-        for (i, d) in zip(gi, darr.T):
-            if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
-                                                 'Y', 'dY', 'dY2',
-                                                 'Z', 'dZ', 'dZ2'):
-                d *= 1000  # km => m
+            dsf = {}
+            for (i, d) in zip(gi, darr.T):
+                if sv[0] in ('R', 'S') and cf[i] in ('X', 'dX', 'dX2',
+                                                     'Y', 'dY', 'dY2',
+                                                     'Z', 'dZ', 'dZ2'):
+                    d *= 1000  # km => m
 
-            dsf[cf[i]] = (('time', 'sv'), d[:, None])
+                dsf[cf[i]] = (('time', 'sv'), d[:, None])
 
-        if len(nav) == 0:
-            nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})
-        else:
-            nav = xarray.merge((nav,
-                                xarray.Dataset(dsf, coords={'time': tu, 'sv': [sv]})))
+            svv = sv if not sv_copies else sv + f'_{sv_copies}'
+            if len(nav) == 0:
+                nav = xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})
+            else:
+                nav = xarray.merge((nav,
+                                    xarray.Dataset(dsf, coords={'time': tu, 'sv': [svv]})))
+
+            sv_copies += 1
+            check[np.arange(check.size)[check][iu]] = False
+
 # %% patch SV names in case of "G 7" => "G07"
     nav = nav.assign_coords(sv=[s.replace(' ', '0') for s in nav.sv.values.tolist()])
 # %% other attributes
@@ -142,7 +149,7 @@ def rinexnav3(fn: Union[TextIO, str, Path],
             nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['BDSA'],
                                                            corr['BDSB']))
         if 'IRNA' in corr and 'IRNB' in corr:
-            nav.attrs['ionospheric_corr_BDS'] = np.hstack((corr['IRNA'],
+            nav.attrs['ionospheric_corr_IRN'] = np.hstack((corr['IRNA'],
                                                            corr['IRNB']))
 
     nav.attrs['version'] = header['version']

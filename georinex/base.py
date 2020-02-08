@@ -6,12 +6,12 @@ from typing.io import TextIO
 from datetime import datetime, timedelta
 import logging
 
-from .io import rinexinfo
+from .rio import rinexinfo
 from .obs2 import rinexobs2
 from .obs3 import rinexobs3
 from .nav2 import rinexnav2
 from .nav3 import rinexnav3
-from .navsp3 import sp3
+from .sp3 import load_sp3
 from .utils import _tlim
 
 # for NetCDF compression. too high slows down with little space savings.
@@ -57,7 +57,9 @@ def load(rinexfn: Union[TextIO, str, Path],
 
     info = rinexinfo(rinexfn)
 
-    if info['rinextype'] == 'nav':
+    if info['rinextype'] == 'sp3':
+        return load_sp3(rinexfn, outfn)
+    elif info['rinextype'] == 'nav':
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
     elif info['rinextype'] == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
@@ -196,7 +198,15 @@ def rinexobs(fn: Union[TextIO, str, Path],
     if outfn:
         outfn = Path(outfn).expanduser()
         enc = {k: ENC for k in obs.data_vars}
+<<<<<<< HEAD
         obs.to_netcdf(outfn, group=group, mode='w', encoding=enc)
+=======
+        # Pandas >= 0.25.0 requires this, regardless of xarray version
+        if obs.time.dtype != 'datetime64[ns]':
+            obs["time"] = obs.time.astype("datetime64[ns]")
+        obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
+
+>>>>>>> 03998adbd379bc9cfa647bada0c149e76756b60f
     return obs
 
 
