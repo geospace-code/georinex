@@ -36,7 +36,7 @@ def opener(fn: typing.Union[TextIO, Path],
 
         if fn.suffix == '.gz':
             with gzip.open(fn, 'rt') as f:
-                version, is_crinex = rinex_version(f.readline(80))
+                version, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
 
                 if is_crinex and not header:
@@ -57,7 +57,7 @@ def opener(fn: typing.Union[TextIO, Path],
                     yield f
         else:  # assume not compressed (or Hatanaka)
             with fn.open('r', encoding='ascii', errors='ignore') as f:
-                version, is_crinex = rinex_version(f.readline(80))
+                version, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
 
                 if is_crinex and not header:
@@ -65,6 +65,28 @@ def opener(fn: typing.Union[TextIO, Path],
                 yield f
     else:
         raise OSError(f'Unsure what to do with input of type: {type(fn)}')
+
+
+def first_nonblank_line(f: TextIO, max_lines: int = 10) -> str:
+    """ return first non-blank 80 character line in file
+
+    Parameters
+    ----------
+
+    max_lines: int
+        maximum number of blank lines
+    """
+
+    line = ""
+    for _i in range(max_lines):
+        line = f.readline(80)
+        if line.strip():
+            break
+
+    if _i == max_lines - 1 or not line:
+        raise ValueError(f"could not find first valid header line in {f.name}")
+
+    return line
 
 
 def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
@@ -90,7 +112,7 @@ def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
     f.seek(0)
 
     try:
-        line = f.readline(80)  # don't choke on binary files
+        line = first_nonblank_line(f)  # don't choke on binary files
 
         if line.startswith('#c'):
             return {'version': 'c',
@@ -150,7 +172,7 @@ def rinex_version(s: str) -> typing.Tuple[typing.Union[float, str], bool]:
     if not isinstance(s, str):
         raise TypeError('need first line of RINEX file as string')
     if len(s) < 2:
-        raise ValueError(f'first line of file is corrupted {s}')
+        raise ValueError(f'cannot decode RINEX version from line:\n{s}')
 
     if len(s) >= 80:
         if s[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):

@@ -5,6 +5,7 @@ SP3 format:
 import xarray
 import numpy as np
 import logging
+from .rio import first_nonblank_line
 from pathlib import Path
 from datetime import datetime
 import typing
@@ -16,10 +17,11 @@ ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     dat: typing.Dict[str, typing.Any] = {}
     with fn.open("r") as f:
-        ln = f.readline()
+        ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
         dat["t0"] = sp3dt(ln)
-        Nepoch = int(ln[32:39])
+        # Nepoch != number of time steps, at least for some files
+        dat["Nepoch"] = int(ln[32:39])
         dat["coord_sys"] = ln[46:51]
         dat["orbit_type"] = ln[52:55]
         dat["agency"] = ln[56:60]
@@ -45,30 +47,35 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
         if not ln.startswith("*"):  # EOF
             raise ValueError(f"{fn} appears to be badly malformed")
         # the rest of the file is data, punctuated by epoch lines
-        ecef = np.empty((Nepoch, Nsv, 3))
-        ecef.fill(np.nan)
-        clock = np.empty((Nepoch, Nsv, 2))
-        clock.fill(np.nan)
-        vel = np.empty((Nepoch, Nsv, 3))
-        vel.fill(np.nan)
-        times = [sp3dt(ln)]
+        ecefs = []
+        clocks = []
+        vels = []
+        ecef = np.empty((Nsv, 3))
+        clock = np.empty((Nsv, 2))
+        vel = np.empty((Nsv, 3))
         i = 0
-        j = 0
+
+        times = [sp3dt(ln)]
 
         for ln in f:
             if ln[0] == "*":
                 times.append(sp3dt(ln))
-                i += 1
-                j = 0
+                ecefs.append(ecef)
+                clocks.append(clock)
+                vels.append(vel)
+                ecef = np.empty((Nsv, 3))
+                clock = np.empty((Nsv, 2))
+                vel = np.empty((Nsv, 3))
+                i = 0
                 continue
 
             if ln[0] == "P":
-                ecef[i, j, :] = (float(ln[4:18]), float(ln[18:32]), float(ln[32:46]))
-                clock[i, j, 0] = float(ln[46:60])
-                j += 1
+                ecef[i, :] = (float(ln[4:18]), float(ln[18:32]), float(ln[32:46]))
+                clock[i, 0] = float(ln[46:60])
+                i += 1
             elif ln[0] == "V":
-                vel[i, j - 1, :] = (float(ln[4:18]), float(ln[18:32]), float(ln[32:46]))
-                clock[i, j - 1, 1] = float(ln[46:60])
+                vel[i - 1, :] = (float(ln[4:18]), float(ln[18:32]), float(ln[32:46]))
+                clock[i - 1, 1] = float(ln[46:60])
             elif ln[:2] in ("EP", "EV"):
                 # let us know if you want these data types
                 pass
@@ -79,13 +86,19 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
             else:
                 logging.info(f"unknown data {ln}")
 
+    # assemble the last time step
+    ecefs.append(ecef)
+    clocks.append(clock)
+    vels.append(vel)
+    aclock = np.asarray(clocks)
+
     # assemble into final xarray.Dataset
     ds = xarray.Dataset(coords={"time": times, "sv": svs, "ECEF": ["x", "y", "z"]})
-    ds["position"] = (("time", "sv", "ECEF"), ecef)
-    ds["clock"] = (("time", "sv"), clock[:, :, 0])
+    ds["position"] = (("time", "sv", "ECEF"), ecefs)
+    ds["clock"] = (("time", "sv"), aclock[:, :, 0])
     if not np.isnan(vel).all():
-        ds["velocity"] = (("time", "sv", "ECEF"), vel)
-        ds["dclock"] = (("time", "sv"), clock[:, :, 1])
+        ds["velocity"] = (("time", "sv", "ECEF"), vels)
+        ds["dclock"] = (("time", "sv"), aclock[:, :, 1])
 
     ds.attrs = dat
 

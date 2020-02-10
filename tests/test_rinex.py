@@ -7,7 +7,10 @@ import xarray
 
 R = Path(__file__).parent / 'data'
 
-blanks = ['blank.10n', 'blank.10o', 'blank3.10n', 'blank3.10o']
+blanks = ['blank.10n', 'blank1st.10n',
+          'blank.10o', 'blank1st.10o',
+          'blank3.10n', 'blank3_1st.10n',
+          'blank3.10o', 'blank3_1st.10o']
 
 
 @pytest.mark.parametrize('filename', blanks)
