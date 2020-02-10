@@ -25,6 +25,7 @@ def load(rinexfn: Union[TextIO, str, Path],
          meas: Sequence[str] = None,
          verbose: bool = False,
          *,
+         overwrite: bool = False,
          fast: bool = True,
          interval: Union[float, int, timedelta] = None) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
     """
@@ -59,11 +60,13 @@ def load(rinexfn: Union[TextIO, str, Path],
     if info['rinextype'] == 'sp3':
         return load_sp3(rinexfn, outfn)
     elif info['rinextype'] == 'nav':
-        return rinexnav(rinexfn, outfn, use=use, tlim=tlim)
+        return rinexnav(rinexfn, outfn, use=use, tlim=tlim,
+                        overwrite=overwrite)
     elif info['rinextype'] == 'obs':
         return rinexobs(rinexfn, outfn, use=use, tlim=tlim,
                         useindicators=useindicators, meas=meas,
-                        verbose=verbose, fast=fast, interval=interval)
+                        verbose=verbose,
+                        overwrite=overwrite, fast=fast, interval=interval)
     elif rinexfn.suffix == '.nc':
         # outfn not used here, because we already have the converted file!
         try:
@@ -114,7 +117,8 @@ def rinexnav(fn: Union[TextIO, str, Path],
              outfn: Path = None,
              use: Sequence[str] = None,
              group: str = 'NAV',
-             tlim: Tuple[datetime, datetime] = None) -> xarray.Dataset:
+             tlim: Tuple[datetime, datetime] = None, *,
+             overwrite: bool = False) -> xarray.Dataset:
     """ Read RINEX 2 or 3  NAV files"""
 
     if isinstance(fn, (str, Path)):
@@ -139,7 +143,7 @@ def rinexnav(fn: Union[TextIO, str, Path],
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
-        wmode = _groupexists(outfn, group)
+        wmode = _groupexists(outfn, group, overwrite)
 
         enc = {k: ENC for k in nav.data_vars}
         nav.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
@@ -158,6 +162,7 @@ def rinexobs(fn: Union[TextIO, str, Path],
              meas: Sequence[str] = None,
              verbose: bool = False,
              *,
+             overwrite: bool = False,
              fast: bool = True,
              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
     """
@@ -193,9 +198,9 @@ def rinexobs(fn: Union[TextIO, str, Path],
 # %% optional output write
     if outfn:
         outfn = Path(outfn).expanduser()
-        wmode = _groupexists(outfn, group)
-
+        wmode = _groupexists(outfn, group, overwrite)
         enc = {k: ENC for k in obs.data_vars}
+
         # Pandas >= 0.25.0 requires this, regardless of xarray version
         if obs.time.dtype != 'datetime64[ns]':
             obs["time"] = obs.time.astype("datetime64[ns]")
@@ -204,9 +209,9 @@ def rinexobs(fn: Union[TextIO, str, Path],
     return obs
 
 
-def _groupexists(fn: Path, group: str) -> str:
+def _groupexists(fn: Path, group: str, overwrite: bool) -> str:
     print(f'saving {group}:', fn)
-    if not fn.is_file():
+    if overwrite or not fn.is_file():
         return 'w'
 
     # be sure there isn't already NAV in it
