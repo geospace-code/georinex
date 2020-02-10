@@ -578,6 +578,7 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
     else:
         raise TypeError(f'Unknown filetype {type(fn)}')
 
+    ln = ""  # in case of truncated file, don't crash
     with opener(fn) as f:
         _skip_header(f)
 # %% find the first line with time (sometimes a blank line or two after header)
