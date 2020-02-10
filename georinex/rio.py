@@ -122,7 +122,7 @@ def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
                 'rinextype': rinex_type,
                 'systems': system}
 
-    except (TypeError, AttributeError, ValueError, UnicodeDecodeError) as e:
+    except (TypeError, AttributeError, ValueError) as e:
         # keep ValueError for consistent user error handling
         raise ValueError(f'not a known/valid RINEX file.  {e}')
 
