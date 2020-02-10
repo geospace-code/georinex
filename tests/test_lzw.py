@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-.Z LZW unlzw is not always available on Windows if MSVC is not available.
-
-So we put these tests separately.
+test for LZW .Z file
 """
 from pathlib import Path
 import pytest
@@ -13,9 +11,9 @@ R = Path(__file__).parent / 'data'
 
 
 def test_obs2():
-    pytest.importorskip('unlzw')
+    pytest.importorskip('unlzw3')
 
-    fn = R/'ac660270.18o.Z'
+    fn = R / 'ac660270.18o.Z'
 
     obs = gr.load(fn)
 

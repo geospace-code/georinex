@@ -9,9 +9,12 @@ from typing.io import TextIO
 import typing
 
 try:
-    import unlzw
+    from unlzw3 import unlzw
 except ImportError:
-    unlzw = None
+    try:
+        from unlzw import unlzw
+    except ImportError:
+        unlzw = None
 
 from .hatanaka import opencrx
 
@@ -48,9 +51,9 @@ def opener(fn: typing.Union[TextIO, Path],
                         yield f
         elif fn.suffix == '.Z':
             if unlzw is None:
-                raise ImportError('pip install unlzw')
+                raise ImportError('pip install unlzw3')
             with fn.open('rb') as zu:
-                with io.StringIO(unlzw.unlzw(zu.read()).decode('ascii')) as f:
+                with io.StringIO(unlzw(zu.read()).decode('ascii')) as f:
                     yield f
         else:  # assume not compressed (or Hatanaka)
             with fn.open('r', encoding='ascii', errors='ignore') as f:

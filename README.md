@@ -1,10 +1,10 @@
+# GeoRinex
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
-[![Actions Status](https://github.com/scivision/georinex/workflows/ci/badge.svg)](https://github.com/scivision/georinex/actions)
+![ci](https://github.com/scivision/georinex/workflows/ci/badge.svg)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/scivision/georinex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/scivision/georinex/context:python)
 [![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
-
-# GeoRinex
 
 RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
 Batch converts NAV and OBS GPS RINEX (including Hatanaka compressed OBS) data into
@@ -42,11 +42,13 @@ This yields orders of magnitude speedup in reading/converting RINEX data and all
 ## Install
 
 Latest stable release:
+
 ```sh
 pip install georinex
 ```
 
 Current development version:
+
 ```sh
 git clone https://github.com/scivision/georinex
 
@@ -57,11 +59,10 @@ python -m pip install -e .
 
 The Hatanaka CRINEX converter automatically compiles if needed and a C compiler is available.
 
-Currently, `unlzw` doesn't work on Windows, making `.Z` files unreadable.
-
 ### Selftest
 
 It can be useful to check the setup of your system with:
+
 ```sh
 python -m pytest
 ```
