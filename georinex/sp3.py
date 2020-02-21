@@ -27,19 +27,18 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
         dat["agency"] = ln[56:60]
 
         f.readline()
-
         ln = f.readline()
         assert ln[0] == "+", f"failed to read {fn} SV header"
-        Nsv = int(ln[4:6])
+        # version c : Nsv <= 85, int(ln[4:6])
+        # version d : Nsv <= 999, int(len[3:6])
+        # (see ftp://igs.org/pub/data/format/sp3d.pdf)
+        # So this should work for both versions
+        Nsv = int(ln[3:6])
         svs = get_sv(ln, Nsv)
-        if Nsv > 17:
-            svs += get_sv(f.readline(), Nsv - 17)
-        if Nsv > 34:
-            svs += get_sv(f.readline(), Nsv - 34)
-        if Nsv > 51:
-            svs += get_sv(f.readline(), Nsv - 51)
-        if Nsv > 68:
-            svs += get_sv(f.readline(), Nsv - 68)
+        unread_sv = Nsv - 17
+        while unread_sv > 0:
+            svs += get_sv(f.readline(), unread_sv)
+            unread_sv -= 17
         # let us know if you need these intermediate lines parsed
         for ln in f:
             if ln.startswith("*"):

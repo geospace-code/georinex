@@ -19,7 +19,6 @@ where ease of cross-platform install and correctness are primary goals.
 
 ![RINEX plot](tests/example_plot.png)
 
-
 ## Input data types
 
 * RINEX 3.x or RINEX 2.x
@@ -31,7 +30,8 @@ where ease of cross-platform install and correctness are primary goals.
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
 * Python `io.StringIO` text stream RINEX'
-* .sp3 SP3-c ephemeris
+* .sp3 [SP3-c](ftp://igs.org/pub/data/format/sp3c.txt) ephemeris
+* .sp3d [SP3-d](ftp://ftp.igs.org/pub/data/format/sp3d.pdf) extended ephemeris
 
 ## Output
 
