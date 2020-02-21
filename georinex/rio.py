@@ -79,7 +79,7 @@ def first_nonblank_line(f: TextIO, max_lines: int = 10) -> str:
 
     line = ""
     for _i in range(max_lines):
-        line = f.readline(80)
+        line = f.readline(81)
         if line.strip():
             break
 
@@ -116,6 +116,9 @@ def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
 
         if line.startswith('#c'):
             return {'version': 'c',
+                    'rinextype': 'sp3'}
+        elif line.startswith('#d'):
+            return {'version': 'd',
                     'rinextype': 'sp3'}
 
         version = rinex_version(line)[0]
@@ -158,32 +161,36 @@ def rinex_version(s: str) -> typing.Tuple[typing.Union[float, str], bool]:
     ----------
 
     s : str
-       first line of RINEX/CRINEX file
+       first line of RINEX/CRINEX/SP3 file
 
     Results
     -------
 
     version : float
-        RINEX file version
+        RINEX/SP3 file version
 
     is_crinex : bool
         is it a Compressed RINEX CRINEX Hatanaka file
     """
     if not isinstance(s, str):
-        raise TypeError('need first line of RINEX file as string')
+        raise TypeError('need first line of RINEX/SP3 file as string')
     if len(s) < 2:
-        raise ValueError(f'cannot decode RINEX version from line:\n{s}')
+        raise ValueError(f'cannot decode RINEX/SP3 version from line:\n{s}')
 
+    # %% .sp3 file
+    if s[0] == '#':
+        supported_versions = ['c', 'd']
+        if s[1] not in supported_versions:
+            raise ValueError(
+                'SP3 versions of SP3 files currently handled: {}'.format(
+                    ','.join(supported_versions)))
+        return 'sp3' + s[1], False
+
+    # %% typical RINEX files
     if len(s) >= 80:
         if s[60:80] not in ('RINEX VERSION / TYPE', 'CRINEX VERS   / TYPE'):
             raise ValueError('The first line of the RINEX file header is corrupted.')
 
-    # %% .sp3 file
-    if s[0] == '#':
-        if s[1] != 'c':
-            raise ValueError('Georinex only handles version C of SP3 files.')
-        return 'sp3' + s[1], False
-    # %% typical RINEX files
     try:
         vers = float(s[:9])  # %9.2f
     except ValueError as err:
