@@ -9,7 +9,7 @@ from typing.io import TextIO
 from .build import build
 
 
-def crxexe(path: Path = Path(__file__).resolve().parent / 'rnxcmp') -> str:
+def crxexe(path: Path = Path(__file__).parent / 'rnxcmp') -> str:
     """
     Determines if CRINEX converter is available.
     Don't use LRU_CACHE to allow for build-on-demand

@@ -20,10 +20,9 @@ jobs:
     - run: pip install -e .[tests,lint,io]
 
     - run: flake8
-    - run: mypy .
+    - run: mypy . src
 
     - run: pytest
-      working-directory: tests
 
   integration:
     runs-on: ${{ matrix.os }}
@@ -39,4 +38,3 @@ jobs:
     - run: pip install .[tests,io]
 
     - run: pytest
-      working-directory: tests

@@ -5,7 +5,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
-R = Path(__file__).resolve().parent / 'rnxcmp'
+R = Path(__file__).parent / 'rnxcmp'
 
 
 def build(cc: str = None, src: Path = R / 'source/crx2rnx.c') -> int:
@@ -28,7 +28,7 @@ def do_compile(cc: str, src: Path) -> int:
     if cc.endswith('cl'):  # msvc-like
         cmd = [cc, str(src), '/Fe:'+str(R)]
     else:
-        cmd = [cc, str(src), '-o', str(R/'crx2rnx')]
+        cmd = [cc, str(src), '-O2', '-o', str(R/'crx2rnx')]
 
     print(' '.join(cmd))
     ret = subprocess.run(cmd).returncode

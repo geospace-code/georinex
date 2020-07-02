@@ -603,6 +603,6 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
     if max(lens) < 79:  # oddly formatted file, no prediction
         return 0
 
-    shorts = sum(l < 79 for l in lens)
+    shorts = sum(ln < 79 for ln in lens)
 
     return len(lens) - shorts

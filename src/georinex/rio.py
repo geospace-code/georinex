@@ -47,7 +47,7 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                 for rinexfn in flist:
                     with z.open(rinexfn, 'r') as bf:
                         f = io.StringIO(
-                            io.TextIOWrapper(bf, encoding='ascii', errors='ignore').read()
+                            io.TextIOWrapper(bf, encoding='ascii', errors='ignore').read()  # type: ignore
                         )
                         yield f
         elif fn.suffix == '.Z':

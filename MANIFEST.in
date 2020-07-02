@@ -1,1 +1,1 @@
-include georinex/rnxcmp/source/crx2rnx.c
+include src/georinex/rnxcmp/source/crx2rnx.c
