@@ -4,9 +4,6 @@ on:
   push:
     paths:
     - "**.py"
-  pull_request:
-    paths:
-    - "**.py"
 
 jobs:
 
@@ -16,13 +13,15 @@ jobs:
       matrix:
         python-version: [3.6, '3.x']
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - run: pip install -e .[tests,lint,io]
+
     - run: flake8
     - run: mypy .
+
     - run: pytest
       working-directory: tests
 
@@ -32,10 +31,12 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
+
     - run: pip install .[tests,io]
+
     - run: pytest
       working-directory: tests
