@@ -103,7 +103,7 @@ import georinex as gr
 ```
 
 Uses speculative time preallocation `gr.load(..., fast=True)` by default.
-Set `fast=False` or `ReadRinex.py -strict` to fall back to double-read strict (slow) preallocation.
+Set `fast=False` or `georinex_read -strict` to fall back to double-read strict (slow) preallocation.
 Please open a GitHub issue if this is a problem.
 
 ### Time limits
@@ -283,7 +283,7 @@ To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, us
 
 Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
 
-* using `PlotRXlocation.py` script, which loads and plots all RINEX and .nc files in a directory
+* using `georinex_loc` script, which loads and plots all RINEX and .nc files in a directory
 * using `xarray`
   ```python
   obs = xarray.open_dataset('my.nc)
@@ -318,13 +318,13 @@ OBS3 / NAV3 are not yet updated to new fast pure Python method.
 
 Done on 5 year old Haswell laptop:
 ```sh
-time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
+time georinex_read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
 ```
 
 > real 48.6 s
 
 ```sh
-time ./ReadRinex.py tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
+time georinex_read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
 ```
 
 > real 17.6 s
