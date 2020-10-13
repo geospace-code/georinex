@@ -457,6 +457,12 @@ def _getSVlist(ln: str, N: int,
                sv: List[str]) -> List[str]:
     """ parse a line of text from RINEX2 SV list"""
     sv.extend([ln[32+i*3:35+i*3] for i in range(N)])
+    
+    # compatibility for early rinex where a space
+    # in SSI position is assumed to be GPS
+    for i, s in enumerate(sv):
+        if s[0] == ' ':
+            sv[i]='G'+s[1:3]
 
     return sv
 
