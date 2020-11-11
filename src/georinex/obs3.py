@@ -286,10 +286,14 @@ def obsheader3(f: TextIO,
             hdr[h.strip()] += " " + c
 
 # %% list with x,y,z cartesian (OPTIONAL)
+# Rinex 3.03, pg. A6, Table A2
     try:
         hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
         if ecef2geodetic is not None:
-            hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
+            # some RINEX files have bad headers with mulitple APPROX POSITION XYZ.
+            # we choose to use the first such header.
+            if len(hdr['position']) >= 3:
+                hdr['position_geodetic'] = ecef2geodetic(*hdr['position'][:3])
     except (KeyError, ValueError):
         pass
 # %% time
