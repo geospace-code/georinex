@@ -7,7 +7,7 @@ import xarray
 import numpy as np
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import typing as T
 
 from .rio import first_nonblank_line
@@ -112,15 +112,42 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
 
 
 def sp3dt(ln: str) -> datetime:
-    return datetime(
-        int(ln[3:7]),
-        int(ln[8:10]),
-        int(ln[11:13]),
-        int(ln[14:16]),
-        int(ln[17:19]),
-        int(ln[20:22]),
-        int(ln[23:28]),
+    """
+    some receivers such as ESA Swarm return seconds=60, so let's patch this.
+    """
+
+    dt = []
+
+    hour = int(ln[14:16])
+    minute = int(ln[17:19])
+    second = int(ln[20:22])
+
+    if second == 60:
+        dt.append(timedelta(minutes=1))
+        second = 0
+
+    if minute == 60:
+        dt.append(timedelta(hours=1))
+        minute = 0
+
+    if hour == 24:
+        dt.append(timedelta(days=1))
+        hour = 0
+
+    time = datetime(
+        year=int(ln[3:7]),
+        month=int(ln[8:10]),
+        day=int(ln[11:13]),
+        hour=hour,
+        minute=minute,
+        second=second,
+        microsecond=int(ln[23:28]),
     )
+
+    for t in dt:
+        time += t
+
+    return time
 
 
 def get_sv(ln: str, Nsv: int) -> T.List[str]:
@@ -129,5 +156,5 @@ def get_sv(ln: str, Nsv: int) -> T.List[str]:
     i0 = 9
     svs = []
     for i in range(min(Nsv, 17)):
-        svs.append(ln[i0 + i * 3:(i0 + 3) + i * 3])
+        svs.append(ln[i0 + i * 3 : (i0 + 3) + i * 3])
     return svs

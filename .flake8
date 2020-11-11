@@ -1,5 +1,6 @@
 [flake8]
 max-line-length = 132
+ignore = E203
 exclude = .git,__pycache__,.eggs/,doc/,docs/,build/,dist/,.archive/
 per-file-ignores =
     __init__.py:F401
