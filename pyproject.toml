@@ -5,4 +5,8 @@ requires = ["setuptools", "wheel"]
 line-length = 99
 
 [tool.pytest.ini_options]
-addopts = "-ra -v"
+addopts = "-ra"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::RuntimeWarning",
+]

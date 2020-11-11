@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pathlib import Path
 
@@ -40,7 +39,3 @@ def test_header(fn, rtype, vers):
 def test_position(fn):
     hdr = gr.rinexheader(fn)
     assert len(hdr['position']) == 3
-
-
-if __name__ == '__main__':
-    pytest.main([__file__])

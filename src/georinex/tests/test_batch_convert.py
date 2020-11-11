@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pathlib import Path
 import georinex as gr
@@ -35,7 +34,3 @@ def test_bad(tmp_path):
 
     with pytest.raises(TypeError):
         gr.batch_convert(tmp_path, pat)
-
-
-if __name__ == '__main__':
-    pytest.main(['-xrsv', __file__])

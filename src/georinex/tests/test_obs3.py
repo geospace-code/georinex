@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pytest import approx
 import xarray
@@ -167,7 +166,3 @@ def tests_all_indicators():
 def test_time_system(fn, tname):
     obs = gr.load(R/fn)
     assert obs.attrs['time_system'] == tname
-
-
-if __name__ == '__main__':
-    pytest.main(['-x', __file__])

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 import xarray
 from pytest import approx
@@ -256,7 +255,3 @@ def test_wrong_header_count():
     S2 = obs['S2'].dropna(dim='sv', how='all')
 
     assert S2.sel(sv='G31').item() == approx(63.)
-
-
-if __name__ == '__main__':
-    pytest.main(['-v', __file__])

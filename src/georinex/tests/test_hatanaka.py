@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pathlib import Path
 from datetime import datetime
@@ -62,7 +61,3 @@ def test_obs3():
 
     assert times[0] == datetime(2019, 1, 1, 20, 56, 45)
     assert times[-1] == datetime(2019, 1, 1, 20, 57)
-
-
-if __name__ == '__main__':
-    pytest.main(['-x', __file__])

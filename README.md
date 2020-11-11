@@ -107,7 +107,9 @@ Set `fast=False` or `georinex_read -strict` to fall back to double-read strict (
 Please open a GitHub issue if this is a problem.
 
 ### Time limits
-Time bounds can be set for reading -- load only data between those time bounds with the
+
+Time bounds can be set for reading -- load only data between those time bounds:
+
 ```sh
 --tlim start stop
 ```
@@ -118,6 +120,7 @@ dat = gr.load('my.rnx', tlim=['2017-02-23T12:59', '2017-02-23T13:13'])
 ```
 
 ### Measurement selection
+
 Further speed increase can arise from reading only wanted measurements:
 ```sh
 --meas C1C L1C

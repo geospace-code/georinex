@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 test for LZW .Z file
 """
@@ -22,7 +21,3 @@ def test_obs2_lzw():
     assert hdr['t0'] <= gr.to_datetime(obs.time[0])
 
     assert not obs.fast_processing
-
-
-if __name__ == '__main__':
-    pytest.main([__file__])

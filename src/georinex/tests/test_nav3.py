@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from pathlib import Path
 import pytest
 from pytest import approx
@@ -129,7 +128,3 @@ def test_ionospheric_correction():
 
     assert nav.attrs['ionospheric_corr_GAL'] == approx(
                     [0.1248e+03, 0.5039, 0.2377e-01])
-
-
-if __name__ == '__main__':
-    pytest.main(['-x', __file__])

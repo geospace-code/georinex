@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 test console script
 """
@@ -36,7 +35,3 @@ def test_batch_convert(tmp_path, filename):
     outfn = outdir / (filename.name + ".nc")
     assert outfn.is_file()
     assert outfn.stat().st_size > 30000, f"{outfn}"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

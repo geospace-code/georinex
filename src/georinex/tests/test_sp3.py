@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pytest import approx
 from pathlib import Path
@@ -62,7 +61,3 @@ def test_minimal_sp3d():
 #     G20 = d0.sel(sv="G20")
 
 #     assert np.isnan(G20.clock.item())
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pytest import approx
 from pathlib import Path
@@ -57,7 +56,3 @@ def test_locs():
         pytest.skip('no locs found')
 
     assert locs.iloc[0].values == approx([41.3887, 2.112, 30])
-
-
-if __name__ == '__main__':
-    pytest.main(['-x', __file__])

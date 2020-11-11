@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Self-test file, registration case
 for OBS RINEX reader
@@ -90,7 +89,3 @@ def test_nc_load(dtype):
 
     obs = gr.load(R/f'demo.10{dtype[0].lower()}')
     assert obs.equals(truth)
-
-
-if __name__ == '__main__':
-    pytest.main(['-xrsv', __file__])

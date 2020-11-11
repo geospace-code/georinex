@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 test all files types with time limits
 """
@@ -74,7 +73,3 @@ def test_interval_obs2(interval, expected_len):
     times = gr.to_datetime(obs.time)
 
     assert len(times) == expected_len
-
-
-if __name__ == '__main__':
-    pytest.main([__file__])

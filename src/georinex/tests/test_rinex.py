@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pytest
 from pytest import approx
 from pathlib import Path
@@ -66,7 +65,3 @@ def test_dont_care_file_extension():
 
     nav = gr.load(fn)
     assert nav.ionospheric_corr_GAL == approx([139, 0.132, 0.0186])
-
-
-if __name__ == '__main__':
-    pytest.main([__file__])
