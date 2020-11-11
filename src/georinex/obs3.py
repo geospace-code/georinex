@@ -74,7 +74,9 @@ def rinexobs3(fn: Union[TextIO, str, Path],
 # %% loop
     with opener(fn) as f:
         hdr = obsheader3(f, use, meas)
+
 # %% process OBS file
+        time_offset = []
         for ln in f:
             if not ln.startswith('>'):  # end of file
                 break
@@ -84,6 +86,11 @@ def rinexobs3(fn: Union[TextIO, str, Path],
             except ValueError:  # garbage between header and RINEX data
                 logging.debug(f'garbage detected in {fn}, trying to parse at next time step')
                 continue
+
+            try:
+                time_offset.append(float(ln[41:56]))
+            except ValueError:
+                pass
 # %% get SV indices
             sv = []
             raw = ''
@@ -142,7 +149,14 @@ def rinexobs3(fn: Union[TextIO, str, Path],
         if ecef2geodetic is not None:
             data.attrs['position_geodetic'] = hdr['position_geodetic']
 
-    # data.attrs['toffset'] = toffset
+    if time_offset:
+        data.attrs['time_offset'] = time_offset
+
+    if 'RCV CLOCK OFFS APPL' in hdr.keys():
+        try:
+            data.attrs['receiver_clock_offset_applied'] = int(hdr['RCV CLOCK OFFS APPL'])
+        except ValueError:
+            pass
 
     return data
 
