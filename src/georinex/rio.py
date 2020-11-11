@@ -37,7 +37,9 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
         if finf.st_size > 100e6:
             logging.info(f'opening {finf.st_size/1e6} MByte {fn.name}')
 
-        if fn.suffix == '.gz':
+        suffix = fn.suffix.lower()
+
+        if suffix == '.gz':
             with gzip.open(fn, 'rt') as f:
                 version, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
@@ -45,7 +47,7 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                 if is_crinex and not header:
                     f = io.StringIO(opencrx(f))
                 yield f
-        elif fn.suffix == '.zip':
+        elif suffix == '.zip':
             with zipfile.ZipFile(fn, 'r') as z:
                 flist = z.namelist()
                 for rinexfn in flist:
@@ -54,7 +56,7 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                             io.TextIOWrapper(bf, encoding='ascii', errors='ignore').read()  # type: ignore
                         )
                         yield f
-        elif fn.suffix == '.Z':
+        elif suffix == '.z':
             if unlzw is None:
                 raise ImportError('pip install unlzw3')
             with fn.open('rb') as zu:
@@ -83,12 +85,16 @@ def first_nonblank_line(f: TextIO, max_lines: int = 10) -> str:
     """
 
     line = ""
+    _i = None
+    if max_lines < 1:
+        raise ValueError("must read at least one line")
+
     for _i in range(max_lines):
         line = f.readline(81)
         if line.strip():
             break
 
-    if _i == max_lines - 1 or not line:
+    if _i is None or _i == max_lines - 1 or not line:
         raise ValueError(f"could not find first valid header line in {f.name}")
 
     return line

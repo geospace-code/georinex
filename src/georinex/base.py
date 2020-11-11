@@ -55,7 +55,11 @@ def load(rinexfn: Union[TextIO, str, Path],
         if tlim[1] < tlim[0]:
             raise ValueError('stop time must be after start time')
 
-    info = rinexinfo(rinexfn)
+    try:
+        info = rinexinfo(rinexfn)
+    except RuntimeError:
+        logging.error(f"could not read {rinexfn} header. It may not be a known type of RINEX file.")
+        return None
 
     if info['rinextype'] == 'sp3':
         return load_sp3(rinexfn, outfn)

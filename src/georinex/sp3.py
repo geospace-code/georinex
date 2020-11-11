@@ -2,20 +2,22 @@
 SP3 format:
     https://kb.igs.org/hc/en-us/articles/201096516-IGS-Formats
 """
+
 import xarray
 import numpy as np
 import logging
-from .rio import first_nonblank_line
 from pathlib import Path
 from datetime import datetime
-import typing
+import typing as T
+
+from .rio import first_nonblank_line
 
 # for NetCDF compression. too high slows down with little space savings.
 ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
 
 def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
-    dat: typing.Dict[str, typing.Any] = {}
+    dat: T.Dict[str, T.Any] = {}
     with fn.open("r") as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
@@ -121,7 +123,7 @@ def sp3dt(ln: str) -> datetime:
     )
 
 
-def get_sv(ln: str, Nsv: int) -> typing.List[str]:
+def get_sv(ln: str, Nsv: int) -> T.List[str]:
     if ln[0] != "+":
         return []
     i0 = 9
