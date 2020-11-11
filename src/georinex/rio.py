@@ -29,6 +29,10 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
         fn.seek(0)
         yield fn
     elif isinstance(fn, Path):
+        # need to have this check for Windows
+        if not fn.is_file():
+            raise FileNotFoundError(fn)
+
         finf = fn.stat()
         if finf.st_size > 100e6:
             logging.info(f'opening {finf.st_size/1e6} MByte {fn.name}')
