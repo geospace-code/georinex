@@ -1,6 +1,9 @@
 """
 handle Hatanka CRINEX files
+
+NOTE: This is a candidate for importlib.resources in Python >= 3.7
 """
+
 import subprocess
 import shutil
 from pathlib import Path
@@ -9,7 +12,7 @@ from typing.io import TextIO
 from .build import build
 
 
-def crxexe(path: Path = Path(__file__).parent / 'rnxcmp') -> str:
+def crxexe(path: Path = Path(__file__).parent / "rnxcmp") -> str:
     """
     Determines if CRINEX converter is available.
     Don't use LRU_CACHE to allow for build-on-demand
@@ -24,18 +27,22 @@ def crxexe(path: Path = Path(__file__).parent / 'rnxcmp') -> str:
     exe: str
         fullpath to crx2rnx executable
     """
-    exe = shutil.which('crx2rnx', path=str(path))
+
+    exe = shutil.which("crx2rnx", path=str(path))
     if not exe:
-        return None
+        if build() != 0:
+            raise RuntimeError("could not build Hatanka converter. Do you have a C compiler?")
+        exe = shutil.which("crx2rnx", path=str(path))
+        if not exe:
+            raise RuntimeError("Hatanaka converter is broken or missing.")
 
     # crx2rnx -h:  returncode == 1
-    ret = subprocess.run([exe, '-h'], stderr=subprocess.PIPE,
-                         universal_newlines=True)
+    ret = subprocess.run([exe, "-h"], stderr=subprocess.PIPE, universal_newlines=True)
 
-    if ret.stderr.startswith('Usage'):
+    if ret.stderr.startswith("Usage"):
         return exe
     else:
-        return None
+        raise RuntimeError("Hatanaka converter is broken.")
 
 
 def opencrx(f: TextIO) -> str:
@@ -46,15 +53,6 @@ def opencrx(f: TextIO) -> str:
     """
     exe = crxexe()
 
-    if not exe:
-        if build() != 0:
-            raise RuntimeError('could not build Hatanka converter. Do you have a C compiler?')
-        exe = crxexe()
-        if not exe:
-            raise RuntimeError('Hatanaka converter is broken or missing.')
-
-    ret = subprocess.check_output([exe, '-'],
-                                  input=f.read(),
-                                  universal_newlines=True)
+    ret = subprocess.check_output([exe, "-"], input=f.read(), universal_newlines=True)
 
     return ret
