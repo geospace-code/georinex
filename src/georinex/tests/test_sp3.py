@@ -48,9 +48,9 @@ def test_minimal_sp3d():
     d0 = dat.sel(time="2020-01-24T00:00:00")
     assert len(d0.sv) == 116
     E21 = d0.sel(sv="E21")
-    assert E21["position"].values == approx(
-        [26228.497812, 1498.630544, -13647.911806])
+    assert E21["position"].values == approx([26228.497812, 1498.630544, -13647.911806])
     assert E21.clock.item() == approx(-578.689388)
+
 
 # perhaps not a valid test?
 # def test_truncated():

@@ -51,27 +51,27 @@ def gettime(fn: Union[TextIO, Path]) -> np.ndarray:
     """
     info = rinexinfo(fn)
 
-    version = info['version']
+    version = info["version"]
     vers = int(version)
-    rtype = info['rinextype']
+    rtype = info["rinextype"]
 
-# %% select function
-    if rtype == 'obs':
+    # %% select function
+    if rtype == "obs":
         if vers == 2:
             times = obstime2(fn)
         elif vers == 3:
             times = obstime3(fn)
         else:
-            raise ValueError(f'Unknown RINEX version {version} {fn}')
-    elif rtype == 'nav':
+            raise ValueError(f"Unknown RINEX version {version} {fn}")
+    elif rtype == "nav":
         if vers == 2:
             times = navtime2(fn)
         elif vers == 3:
             times = navtime3(fn)
         else:
-            raise ValueError(f'Unknown RINEX version {version} {fn}')
+            raise ValueError(f"Unknown RINEX version {version} {fn}")
     else:
-        raise ValueError(f'per-observation time is in NAV, OBS files, not {info}  {fn}')
+        raise ValueError(f"per-observation time is in NAV, OBS files, not {info}  {fn}")
 
     return times
 
@@ -83,7 +83,7 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     if isinstance(fn, (str, Path)):
         fn = Path(fn).expanduser()
 
-    if isinstance(fn, Path) and fn.suffix == '.nc':
+    if isinstance(fn, Path) and fn.suffix == ".nc":
         return rinexinfo(fn)
     elif isinstance(fn, Path):
         with opener(fn, header=True) as f:
@@ -93,31 +93,33 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     elif isinstance(fn, io.TextIOWrapper):
         pass
     else:
-        raise TypeError(f'unknown RINEX filetype {type(fn)}')
+        raise TypeError(f"unknown RINEX filetype {type(fn)}")
 
     info = rinexinfo(fn)
 
-    if int(info['version']) in (1, 2):
-        if info['rinextype'] == 'obs':
+    if int(info["version"]) in (1, 2):
+        if info["rinextype"] == "obs":
             hdr = obsheader2(fn)
-        elif info['rinextype'] == 'nav':
+        elif info["rinextype"] == "nav":
             hdr = navheader2(fn)
         else:
-            raise ValueError(f'Unknown rinex type {info} in {fn}')
-    elif int(info['version']) == 3:
-        if info['rinextype'] == 'obs':
+            raise ValueError(f"Unknown rinex type {info} in {fn}")
+    elif int(info["version"]) == 3:
+        if info["rinextype"] == "obs":
             hdr = obsheader3(fn)
-        elif info['rinextype'] == 'nav':
+        elif info["rinextype"] == "nav":
             hdr = navheader3(fn)
         else:
-            raise ValueError(f'Unknown rinex type {info} in {fn}')
+            raise ValueError(f"Unknown rinex type {info} in {fn}")
     else:
-        raise ValueError(f'unknown RINEX {info}  {fn}')
+        raise ValueError(f"unknown RINEX {info}  {fn}")
 
     return hdr
 
 
-def _tlim(tlim: Union[Tuple[str, str], Tuple[datetime, datetime]] = None) -> Tuple[datetime, datetime]:
+def _tlim(
+    tlim: Union[Tuple[str, str], Tuple[datetime, datetime]] = None
+) -> Tuple[datetime, datetime]:
     if tlim is None:
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):
@@ -126,7 +128,7 @@ def _tlim(tlim: Union[Tuple[str, str], Tuple[datetime, datetime]] = None) -> Tup
         tlim = cast(Tuple[str, str], tlim)
         tlim = (parse(tlim[0]), parse(tlim[1]))
     else:
-        raise ValueError(f'Not sure what time limits are: {tlim}')
+        raise ValueError(f"Not sure what time limits are: {tlim}")
 
     tlim = cast(Tuple[datetime, datetime], tlim)
     return tlim
@@ -136,7 +138,7 @@ def to_datetime(times: xarray.DataArray) -> datetime:
     if not isinstance(times, xarray.DataArray):
         return times
 
-    t = times.values.astype('datetime64[us]').astype(datetime)
+    t = times.values.astype("datetime64[us]").astype(datetime)
 
     if not isinstance(t, datetime):
         t = t.squeeze()[()]  # might still be array, but squeezed at least

@@ -17,9 +17,9 @@ def timeseries(data: xarray.Dataset):
         obstimeseries(obs)
         if navtimeseries is not None:
             navtimeseries(nav)
-    elif data.rinextype == 'obs':
+    elif data.rinextype == "obs":
         obstimeseries(data)
-    elif data.rinextype == 'nav':
+    elif data.rinextype == "nav":
         if navtimeseries is not None:
             navtimeseries(data)
 
@@ -28,11 +28,11 @@ def obstimeseries(obs: xarray.Dataset):
     if not isinstance(obs, xarray.Dataset):
         return
 
-    for p in ('L1', 'L1C'):
+    for p in ("L1", "L1C"):
         if p not in obs:
             continue
 
-        dat = obs[p].dropna(how='all', dim='time')
+        dat = obs[p].dropna(how="all", dim="time")
 
         time = dat.time.values
         if time.size == 0:
@@ -43,8 +43,8 @@ def obstimeseries(obs: xarray.Dataset):
         ax.plot(time, dat)
 
         ax.set_title(obs.filename)
-        ax.set_xlabel('time [UTC]')
+        ax.set_xlabel("time [UTC]")
         ax.set_ylabel(p)
         ax.grid(True)
 
-        ax.legend(dat.sv.values.astype(str), loc='best')
+        ax.legend(dat.sv.values.astype(str), loc="best")

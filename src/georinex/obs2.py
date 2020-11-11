@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import xarray
 from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
 from typing.io import TextIO
+
 try:
     from pymap3d import ecef2geodetic
 except ImportError:
@@ -16,29 +17,37 @@ from .rio import opener, rinexinfo
 from .common import determine_time_system, check_ram, check_time_interval, check_unique_times
 
 
-def rinexobs2(fn: Path,
-              use: Sequence[str] = None,
-              tlim: Tuple[datetime, datetime] = None,
-              useindicators: bool = False,
-              meas: Sequence[str] = None,
-              verbose: bool = False,
-              *,
-              fast: bool = True,
-              interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
+def rinexobs2(
+    fn: Path,
+    use: Sequence[str] = None,
+    tlim: Tuple[datetime, datetime] = None,
+    useindicators: bool = False,
+    meas: Sequence[str] = None,
+    verbose: bool = False,
+    *,
+    fast: bool = True,
+    interval: Union[float, int, timedelta] = None,
+) -> xarray.Dataset:
 
     if isinstance(use, str):
         use = [use]
 
     if use is None or not use[0].strip():
-        use = ('C', 'E', 'G', 'J', 'R', 'S')
+        use = ("C", "E", "G", "J", "R", "S")
 
-    obs = xarray.Dataset({}, coords={'time': [], 'sv': []})
+    obs = xarray.Dataset({}, coords={"time": [], "sv": []})
     attrs: Dict[str, Any] = {}
     for u in use:
-        o = rinexsystem2(fn, system=u, tlim=tlim,
-                         useindicators=useindicators, meas=meas,
-                         verbose=verbose,
-                         fast=fast, interval=interval)
+        o = rinexsystem2(
+            fn,
+            system=u,
+            tlim=tlim,
+            useindicators=useindicators,
+            meas=meas,
+            verbose=verbose,
+            fast=fast,
+            interval=interval,
+        )
         if len(o.variables) > 0:
             attrs = o.attrs
             obs = xarray.merge((obs, o))
@@ -48,15 +57,17 @@ def rinexobs2(fn: Path,
     return obs
 
 
-def rinexsystem2(fn: Union[TextIO, Path],
-                 system: str,
-                 tlim: Tuple[datetime, datetime] = None,
-                 useindicators: bool = False,
-                 meas: Sequence[str] = None,
-                 verbose: bool = False,
-                 *,
-                 fast: bool = True,
-                 interval: Union[float, int, timedelta] = None) -> xarray.Dataset:
+def rinexsystem2(
+    fn: Union[TextIO, Path],
+    system: str,
+    tlim: Tuple[datetime, datetime] = None,
+    useindicators: bool = False,
+    meas: Sequence[str] = None,
+    verbose: bool = False,
+    *,
+    fast: bool = True,
+    interval: Union[float, int, timedelta] = None,
+) -> xarray.Dataset:
     """
     process RINEX OBS data
 
@@ -77,13 +88,13 @@ def rinexsystem2(fn: Union[TextIO, Path],
     """
     Lf = 14
     if not isinstance(system, str):
-        raise TypeError('System type() must be str')
+        raise TypeError("System type() must be str")
 
     if tlim is not None and not isinstance(tlim[0], datetime):
-        raise TypeError('time bounds are specified as datetime.datetime')
+        raise TypeError("time bounds are specified as datetime.datetime")
 
     interval = check_time_interval(interval)
-# %% allocation
+    # %% allocation
     """
     Nsvsys may need updating as GNSS systems grow.
     Let us know if you needed to change them.
@@ -95,35 +106,35 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
     hdr = obsheader2(fn, useindicators, meas)
 
-    if hdr['systems'] != 'M' and system != hdr['systems']:
-        logging.debug(f'system {system} in {fn} was not present')
+    if hdr["systems"] != "M" and system != hdr["systems"]:
+        logging.debug(f"system {system} in {fn} was not present")
         return xarray.Dataset({})
-# %% preallocate
+    # %% preallocate
     if fast:
-        Nextra = _fast_alloc(fn, hdr['Nl_sv'])
+        Nextra = _fast_alloc(fn, hdr["Nl_sv"])
         fast = Nextra > 0
         if verbose and not fast:
-            logging.info(f'fast mode disabled due to estimation problem, Nextra: {Nextra}')
+            logging.info(f"fast mode disabled due to estimation problem, Nextra: {Nextra}")
     else:
         Nextra = 0
 
     times = _num_times(fn, Nextra, tlim, verbose)
     Nt = times.size
 
-    Npages = hdr['Nobsused']*3 if useindicators else hdr['Nobsused']
+    Npages = hdr["Nobsused"] * 3 if useindicators else hdr["Nobsused"]
 
     memneed = Npages * Nt * Nsvsys * 8  # 8 bytes => 64-bit float
     check_ram(memneed, fn)
     data = np.empty((Npages, Nt, Nsvsys))
     data.fill(np.nan)
-# %% start reading
+    # %% start reading
     with opener(fn) as f:
         _skip_header(f)
 
-# %% process data
+        # %% process data
         j = -1  # not enumerate in case of time error
         last_epoch = None
-# %% time handling / skipping
+        # %% time handling / skipping
         for ln in f:
             try:
                 time_epoch = _timeobs(ln)
@@ -132,7 +143,7 @@ def rinexsystem2(fn: Union[TextIO, Path],
 
             if tlim is not None:
                 if time_epoch < tlim[0]:  # before specified start-time
-                    _skip(f, ln, hdr['Nl_sv'])
+                    _skip(f, ln, hdr["Nl_sv"])
                     continue
                 elif time_epoch > tlim[1]:  # reached end-time of read
                     break
@@ -142,12 +153,12 @@ def rinexsystem2(fn: Union[TextIO, Path],
                     last_epoch = time_epoch
                 else:
                     if time_epoch - last_epoch < interval:
-                        _skip(f, ln, hdr['Nl_sv'])
+                        _skip(f, ln, hdr["Nl_sv"])
                         continue
                     else:
                         last_epoch += interval
 
-# %% j += 1 must be after all time skipping
+            # %% j += 1 must be after all time skipping
             j += 1
 
             if verbose:
@@ -157,98 +168,103 @@ def rinexsystem2(fn: Union[TextIO, Path],
                 try:
                     times[j] = time_epoch
                 except IndexError as e:
-                    raise IndexError(f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}')
-# %% Does anyone need this?
-#            try:
-#                toffset = ln[68:80]
-#            except ValueError:
-#                pass
-# %% get SV indices
+                    raise IndexError(
+                        f'may be "fast" mode bug, try fast=False or "-strict" command-line option {e}'
+                    )
+            # %% Does anyone need this?
+            #            try:
+            #                toffset = ln[68:80]
+            #            except ValueError:
+            #                pass
+            # %% get SV indices
             try:
                 sv = _getsvind(f, ln)
             except ValueError as e:
                 logging.debug(e)
                 continue
-# %% select one, a few, or all satellites
+            # %% select one, a few, or all satellites
             iuse = [i for i, s in enumerate(sv) if s[0] == system]
             if len(iuse) == 0:
-                _skip(f, ln, hdr['Nl_sv'], sv)
+                _skip(f, ln, hdr["Nl_sv"], sv)
                 continue
 
             gsv = np.array(sv)[iuse]
-# %% assign data for each time step
+            # %% assign data for each time step
             raws = []
             for s in sv:
                 # don't process discarded satellites
                 if s[0] != system:
-                    for _ in range(hdr['Nl_sv']):
+                    for _ in range(hdr["Nl_sv"]):
                         f.readline()
                     continue
                 # .rstrip() necessary to handle variety of files and Windows vs. Unix
                 # NOT readline(80), but readline()[:80] is needed!
-                raw = [f'{f.readline()[:80]:80s}' for _ in range(hdr['Nl_sv'])]  # .rstrip() adds no significant process time
+                raw = [
+                    f"{f.readline()[:80]:80s}" for _ in range(hdr["Nl_sv"])
+                ]  # .rstrip() adds no significant process time
 
-                raws.append(''.join(raw))
+                raws.append("".join(raw))
             """
             it is about 5x faster to call np.genfromtxt() for all sats and then index,
             vs. calling np.genfromtxt() for each sat.
             """
             # can't use "usecols" with "delimiter"
             # FIXME: only read requested meas=
-            darr = np.empty((len(raws), hdr['Nobsused']))
+            darr = np.empty((len(raws), hdr["Nobsused"]))
             darr.fill(np.nan)
             for i, r in enumerate(raws):
-                for k in range(hdr['Nobs']):
-                    v = r[k*(Lf+2):(k+1)*(Lf+2)]
+                for k in range(hdr["Nobs"]):
+                    v = r[k * (Lf + 2) : (k + 1) * (Lf + 2)]
 
                     if useindicators:
                         if v[:-2].strip():
-                            darr[i, k*3] = float(v[:-2])
+                            darr[i, k * 3] = float(v[:-2])
 
                         if v[-2].strip():
-                            darr[i, k*3+1] = float(v[-2])
+                            darr[i, k * 3 + 1] = float(v[-2])
 
                         if v[-1].strip():
-                            darr[i, k*3+2] = float(v[-1])
+                            darr[i, k * 3 + 2] = float(v[-1])
                     else:
                         if v[:-2].strip():
                             darr[i, k] = float(v[:-2])
 
             assert darr.shape[0] == gsv.size
 
-# %% select only "used" satellites
-            isv = [int(s[1:])-1 for s in gsv]
+            # %% select only "used" satellites
+            isv = [int(s[1:]) - 1 for s in gsv]
 
-            for i, k in enumerate(hdr['fields_ind']):
+            for i, k in enumerate(hdr["fields_ind"]):
                 if useindicators:
-                    data[i*3, j, isv] = darr[:, k*3]
+                    data[i * 3, j, isv] = darr[:, k * 3]
                     # FIXME which other should be excluded?
                     ind = i if meas is not None else k
-                    if not hdr['fields'][ind].startswith('S'):
-                        if hdr['fields'][ind].startswith('L'):
-                            data[i*3+1, j, isv] = darr[:, k*3+1]
+                    if not hdr["fields"][ind].startswith("S"):
+                        if hdr["fields"][ind].startswith("L"):
+                            data[i * 3 + 1, j, isv] = darr[:, k * 3 + 1]
 
-                        data[i*3+2, j, isv] = darr[:, k*3+2]
+                        data[i * 3 + 2, j, isv] = darr[:, k * 3 + 2]
                 else:
                     data[i, j, isv] = darr[:, k]
-# %% output gathering
-    data = data[:, :times.size, :]  # trims down for unneeded preallocated
+    # %% output gathering
+    data = data[:, : times.size, :]  # trims down for unneeded preallocated
 
     fields = []
-    for field in hdr['fields']:
+    for field in hdr["fields"]:
         fields.append(field)
         if useindicators:
-            if field not in ('S1', 'S2', 'S5'):
-                if field in ('L1', 'L2', 'L5'):
-                    fields.append(f'{field}lli')
+            if field not in ("S1", "S2", "S5"):
+                if field in ("L1", "L2", "L5"):
+                    fields.append(f"{field}lli")
                 else:
                     fields.append(None)
-                fields.append(f'{field}ssi')
+                fields.append(f"{field}ssi")
             else:
                 fields.extend([None, None])
 
-    obs = xarray.Dataset(coords={'time': times,
-                                 'sv': [f'{system}{i:02d}' for i in range(1, Nsvsys+1)]})
+    obs = xarray.Dataset(
+        coords={"time": times, "sv": [f"{system}{i:02d}" for i in range(1, Nsvsys + 1)]}
+    )
 
     for i, k in enumerate(fields):
         # FIXME: for limited time span reads, this drops unused data variables
@@ -256,44 +272,44 @@ def rinexsystem2(fn: Union[TextIO, Path],
         #     continue
         if k is None:
             continue
-        obs[k] = (('time', 'sv'), data[i, :, :])
+        obs[k] = (("time", "sv"), data[i, :, :])
 
-    obs = obs.dropna(dim='sv', how='all')
-    obs = obs.dropna(dim='time', how='all')  # when tlim specified
-# %% attributes
-    obs.attrs['version'] = hdr['version']
+    obs = obs.dropna(dim="sv", how="all")
+    obs = obs.dropna(dim="time", how="all")  # when tlim specified
+    # %% attributes
+    obs.attrs["version"] = hdr["version"]
 
     # Get interval from header or derive it from the data
-    if 'interval' in hdr.keys():
-        obs.attrs['interval'] = hdr['interval']
-    elif 'time' in obs.coords.keys():
+    if "interval" in hdr.keys():
+        obs.attrs["interval"] = hdr["interval"]
+    elif "time" in obs.coords.keys():
         # median is robust against gaps
         try:
-            obs.attrs['interval'] = np.median(np.diff(obs.time)/np.timedelta64(1, 's'))
+            obs.attrs["interval"] = np.median(np.diff(obs.time) / np.timedelta64(1, "s"))
         except TypeError:
             pass
     else:
-        obs.attrs['interval'] = np.nan
+        obs.attrs["interval"] = np.nan
 
-    obs.attrs['rinextype'] = 'obs'
-    obs.attrs['fast_processing'] = int(fast)  # bool is not allowed in NetCDF4
-    obs.attrs['time_system'] = determine_time_system(hdr)
+    obs.attrs["rinextype"] = "obs"
+    obs.attrs["fast_processing"] = int(fast)  # bool is not allowed in NetCDF4
+    obs.attrs["time_system"] = determine_time_system(hdr)
     if isinstance(fn, Path):
-        obs.attrs['filename'] = fn.name
-    if 'rxmodel' in hdr.keys():
-        obs.attrs['rxmodel'] = hdr['rxmodel']
-    if 'position' in hdr.keys():
-        obs.attrs['position'] = hdr['position']
+        obs.attrs["filename"] = fn.name
+    if "rxmodel" in hdr.keys():
+        obs.attrs["rxmodel"] = hdr["rxmodel"]
+    if "position" in hdr.keys():
+        obs.attrs["position"] = hdr["position"]
 
-    if 'position_geodetic' in hdr.keys():
-        obs.attrs['position_geodetic'] = hdr['position_geodetic']
+    if "position_geodetic" in hdr.keys():
+        obs.attrs["position_geodetic"] = hdr["position_geodetic"]
 
     return obs
 
 
-def _num_times(fn: Path, Nextra: int,
-               tlim: Optional[Tuple[datetime, datetime]],
-               verbose: bool) -> np.ndarray:
+def _num_times(
+    fn: Path, Nextra: int, tlim: Optional[Tuple[datetime, datetime]], verbose: bool
+) -> np.ndarray:
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
     if Nextra:
@@ -322,9 +338,9 @@ def _num_times(fn: Path, Nextra: int,
     return times
 
 
-def obsheader2(f: TextIO,
-               useindicators: bool = False,
-               meas: Sequence[str] = None) -> Dict[str, Any]:
+def obsheader2(
+    f: TextIO, useindicators: bool = False, meas: Sequence[str] = None
+) -> Dict[str, Any]:
     """
     End users should use rinexheader()
     """
@@ -333,7 +349,7 @@ def obsheader2(f: TextIO,
             return obsheader2(h, useindicators, meas)
 
     f.seek(0)
-# %% selection
+    # %% selection
     if isinstance(meas, str):
         meas = [meas]
 
@@ -349,8 +365,8 @@ def obsheader2(f: TextIO,
 
         h = ln[60:80].strip()
         c = ln[:60]
-# %% measurement types
-        if '# / TYPES OF OBSERV' in h:
+        # %% measurement types
+        if "# / TYPES OF OBSERV" in h:
             if Nobs == 0:
                 Nobs = int(c[:6])
                 hdr[h] = c[6:].split()
@@ -360,73 +376,75 @@ def obsheader2(f: TextIO,
             hdr[h] = c  # string with info
         else:  # concatenate
             hdr[h] += " " + c
-# %% useful values
+    # %% useful values
     try:
-        hdr['systems'] = hdr['RINEX VERSION / TYPE'][40]
+        hdr["systems"] = hdr["RINEX VERSION / TYPE"][40]
     except KeyError:
         pass
 
-    hdr['Nobs'] = Nobs
+    hdr["Nobs"] = Nobs
     # 5 observations per line (incorporating LLI, SSI)
-    hdr['Nl_sv'] = ceil(hdr['Nobs'] / 5)
-# %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
+    hdr["Nl_sv"] = ceil(hdr["Nobs"] / 5)
+    # %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
     try:
-        hdr['position'] = [float(j) for j in hdr['APPROX POSITION XYZ'].split()]
+        hdr["position"] = [float(j) for j in hdr["APPROX POSITION XYZ"].split()]
         if ecef2geodetic is not None:
-            hdr['position_geodetic'] = ecef2geodetic(*hdr['position'])
+            hdr["position_geodetic"] = ecef2geodetic(*hdr["position"])
     except (KeyError, ValueError):
         pass
-# %% observation types
+    # %% observation types
     try:
-        hdr['fields'] = hdr['# / TYPES OF OBSERV']
-        if hdr['Nobs'] != len(hdr['fields']):
-            logging.error(f'{f.name} number of observations declared in header does not match fields')
-            hdr['Nobs'] = len(hdr['fields'])
+        hdr["fields"] = hdr["# / TYPES OF OBSERV"]
+        if hdr["Nobs"] != len(hdr["fields"]):
+            logging.error(
+                f"{f.name} number of observations declared in header does not match fields"
+            )
+            hdr["Nobs"] = len(hdr["fields"])
 
         if isinstance(meas, (tuple, list, np.ndarray)):
-            ind = np.zeros(len(hdr['fields']), dtype=bool)
+            ind = np.zeros(len(hdr["fields"]), dtype=bool)
             for m in meas:
-                for i, f in enumerate(hdr['fields']):
+                for i, f in enumerate(hdr["fields"]):
                     if f.startswith(m):
                         ind[i] = True
 
-            hdr['fields_ind'] = np.nonzero(ind)[0]
+            hdr["fields_ind"] = np.nonzero(ind)[0]
         else:
             ind = slice(None)
-            hdr['fields_ind'] = np.arange(hdr['Nobs'])
+            hdr["fields_ind"] = np.arange(hdr["Nobs"])
 
-        hdr['fields'] = np.array(hdr['fields'])[ind].tolist()
+        hdr["fields"] = np.array(hdr["fields"])[ind].tolist()
     except KeyError:
         pass
 
-    hdr['Nobsused'] = hdr['Nobs']
+    hdr["Nobsused"] = hdr["Nobs"]
     if useindicators:
-        hdr['Nobsused'] *= 3
+        hdr["Nobsused"] *= 3
 
-# %%
+    # %%
     try:
-        hdr['# OF SATELLITES'] = int(hdr['# OF SATELLITES'][:6])
+        hdr["# OF SATELLITES"] = int(hdr["# OF SATELLITES"][:6])
     except (KeyError, ValueError):
         pass
-# %% time
+    # %% time
     try:
-        hdr['t0'] = _timehdr(hdr['TIME OF FIRST OBS'])
+        hdr["t0"] = _timehdr(hdr["TIME OF FIRST OBS"])
     except (KeyError, ValueError):
         pass
 
     try:
-        hdr['t1'] = _timehdr(hdr['TIME OF LAST OBS'])
+        hdr["t1"] = _timehdr(hdr["TIME OF LAST OBS"])
     except (KeyError, ValueError):
         pass
 
     try:  # This key is OPTIONAL
-        hdr['interval'] = float(hdr['INTERVAL'][:10])
+        hdr["interval"] = float(hdr["INTERVAL"][:10])
     except (KeyError, ValueError):
         pass
 
     try:
         s = " "
-        hdr['rxmodel'] = s.join(hdr['REC # / TYPE / VERS'].split()[1:-1])
+        hdr["rxmodel"] = s.join(hdr["REC # / TYPE / VERS"].split()[1:-1])
     except (KeyError, ValueError):
         pass
 
@@ -435,40 +453,38 @@ def obsheader2(f: TextIO,
 
 def _getsvind(f: TextIO, ln: str) -> List[str]:
     if len(ln) < 32:
-        raise ValueError(f'satellite index line truncated:  {ln}')
+        raise ValueError(f"satellite index line truncated:  {ln}")
 
     Nsv = int(ln[29:32])  # Number of visible satellites this time %i3
     # get first 12 SV ID's
     sv = _getSVlist(ln, min(12, Nsv), [])
 
     # any more SVs?
-    n = Nsv-12
+    n = Nsv - 12
     while n > 0:
         sv = _getSVlist(f.readline(), min(12, n), sv)
         n -= 12
 
     if Nsv != len(sv):
-        raise ValueError('satellite list read incorrectly')
+        raise ValueError("satellite list read incorrectly")
 
     return sv
 
 
-def _getSVlist(ln: str, N: int,
-               sv: List[str]) -> List[str]:
+def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     """ parse a line of text from RINEX2 SV list"""
-    sv.extend([ln[32+i*3:35+i*3] for i in range(N)])
-    
+    sv.extend([ln[32 + i * 3 : 35 + i * 3] for i in range(N)])
+
     # compatibility for early rinex where a space
     # in SSI position is assumed to be GPS
     for i, s in enumerate(sv):
-        if s[0] == ' ':
-            sv[i]='G'+s[1:3]
+        if s[0] == " ":
+            sv[i] = "G" + s[1:3]
 
     return sv
 
 
-def obstime2(fn: Union[TextIO, Path],
-             verbose: bool = False) -> np.ndarray:
+def obstime2(fn: Union[TextIO, Path], verbose: bool = False) -> np.ndarray:
     """
     read all times in RINEX2 OBS file
     """
@@ -485,7 +501,7 @@ def obstime2(fn: Union[TextIO, Path],
 
             times.append(time_epoch)
 
-            _skip(f, ln, hdr['Nl_sv'])
+            _skip(f, ln, hdr["Nl_sv"])
 
     times = np.asarray(times)
 
@@ -494,9 +510,7 @@ def obstime2(fn: Union[TextIO, Path],
     return times
 
 
-def _skip(f: TextIO, ln: str,
-          Nl_sv: int,
-          sv: Sequence[str] = None):
+def _skip(f: TextIO, ln: str, Nl_sv: int, sv: Sequence[str] = None):
     """
     skip ahead to next time step
     """
@@ -504,7 +518,7 @@ def _skip(f: TextIO, ln: str,
         sv = _getsvind(f, ln)
 
     # f.seek(len(sv)*Nl_sv*80, 1)  # not for io.TextIOWrapper ?
-    for _ in range(len(sv)*Nl_sv):
+    for _ in range(len(sv) * Nl_sv):
         f.readline()
 
 
@@ -530,10 +544,15 @@ def _timehdr(ln: str) -> datetime:
     if not 0 <= usec <= 999999:
         usec = 0
 
-    return datetime(year=int(ln[:6]), month=int(ln[6:12]), day=int(ln[12:18]),
-                    hour=int(ln[18:24]), minute=int(ln[24:30]),
-                    second=second,
-                    microsecond=usec)
+    return datetime(
+        year=int(ln[:6]),
+        month=int(ln[6:12]),
+        day=int(ln[12:18]),
+        hour=int(ln[18:24]),
+        minute=int(ln[24:30]),
+        second=second,
+        microsecond=usec,
+    )
 
 
 def _timeobs(ln: str) -> datetime:
@@ -549,17 +568,19 @@ def _timeobs(ln: str) -> datetime:
     except ValueError:
         usec = 0
 
-    t = datetime(year=year,
-                 month=int(ln[4:6]),
-                 day=int(ln[7:9]),
-                 hour=int(ln[10:12]),
-                 minute=int(ln[13:15]),
-                 second=int(ln[16:18]),
-                 microsecond=usec)
-# %% check if valid time
+    t = datetime(
+        year=year,
+        month=int(ln[4:6]),
+        day=int(ln[7:9]),
+        hour=int(ln[10:12]),
+        minute=int(ln[13:15]),
+        second=int(ln[16:18]),
+        microsecond=usec,
+    )
+    # %% check if valid time
     eflag = int(ln[28])
     if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
-        raise ValueError(f'{t}: epoch flag {eflag}')
+        raise ValueError(f"{t}: epoch flag {eflag}")
 
     return t
 
@@ -578,16 +599,16 @@ def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
       100 seemed a good start.
     """
     if isinstance(fn, Path):
-        assert fn.is_file(), 'need freshly opened file'
+        assert fn.is_file(), "need freshly opened file"
     elif isinstance(fn, io.StringIO):
         fn.seek(0)
     else:
-        raise TypeError(f'Unknown filetype {type(fn)}')
+        raise TypeError(f"Unknown filetype {type(fn)}")
 
     ln = ""  # in case of truncated file, don't crash
     with opener(fn) as f:
         _skip_header(f)
-# %% find the first line with time (sometimes a blank line or two after header)
+        # %% find the first line with time (sometimes a blank line or two after header)
         for ln in f:
             try:
                 t = _timeobs(ln)
