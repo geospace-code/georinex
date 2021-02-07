@@ -363,7 +363,7 @@ def obsheader3(f: TextIO, use: Sequence[str] = None, meas: Sequence[str] = None)
             for j, i in enumerate(ind):
                 sysind[sk][j * 3 : j * 3 + 3] = i
     else:
-        sysind = {k: slice(None) for k in fields}
+        sysind = {k: np.s_[:] for k in fields}
 
     hdr["fields"] = fields
     hdr["fields_ind"] = sysind

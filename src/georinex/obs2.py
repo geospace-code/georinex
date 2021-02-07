@@ -410,7 +410,7 @@ def obsheader2(
 
             hdr["fields_ind"] = np.nonzero(ind)[0]
         else:
-            ind = slice(None)
+            ind = np.s_[:]
             hdr["fields_ind"] = np.arange(hdr["Nobs"])
 
         hdr["fields"] = np.array(hdr["fields"])[ind].tolist()
