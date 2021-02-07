@@ -137,7 +137,7 @@ def batch_convert(
                 verbose=verbose,
                 fast=fast,
             )
-        except Exception as e:
+        except ValueError as e:
             logging.error(f"{fn.name}: {e}")
 
 

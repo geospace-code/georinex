@@ -228,7 +228,7 @@ def georinex_time():
 def eachfile(fn: Path, verbose: bool = False):
     try:
         times = gr.gettime(fn)
-    except Exception as e:
+    except ValueError as e:
         if verbose:
             print(f"{fn.name}: {e}")
         return
