@@ -3,18 +3,10 @@ from pathlib import Path
 from datetime import datetime
 
 import georinex as gr
-from georinex.hatanaka import crxexe
 
 R = Path(__file__).parent / "data"
 
 
-try:
-    exe = crxexe()
-except RuntimeError:
-    exe = None
-
-
-@pytest.mark.skipif(exe is None, reason="Hatanaka converter not working")
 def test_obs2():
 
     fn = R / "york0440.15d"
@@ -29,7 +21,6 @@ def test_obs2():
     assert obs["S1"].values[0, :3] == pytest.approx([44.0, 41.0, 51.0])
 
 
-@pytest.mark.skipif(exe is None, reason="Hatanaka converter not working")
 @pytest.mark.timeout(30)
 def test_obs3_gz():
 
@@ -87,7 +78,6 @@ def test_obs3_gz():
     assert times[-1] == datetime(2018, 7, 19, 1, 10)
 
 
-@pytest.mark.skipif(exe is None, reason="Hatanaka converter not working")
 @pytest.mark.timeout(30)
 def test_obs3():
     fn = R / "P43300USA_R_20190012056_17M_15S_MO.crx"
