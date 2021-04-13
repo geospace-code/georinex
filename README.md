@@ -17,7 +17,7 @@ Pure compiled language RINEX processors such as within Fortran NAPEOS give perha
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4,
 where ease of cross-platform install and correctness are primary goals.
 
-![RINEX plot](tests/example_plot.png)
+![RINEX plot](src/georinex/tests/example_plot.png)
 
 ## Input data types
 
