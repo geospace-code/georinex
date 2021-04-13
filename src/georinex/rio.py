@@ -10,14 +10,10 @@ import typing
 from hatanaka import crx2rnx
 
 try:
-    from unlzw3 import unlzw
+    # The C-based unlzw lib is more efficient but also more difficult to install
+    from unlzw import unlzw
 except ImportError:
-    try:
-        from unlzw import unlzw
-    except ImportError:
-        unlzw = None
-
-from .hatanaka import opencrx
+    from unlzw3 import unlzw
 
 
 @contextmanager
