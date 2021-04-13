@@ -1,4 +1,5 @@
 import gzip
+import bz2
 import zipfile
 from pathlib import Path
 from contextlib import contextmanager
@@ -44,6 +45,14 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                 if is_crinex and not header:
                     # Conversion to string is necessary because of a quirk where gzip.open()
                     # even with 'rt' doesn't decompress until read.
+                    f = io.StringIO(crx2rnx(f.read()))
+                yield f
+        elif suffix == ".bz2":
+            with bz2.open(fn, "rt") as f:
+                version, is_crinex = rinex_version(first_nonblank_line(f))
+                f.seek(0)
+
+                if is_crinex and not header:
                     f = io.StringIO(crx2rnx(f.read()))
                 yield f
         elif suffix == ".zip":
