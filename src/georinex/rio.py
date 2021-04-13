@@ -7,6 +7,7 @@ import logging
 import xarray
 from typing.io import TextIO
 import typing
+from hatanaka import crx2rnx
 
 try:
     from unlzw3 import unlzw
@@ -45,7 +46,9 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(opencrx(f))
+                    # Conversion to string is necessary because of a quirk where gzip.open()
+                    # even with 'rt' doesn't decompress until read.
+                    f = io.StringIO(crx2rnx(f.read()))
                 yield f
         elif suffix == ".zip":
             with zipfile.ZipFile(fn, "r") as z:
@@ -68,7 +71,7 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
                 f.seek(0)
 
                 if is_crinex and not header:
-                    f = io.StringIO(opencrx(f))
+                    f = io.StringIO(crx2rnx(f))
                 yield f
     else:
         raise OSError(f"Unsure what to do with input of type: {type(fn)}")

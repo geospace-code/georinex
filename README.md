@@ -57,8 +57,6 @@ cd georinex
 python -m pip install -e .
 ```
 
-The Hatanaka CRINEX converter automatically compiles if needed and a C compiler is available.
-
 ### Selftest
 
 It can be useful to check the setup of your system with:
@@ -400,8 +398,8 @@ UNAVCO RINEX 2 data:
 
 
 ### Hatanaka compressed RINEX .crx
-The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx` as noted in the Install section.
-There are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
+The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx`.
+These are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
 
 Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation
           Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.
