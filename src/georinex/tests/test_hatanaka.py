@@ -79,8 +79,9 @@ def test_obs3_gz():
 
 
 @pytest.mark.timeout(30)
-def test_obs3():
-    fn = R / "P43300USA_R_20190012056_17M_15S_MO.crx"
+@pytest.mark.parametrize("suffix", [".crx", ".crx.bz2"])
+def test_obs3(suffix):
+    fn = R / ("P43300USA_R_20190012056_17M_15S_MO" + suffix)
 
     info = gr.rinexinfo(fn)
 

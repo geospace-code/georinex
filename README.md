@@ -27,6 +27,7 @@ where ease of cross-platform install and correctness are primary goals.
 * Plain ASCII or seamlessly read compressed ASCII in:
   * `.gz` GZIP
   * `.Z` LZW
+  * `.bz2` bzip2
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
 * Python `io.StringIO` text stream RINEX'
