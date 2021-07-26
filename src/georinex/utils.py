@@ -1,6 +1,6 @@
+from __future__ import annotations
+import typing as T
 from pathlib import Path
-from typing import cast, Union, Tuple, Dict, Any, Sequence, List
-from typing.io import TextIO
 from datetime import datetime
 from dateutil.parser import parse
 import io
@@ -14,7 +14,7 @@ from .nav2 import navtime2, navheader2
 from .nav3 import navtime3, navheader3
 
 
-def globber(path: Path, glob: Sequence[str]) -> List[Path]:
+def globber(path: Path, glob: list[str]) -> list[Path]:
 
     path = Path(path).expanduser()
     if path.is_file():
@@ -23,14 +23,14 @@ def globber(path: Path, glob: Sequence[str]) -> List[Path]:
     if isinstance(glob, str):
         glob = [glob]
 
-    flist: List[Path] = []
+    flist: list[Path] = []
     for g in glob:
         flist += [f for f in path.glob(g) if f.is_file()]
 
     return flist
 
 
-def gettime(fn: Union[TextIO, Path]) -> np.ndarray:
+def gettime(fn: T.TextIO | Path) -> np.ndarray:
     """
     get times in RINEX 2/3 file
     Note: in header,
@@ -76,7 +76,7 @@ def gettime(fn: Union[TextIO, Path]) -> np.ndarray:
     return times
 
 
-def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
+def rinexheader(fn: T.TextIO | Path) -> dict[str, T.Any]:
     """
     retrieve RINEX 2/3 or CRINEX 1/3 header as unparsed dict()
     """
@@ -117,20 +117,18 @@ def rinexheader(fn: Union[TextIO, str, Path]) -> Dict[str, Any]:
     return hdr
 
 
-def _tlim(
-    tlim: Union[Tuple[str, str], Tuple[datetime, datetime]] = None
-) -> Tuple[datetime, datetime]:
+def _tlim(tlim: tuple[str, str] | tuple[datetime, datetime] = None) -> tuple[datetime, datetime]:
     if tlim is None:
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = cast(Tuple[str, str], tlim)
+        tlim = T.cast(tuple[str, str], tlim)
         tlim = (parse(tlim[0]), parse(tlim[1]))
     else:
         raise ValueError(f"Not sure what time limits are: {tlim}")
 
-    tlim = cast(Tuple[datetime, datetime], tlim)
+    tlim = T.cast(tuple[datetime, datetime], tlim)
     return tlim
 
 

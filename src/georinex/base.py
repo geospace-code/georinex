@@ -1,7 +1,7 @@
+from __future__ import annotations
+import typing as T
 from pathlib import Path
 import xarray
-from typing import Union, Tuple, Dict, Sequence
-from typing.io import TextIO
 from datetime import datetime, timedelta
 import logging
 
@@ -18,18 +18,18 @@ ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
 
 def load(
-    rinexfn: Union[TextIO, str, Path],
+    rinexfn: T.TextIO | str | Path,
     out: Path = None,
-    use: Sequence[str] = None,
-    tlim: Tuple[datetime, datetime] = None,
+    use: list[str] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     overwrite: bool = False,
     fast: bool = True,
-    interval: Union[float, int, timedelta] = None,
-) -> Union[xarray.Dataset, Dict[str, xarray.Dataset]]:
+    interval: float | int | timedelta = None,
+) -> xarray.Dataset | dict[str, xarray.Dataset]:
     """
     Reads OBS, NAV in RINEX 2.x and 3.x
 
@@ -67,9 +67,7 @@ def load(
         )
         return None
 
-    if info["rinextype"] == "sp3":
-        return load_sp3(rinexfn, outfn)
-    elif info["rinextype"] == "nav":
+    if info["rinextype"] == "nav":
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim, overwrite=overwrite)
     elif info["rinextype"] == "obs":
         return rinexobs(
@@ -84,6 +82,11 @@ def load(
             fast=fast,
             interval=interval,
         )
+
+    assert isinstance(rinexfn, Path)
+
+    if info["rinextype"] == "sp3":
+        return load_sp3(rinexfn, outfn)
     elif rinexfn.suffix == ".nc":
         # outfn not used here, because we already have the converted file!
         try:
@@ -112,10 +115,10 @@ def batch_convert(
     path: Path,
     glob: str,
     out: Path,
-    use: Sequence[str] = None,
-    tlim: Tuple[datetime, datetime] = None,
+    use: list[str] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     fast: bool = True,
@@ -142,15 +145,15 @@ def batch_convert(
 
 
 def rinexnav(
-    fn: Union[TextIO, str, Path],
+    fn: T.TextIO | str | Path,
     outfn: Path = None,
-    use: Sequence[str] = None,
+    use: list[str] = None,
     group: str = "NAV",
-    tlim: Tuple[datetime, datetime] = None,
+    tlim: tuple[datetime, datetime] = None,
     *,
     overwrite: bool = False,
 ) -> xarray.Dataset:
-    """ Read RINEX 2 or 3  NAV files"""
+    """Read RINEX 2 or 3  NAV files"""
 
     if isinstance(fn, (str, Path)):
         fn = Path(fn).expanduser()
@@ -186,18 +189,18 @@ def rinexnav(
 
 
 def rinexobs(
-    fn: Union[TextIO, str, Path],
+    fn: T.TextIO | Path,
     outfn: Path = None,
-    use: Sequence[str] = None,
+    use: list[str] = None,
     group: str = "OBS",
-    tlim: Tuple[datetime, datetime] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     overwrite: bool = False,
     fast: bool = True,
-    interval: Union[float, int, timedelta] = None,
+    interval: float | int | timedelta = None,
 ) -> xarray.Dataset:
     """
     Read RINEX 2.x and 3.x OBS files in ASCII or GZIP (or Hatanaka)

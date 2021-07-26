@@ -1,6 +1,5 @@
+from __future__ import annotations
 import pandas
-from typing.io import TextIO
-from typing import Sequence, Union
 import io
 import xarray
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 from .utils import rinexheader
 
 
-def get_locations(files: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
+def get_locations(files: list[Path]) -> pandas.DataFrame:
     """
     retrieve locations of GNSS receivers
 
@@ -19,21 +18,23 @@ def get_locations(files: Union[TextIO, Sequence[Path]]) -> pandas.DataFrame:
 
     if isinstance(files[0], io.StringIO):
         locs = pandas.DataFrame(index=["0"], columns=["lat", "lon", "interval"])
+    elif isinstance(files[0], Path):
+        locs = pandas.DataFrame(index=[file.name for file in files], columns=["lat", "lon", "interval"])
     else:
-        locs = pandas.DataFrame(index=[f.name for f in files], columns=["lat", "lon", "interval"])
+        raise TypeError("Expecting pathlib.Path")
 
-    for f in files:
-        if isinstance(f, Path) and f.suffix == ".nc":
-            dat = xarray.open_dataset(f, group="OBS")
+    for file in files:
+        if isinstance(file, Path) and file.suffix == ".nc":
+            dat = xarray.open_dataset(file, group="OBS")
             hdr = dat.attrs
         else:
             try:
-                hdr = rinexheader(f)
+                hdr = rinexheader(file)
             except ValueError:
                 continue
 
-        if isinstance(f, Path):
-            key = f.name
+        if isinstance(file, Path):
+            key = file.name
         else:
             key = "0"
 

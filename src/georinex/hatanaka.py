@@ -4,10 +4,11 @@ handle Hatanka CRINEX files
 NOTE: This is a candidate for importlib.resources in Python >= 3.7
 """
 
+from __future__ import annotations
+import typing as T
 import subprocess
 import shutil
 from pathlib import Path
-from typing.io import TextIO
 
 from .build import build
 
@@ -45,7 +46,7 @@ def crxexe(path: Path = Path(__file__).parent / "rnxcmp") -> str:
         raise RuntimeError("Hatanaka converter is broken.")
 
 
-def opencrx(f: TextIO) -> str:
+def opencrx(f: T.TextIO) -> str:
     """
     Conversion to string is necessary because of a quirk where gzip.open() even with 'rt' doesn't decompress until read.
 

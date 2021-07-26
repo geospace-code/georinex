@@ -1,3 +1,5 @@
+from __future__ import annotations
+import typing as T
 from pathlib import Path
 import numpy as np
 import logging
@@ -5,8 +7,7 @@ import io
 from math import ceil
 from datetime import datetime, timedelta
 import xarray
-from typing import List, Union, Any, Dict, Tuple, Sequence, Optional
-from typing.io import TextIO
+
 
 try:
     from pymap3d import ecef2geodetic
@@ -18,25 +19,25 @@ from .common import determine_time_system, check_ram, check_time_interval, check
 
 
 def rinexobs2(
-    fn: Path,
-    use: Sequence[str] = None,
-    tlim: Tuple[datetime, datetime] = None,
+    fn: T.TextIO | Path,
+    use: list[str] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     fast: bool = True,
-    interval: Union[float, int, timedelta] = None,
+    interval: float | int | timedelta = None,
 ) -> xarray.Dataset:
 
     if isinstance(use, str):
         use = [use]
 
     if use is None or not use[0].strip():
-        use = ("C", "E", "G", "J", "R", "S")
+        use = ["C", "E", "G", "J", "R", "S"]
 
     obs = xarray.Dataset({}, coords={"time": [], "sv": []})
-    attrs: Dict[str, Any] = {}
+    attrs: dict[str, T.Any] = {}
     for u in use:
         o = rinexsystem2(
             fn,
@@ -58,15 +59,15 @@ def rinexobs2(
 
 
 def rinexsystem2(
-    fn: Union[TextIO, Path],
+    fn: T.TextIO | Path,
     system: str,
-    tlim: Tuple[datetime, datetime] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     fast: bool = True,
-    interval: Union[float, int, timedelta] = None,
+    interval: float | int | timedelta = None,
 ) -> xarray.Dataset:
     """
     process RINEX OBS data
@@ -308,7 +309,7 @@ def rinexsystem2(
 
 
 def _num_times(
-    fn: Path, Nextra: int, tlim: Optional[Tuple[datetime, datetime]], verbose: bool
+    fn: T.TextIO | Path, Nextra: int, tlim: T.Optional[tuple[datetime, datetime]], verbose: bool
 ) -> np.ndarray:
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
@@ -339,8 +340,8 @@ def _num_times(
 
 
 def obsheader2(
-    f: TextIO, useindicators: bool = False, meas: Sequence[str] = None
-) -> Dict[str, Any]:
+    f: T.TextIO | Path, useindicators: bool = False, meas: list[str] = None
+) -> dict[str, T.Any]:
     """
     End users should use rinexheader()
     """
@@ -363,19 +364,19 @@ def obsheader2(
         if "END OF HEADER" in ln:
             break
 
-        h = ln[60:80].strip()
+        hd = ln[60:80].strip()
         c = ln[:60]
         # %% measurement types
-        if "# / TYPES OF OBSERV" in h:
+        if "# / TYPES OF OBSERV" in hd:
             if Nobs == 0:
                 Nobs = int(c[:6])
-                hdr[h] = c[6:].split()
+                hdr[hd] = c[6:].split()
             else:
-                hdr[h] += c[6:].split()
-        elif h not in hdr:  # Header label
-            hdr[h] = c  # string with info
+                hdr[hd] += c[6:].split()
+        elif hd not in hdr:  # Header label
+            hdr[hd] = c  # string with info
         else:  # concatenate
-            hdr[h] += " " + c
+            hdr[hd] += " " + c
     # %% useful values
     try:
         hdr["systems"] = hdr["RINEX VERSION / TYPE"][40]
@@ -404,8 +405,8 @@ def obsheader2(
         if isinstance(meas, (tuple, list, np.ndarray)):
             ind = np.zeros(len(hdr["fields"]), dtype=bool)
             for m in meas:
-                for i, f in enumerate(hdr["fields"]):
-                    if f.startswith(m):
+                for i, field in enumerate(hdr["fields"]):
+                    if field.startswith(m):
                         ind[i] = True
 
             hdr["fields_ind"] = np.nonzero(ind)[0]
@@ -451,7 +452,7 @@ def obsheader2(
     return hdr
 
 
-def _getsvind(f: TextIO, ln: str) -> List[str]:
+def _getsvind(f: T.TextIO, ln: str) -> list[str]:
     if len(ln) < 32:
         raise ValueError(f"satellite index line truncated:  {ln}")
 
@@ -471,8 +472,8 @@ def _getsvind(f: TextIO, ln: str) -> List[str]:
     return sv
 
 
-def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
-    """ parse a line of text from RINEX2 SV list"""
+def _getSVlist(ln: str, N: int, sv: list[str]) -> list[str]:
+    """parse a line of text from RINEX2 SV list"""
     sv.extend([ln[32 + i * 3 : 35 + i * 3] for i in range(N)])
 
     # compatibility for early rinex where a space
@@ -484,7 +485,7 @@ def _getSVlist(ln: str, N: int, sv: List[str]) -> List[str]:
     return sv
 
 
-def obstime2(fn: Union[TextIO, Path], verbose: bool = False) -> np.ndarray:
+def obstime2(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
     """
     read all times in RINEX2 OBS file
     """
@@ -510,7 +511,7 @@ def obstime2(fn: Union[TextIO, Path], verbose: bool = False) -> np.ndarray:
     return times
 
 
-def _skip(f: TextIO, ln: str, Nl_sv: int, sv: Sequence[str] = None):
+def _skip(f: T.TextIO, ln: str, Nl_sv: int, sv: list[str] = None):
     """
     skip ahead to next time step
     """
@@ -585,13 +586,13 @@ def _timeobs(ln: str) -> datetime:
     return t
 
 
-def _skip_header(f: TextIO):
+def _skip_header(f: T.TextIO):
     for ln in f:
         if "END OF HEADER" in ln:
             break
 
 
-def _fast_alloc(fn: Union[TextIO, Path], Nl_sv: int) -> int:
+def _fast_alloc(fn: T.TextIO | Path, Nl_sv: int) -> int:
     """
     prescan first N lines of file to see if it truncates to less than 80 bytes
 

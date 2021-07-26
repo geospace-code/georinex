@@ -1,11 +1,11 @@
+from __future__ import annotations
 from pathlib import Path
 import numpy as np
 import logging
 from datetime import datetime, timedelta
 import io
 import xarray
-from typing import Dict, Union, List, Tuple, Any, Sequence
-from typing.io import TextIO
+import typing as T
 
 try:
     from pymap3d import ecef2geodetic
@@ -24,15 +24,15 @@ BEIDOU = 0
 
 
 def rinexobs3(
-    fn: Union[TextIO, str, Path],
-    use: Sequence[str] = None,
-    tlim: Tuple[datetime, datetime] = None,
+    fn: T.TextIO | Path,
+    use: list[str] = None,
+    tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
-    meas: Sequence[str] = None,
+    meas: list[str] = None,
     verbose: bool = False,
     *,
     fast: bool = False,
-    interval: Union[float, int, timedelta] = None,
+    interval: float | int | timedelta = None,
 ) -> xarray.Dataset:
     """
     process RINEX 3 OBS data
@@ -183,7 +183,7 @@ def _timeobs(ln: str) -> datetime:
     )
 
 
-def obstime3(fn: Union[TextIO, Path], verbose: bool = False) -> np.ndarray:
+def obstime3(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
     """
     return all times in RINEX file
     """
@@ -204,9 +204,9 @@ def obstime3(fn: Union[TextIO, Path], verbose: bool = False) -> np.ndarray:
 def _epoch(
     data: xarray.Dataset,
     raw: str,
-    hdr: Dict[str, Any],
+    hdr: dict[str, T.Any],
     time: datetime,
-    sv: List[str],
+    sv: list[str],
     useindicators: bool,
     verbose: bool,
 ) -> xarray.Dataset:
@@ -230,7 +230,7 @@ def _epoch(
 
         gsv = np.array(sv)[si]
 
-        dsf: Dict[str, tuple] = {}
+        dsf: dict[str, tuple] = {}
         for i, k in enumerate(hdr["fields"][sk]):
             dsf[k] = (("time", "sv"), np.atleast_2d(garr[:, i * 3]))
 
@@ -251,7 +251,7 @@ def _epoch(
     return data
 
 
-def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
+def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
     """
     handle LLI (loss of lock) and SSI (signal strength)
     """
@@ -263,7 +263,7 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> Dict[str, tuple]:
     return d
 
 
-def obsheader3(f: TextIO, use: Sequence[str] = None, meas: Sequence[str] = None) -> Dict[str, Any]:
+def obsheader3(f: T.TextIO, use: list[str] = None, meas: list[str] = None) -> dict[str, T.Any]:
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
@@ -283,9 +283,9 @@ def obsheader3(f: TextIO, use: Sequence[str] = None, meas: Sequence[str] = None)
         if "END OF HEADER" in ln:
             break
 
-        h = ln[60:80]
+        hd = ln[60:80]
         c = ln[:60]
-        if "SYS / # / OBS TYPES" in h:
+        if "SYS / # / OBS TYPES" in hd:
             k = c[0]
             fields[k] = c[6:60].split()
             N = int(c[3:6])
@@ -303,11 +303,11 @@ def obsheader3(f: TextIO, use: Sequence[str] = None, meas: Sequence[str] = None)
 
             continue
 
-        if h.strip() not in hdr:  # Header label
-            hdr[h.strip()] = c  # don't strip for fixed-width parsers
+        if hd.strip() not in hdr:  # Header label
+            hdr[hd.strip()] = c  # don't strip for fixed-width parsers
             # string with info
         else:  # concatenate to the existing string
-            hdr[h.strip()] += " " + c
+            hdr[hd.strip()] += " " + c
 
     # %% list with x,y,z cartesian (OPTIONAL)
     # Rinex 3.03, pg. A6, Table A2
@@ -354,8 +354,8 @@ def obsheader3(f: TextIO, use: Sequence[str] = None, meas: Sequence[str] = None)
             # ind = np.isin(fields[sk], meas)  # boolean vector
             ind = np.zeros(len(fields[sk]), dtype=bool)
             for m in meas:
-                for i, f in enumerate(fields[sk]):
-                    if f.startswith(m):
+                for i, field in enumerate(fields[sk]):
+                    if field.startswith(m):
                         ind[i] = True
 
             fields[sk] = np.array(fields[sk])[ind].tolist()

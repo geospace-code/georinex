@@ -1,6 +1,7 @@
+from __future__ import annotations
+import typing as T
 from pathlib import Path
 from datetime import timedelta
-from typing import Dict, Union, Any
 import numpy as np
 import logging
 
@@ -26,20 +27,23 @@ def rinex_string_to_float(s: str) -> float:
     return float(s.replace("D", "E"))
 
 
-def check_ram(memneed: int, fn: Path):
+def check_ram(memneed: int, fn: T.TextIO | Path):
     if psutil is None:
         return
 
     mem = psutil.virtual_memory()
 
     if memneed > 0.5 * mem.available:  # because of array copy Numpy => Xarray
-        raise RuntimeError(
-            f"{fn} needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n"
+        errmsg = (
+            f"needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n"
             "try fast=False to reduce RAM usage, raise a GitHub Issue to let us help"
         )
+        if isinstance(fn, Path):
+            errmsg = f"{fn}" + errmsg
+        raise RuntimeError(errmsg)
 
 
-def determine_time_system(header: Dict[str, Any]) -> str:
+def determine_time_system(header: dict[str, T.Any]) -> str:
     """Determine which time system is used in an observation file."""
     # Current implementation is quite inconsistent in terms what is put into
     # header.
@@ -70,7 +74,7 @@ def determine_time_system(header: Dict[str, Any]) -> str:
     return ts
 
 
-def check_time_interval(interval: Union[float, int, timedelta]) -> timedelta:
+def check_time_interval(interval: float | int | timedelta) -> timedelta:
     if isinstance(interval, (float, int)):
         if interval < 0:
             raise ValueError("time interval must be non-negative")

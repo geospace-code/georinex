@@ -2,13 +2,14 @@
 GPS Keplerian elements => ECEF
 Michael Hirsch, Ph.D.
 """
+
+from __future__ import annotations
 from datetime import datetime, timedelta
 import xarray
 import numpy as np
-from typing import Tuple
 
 
-def keplerian2ecef(sv: xarray.DataArray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def keplerian2ecef(sv: xarray.DataArray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     based on:
     https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03

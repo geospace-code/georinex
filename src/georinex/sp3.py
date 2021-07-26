@@ -3,12 +3,13 @@ SP3 format:
     https://kb.igs.org/hc/en-us/articles/201096516-IGS-Formats
 """
 
+from __future__ import annotations
+import typing as T
 import xarray
 import numpy as np
 import logging
 from pathlib import Path
 from datetime import datetime, timedelta
-import typing as T
 
 from .rio import first_nonblank_line
 
@@ -17,7 +18,7 @@ ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
 
 def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
-    dat: T.Dict[str, T.Any] = {}
+    dat: dict[str, T.Any] = {}
     with fn.open("r") as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
@@ -150,7 +151,7 @@ def sp3dt(ln: str) -> datetime:
     return time
 
 
-def get_sv(ln: str, Nsv: int) -> T.List[str]:
+def get_sv(ln: str, Nsv: int) -> list[str]:
     if ln[0] != "+":
         return []
     i0 = 9
