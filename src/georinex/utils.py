@@ -123,12 +123,10 @@ def _tlim(tlim: tuple[datetime, datetime] = None) -> tuple[datetime, datetime]:
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], str):
-        tlim = T.cast(tuple[str, str], tlim)
         tlim = (parse(tlim[0]), parse(tlim[1]))
     else:
         raise ValueError(f"Not sure what time limits are: {tlim}")
 
-    tlim = T.cast(tuple[datetime, datetime], tlim)
     return tlim
 
 
