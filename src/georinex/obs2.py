@@ -403,7 +403,7 @@ def obsheader2(
             hdr["Nobs"] = len(hdr["fields"])
 
         if isinstance(meas, (tuple, list, np.ndarray)):
-            ind = np.zeros(len(hdr["fields"]), dtype=bool)
+            ind: T.Any = np.zeros(len(hdr["fields"]), dtype=bool)
             for m in meas:
                 for i, field in enumerate(hdr["fields"]):
                     if field.startswith(m):

@@ -19,7 +19,9 @@ def get_locations(files: list[Path]) -> pandas.DataFrame:
     if isinstance(files[0], io.StringIO):
         locs = pandas.DataFrame(index=["0"], columns=["lat", "lon", "interval"])
     elif isinstance(files[0], Path):
-        locs = pandas.DataFrame(index=[file.name for file in files], columns=["lat", "lon", "interval"])
+        locs = pandas.DataFrame(
+            index=[file.name for file in files], columns=["lat", "lon", "interval"]
+        )
     else:
         raise TypeError("Expecting pathlib.Path")
 

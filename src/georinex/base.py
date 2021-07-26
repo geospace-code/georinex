@@ -59,13 +59,7 @@ def load(
         if tlim[1] < tlim[0]:
             raise ValueError("stop time must be after start time")
 
-    try:
-        info = rinexinfo(rinexfn)
-    except RuntimeError:
-        logging.error(
-            f"could not read {rinexfn} header. It may not be a known type of RINEX file."
-        )
-        return None
+    info = rinexinfo(rinexfn)
 
     if info["rinextype"] == "nav":
         return rinexnav(rinexfn, outfn, use=use, tlim=tlim, overwrite=overwrite)

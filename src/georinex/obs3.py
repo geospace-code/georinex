@@ -348,7 +348,7 @@ def obsheader3(f: T.TextIO, use: list[str] = None, meas: list[str] = None) -> di
 
     # perhaps this could be done more efficiently, but it's probably low impact on overall program.
     # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
-    sysind = {}
+    sysind: dict[str, T.Any] = {}
     if isinstance(meas, (tuple, list, np.ndarray)):
         for sk in fields:  # iterate over each system
             # ind = np.isin(fields[sk], meas)  # boolean vector

@@ -9,7 +9,9 @@ import xarray
 import numpy as np
 
 
-def keplerian2ecef(sv: xarray.DataArray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def keplerian2ecef(
+    sv: xarray.Dataset,
+) -> tuple[xarray.DataArray, xarray.DataArray, xarray.DataArray]:
     """
     based on:
     https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03
