@@ -129,6 +129,8 @@ def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
             return {"version": "c", "rinextype": "sp3"}
         elif line.startswith("#d"):
             return {"version": "d", "rinextype": "sp3"}
+        elif line.startswith("#a"):
+            return {"version": "a", "rinextype": "sp3"}
 
         version = rinex_version(line)[0]
         file_type = line[20]
@@ -190,7 +192,7 @@ def rinex_version(s: str) -> tuple[float | str, bool]:
 
     # %% .sp3 file
     if s[0] == "#":
-        supported_versions = ["c", "d"]
+        supported_versions = ["a","c", "d"]
         if s[1] not in supported_versions:
             raise ValueError(
                 f"SP3 versions of SP3 files currently handled: {','.join(supported_versions)}"

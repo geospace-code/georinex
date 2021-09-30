@@ -157,5 +157,12 @@ def get_sv(ln: str, Nsv: int) -> list[str]:
     i0 = 9
     svs = []
     for i in range(min(Nsv, 17)):
-        svs.append(ln[i0 + i * 3 : (i0 + 3) + i * 3])
+        sv=ln[i0 + i * 3 : (i0 + 3) + i * 3]
+        #this is for sp3-a only, because it doesn't have system identification
+        if sv[0]==' ':
+            sv=sv.replace(' ','0')
+            sv=sv[1:3]
+        svs.append(sv)
+    
+
     return svs
