@@ -142,7 +142,7 @@ def sp3dt(ln: str) -> datetime:
         hour=hour,
         minute=minute,
         second=second,
-        microsecond=int(ln[23:28]),
+        microsecond=int(ln[23:29]),
     )
 
     for t in dt:
