@@ -485,6 +485,19 @@ def navheader3(f: T.TextIO) -> dict[str, T.Any]:
                 rinex_string_to_float(content[5 + i * 12 : 5 + (i + 1) * 12]) for i in range(N)
             ]
             hdr[kind][coeff_kind] = coeff
+        elif kind == "TIME SYSTEM CORR":
+            if kind not in hdr:
+                hdr[kind] = {}
+
+            coeff_kind = content[:4].strip()
+            # RINEX 3.04 table A5 page A20
+            coeff = [
+                rinex_string_to_float(content[5:22]),
+                rinex_string_to_float(content[22:38]),
+                int(content[38:45]),
+                int(content[45:50])
+            ]
+            hdr[kind][coeff_kind] = coeff
         else:
             hdr[kind] = content
 
