@@ -41,7 +41,7 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
 
         if suffix == ".gz":
             with gzip.open(fn, "rt") as f:
-                version, is_crinex = rinex_version(first_nonblank_line(f))
+                _, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
 
                 if is_crinex and not header:
@@ -50,8 +50,9 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
                     f = io.StringIO(crx2rnx(f.read()))
                 yield f
         elif suffix == ".bz2":
+            # this is for plain bzip2 files, NOT tar.bz2, which requires f.seek(512)
             with bz2.open(fn, "rt") as f:
-                version, is_crinex = rinex_version(first_nonblank_line(f))
+                _, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
 
                 if is_crinex and not header:
@@ -74,7 +75,7 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
                     yield f
         else:  # assume not compressed (or Hatanaka)
             with fn.open("r", encoding="ascii", errors="ignore") as f:
-                version, is_crinex = rinex_version(first_nonblank_line(f))
+                _, is_crinex = rinex_version(first_nonblank_line(f))
                 f.seek(0)
 
                 if is_crinex and not header:
