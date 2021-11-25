@@ -1,36 +1,43 @@
 """
 build Hatanaka converter with only a C compiler
 """
+
 import subprocess
 import shutil
+import os
 from pathlib import Path
 
-R = Path(__file__).parent / "rnxcmp"
 
-
-def build(cc: str = None, src: Path = R / "source/crx2rnx.c") -> int:
+def build(src: Path, exe: Path, cc: str = None) -> int:
+    """
+    build an executable using one of several compilers
+    """
     if cc:
-        return do_compile(cc, src)
+        return do_compile(cc, src, exe)
 
-    compilers = ["cc", "gcc", "clang", "icc", "icl", "cl", "clang-cl"]
+    compilers = ["cc", "gcc", "clang", "icx", "icc", "nvcc"]
+    if os.name == "nt":
+        compilers.extend(["icl", "cl", "clang-cl"])
+
     ret = 1
     for cc in compilers:
         if shutil.which(cc):
-            ret = do_compile(cc, src)
+            ret = do_compile(cc, src, exe)
             if ret == 0:
                 break
 
     return ret
 
 
-def do_compile(cc: str, src: Path) -> int:
+def do_compile(cc: str, src: Path, exe: Path) -> int:
     if not src.is_file():
         raise FileNotFoundError(src)
 
+    cmd = [cc, str(src)]
     if cc.endswith("cl"):  # msvc-like
-        cmd = [cc, str(src), f"/Fe:{R}"]
+        cmd.append(f"/Fe:{exe}")
     else:
-        cmd = [cc, str(src), "-O2", f"-o{R / 'crx2rnx'}"]
+        cmd.extend(["-O2", f"-o{exe}"])
 
     print(" ".join(cmd))
     ret = subprocess.run(cmd).returncode
