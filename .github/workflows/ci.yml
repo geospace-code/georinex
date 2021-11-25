@@ -8,36 +8,25 @@ on:
 
 jobs:
 
-  linux:
-    runs-on: ubuntu-latest
+  linux_macos_windows:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.7, 3.9]
+        python-version: ["3.7", "3.10"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
-    - run: pip install -e .[tests,lint,io]
+    - run: pip install .[tests,lint,io]
 
-    - run: flake8
-    - run: mypy
+    - if:  ${{ matrix.os }} == "ubuntu-latest"
+      run: flake8
 
-    - run: pytest
-
-  integration:
-    needs: linux
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-
-    - run: pip install .[tests,io]
+    - if:  ${{ matrix.os }} == "ubuntu-latest"
+      run: mypy
 
     - run: pytest
