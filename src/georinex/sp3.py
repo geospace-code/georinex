@@ -22,6 +22,7 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     with fn.open("r") as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
+        # sp3_version = ln[1]
         dat["t0"] = sp3dt(ln)
         # Nepoch != number of time steps, at least for some files
         dat["Nepoch"] = int(ln[32:39])
@@ -78,11 +79,13 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
             elif ln[0] == "V":
                 vel[i - 1, :] = (float(ln[4:18]), float(ln[18:32]), float(ln[32:46]))
                 clock[i - 1, 1] = float(ln[46:60])
-            elif ln[:2] in ("EP", "EV"):
+            elif ln.startswith(("EP", "EV")):
                 # let us know if you want these data types
                 pass
             elif len(ln) == 0:  # blank line
                 pass
+            elif len(ln) >= 4 and ln[3] == "*":  # sp3a no data
+                continue
             elif ln.startswith("EOF"):
                 break
             else:
@@ -157,5 +160,6 @@ def get_sv(ln: str, Nsv: int) -> list[str]:
     i0 = 9
     svs = []
     for i in range(min(Nsv, 17)):
-        svs.append(ln[i0 + i * 3 : (i0 + 3) + i * 3])
+        svs.append(ln[i0 + i * 3 : (i0 + 3) + i * 3].replace(" ", ""))
+
     return svs

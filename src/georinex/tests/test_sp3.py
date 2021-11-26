@@ -7,8 +7,22 @@ import georinex as gr
 R = Path(__file__).parent / "data"
 
 
-def test_sp3c():
-    dat = gr.load(R / "igs19362.sp3")
+@pytest.mark.parametrize("fn", ["example1.sp3a", "example2.sp3a"])
+def test_sp3a(fn):
+    dat = gr.load(R / fn)
+
+    d0 = dat.sel(time="1994-12-17T00:15:00")
+
+    assert len(d0.sv) == 25
+
+    G2 = d0.sel(sv="2")
+    assert G2["position"].data == approx([-22813.261065, -9927.616864, -9816.490189])
+    assert G2["clock"].item() == approx(-131.328686)
+
+
+@pytest.mark.parametrize("fn", ["igs19362.sp3c"])
+def test_sp3c(fn):
+    dat = gr.load(R / fn)
 
     d0 = dat.sel(time="2017-02-14T00:15:00")
 
@@ -16,8 +30,8 @@ def test_sp3c():
 
     G20 = d0.sel(sv="G20")
 
-    assert G20["position"].values == approx([-6468.900825, 14715.965428, 20990.8862])
-    assert G20.clock.item() == approx(459.946483)
+    assert G20["position"].data == approx([-6468.900825, 14715.965428, 20990.8862])
+    assert G20["clock"].item() == approx(459.946483)
 
 
 def test_blank():
