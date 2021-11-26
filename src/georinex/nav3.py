@@ -38,7 +38,7 @@ def rinexnav3(
 
     with opener(fn) as f:
         header = navheader3(f)
-        # %% read data
+        # %% read Epoch / ToC (Time of Clock)
         for line in f:
             if line.startswith("\n"):  # EOF
                 break
@@ -80,7 +80,7 @@ def rinexnav3(
             # one line per SV
             raws.append(raw.replace("D", "E").replace("\n", ""))
 
-    # %% parse
+    # %% parse collected data per SV
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, "ns") for t in times])
     nav = xarray.Dataset({}, coords={"time": [], "sv": []})
