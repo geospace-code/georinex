@@ -65,7 +65,7 @@ def test_minimal(tmp_path, filename):
 
 
 def test_dont_care_file_extension():
-    """ GeoRinex ignores the file extension and only considers file headers to determine what a file is."""
+    """GeoRinex ignores the file extension and only considers file headers to determine what a file is."""
     fn = R / "brdc0320.16l.txt"
 
     hdr = gr.rinexheader(R / fn)

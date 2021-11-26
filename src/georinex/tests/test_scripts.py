@@ -13,6 +13,7 @@ def test_convenience():
 
 
 def test_time():
+    pytest.importorskip("unlzw3")
     subprocess.check_call(["georinex_time", str(R)])
 
 

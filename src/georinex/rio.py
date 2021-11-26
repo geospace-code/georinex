@@ -1,3 +1,5 @@
+from __future__ import annotations
+import typing as T
 import gzip
 import bz2
 import zipfile
@@ -5,9 +7,9 @@ from pathlib import Path
 from contextlib import contextmanager
 import io
 import logging
+
 import xarray
-from typing.io import TextIO
-import typing
+
 from hatanaka import crx2rnx
 
 try:
@@ -18,7 +20,7 @@ except ImportError:
 
 
 @contextmanager
-def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
+def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
     """provides file handle for regular ASCII or gzip files transparently"""
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
@@ -82,7 +84,7 @@ def opener(fn: typing.Union[TextIO, Path], header: bool = False) -> TextIO:
         raise OSError(f"Unsure what to do with input of type: {type(fn)}")
 
 
-def first_nonblank_line(f: TextIO, max_lines: int = 10) -> str:
+def first_nonblank_line(f: T.TextIO, max_lines: int = 10) -> str:
     """return first non-blank 80 character line in file
 
     Parameters
@@ -108,14 +110,14 @@ def first_nonblank_line(f: TextIO, max_lines: int = 10) -> str:
     return line
 
 
-def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
+def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
     """verify RINEX version"""
 
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
         if fn.suffix == ".nc":
-            attrs: typing.Dict[str, typing.Any] = {"rinextype": []}
+            attrs: dict[str, T.Any] = {"rinextype": []}
             for g in ("OBS", "NAV"):
                 try:
                     dat = xarray.open_dataset(fn, group=g)
@@ -173,7 +175,7 @@ def rinexinfo(f: typing.Union[Path, TextIO]) -> typing.Dict[str, typing.Any]:
     return info
 
 
-def rinex_version(s: str) -> typing.Tuple[typing.Union[float, str], bool]:
+def rinex_version(s: str) -> tuple[float | str, bool]:
     """
 
     Parameters

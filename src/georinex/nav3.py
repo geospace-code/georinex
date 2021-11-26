@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+from __future__ import annotations
+import typing as T
 from pathlib import Path
 import xarray
 import logging
 import numpy as np
 import math
 from datetime import datetime
-from typing import Dict, Union, List, Any, Sequence
-from typing.io import TextIO
+
 
 #
 from .rio import opener, rinexinfo
@@ -19,7 +19,7 @@ Lf = 19  # string length per field
 
 
 def rinexnav3(
-    fn: Union[TextIO, str, Path], use: Sequence[str] = None, tlim: Sequence[datetime] = None
+    fn: T.TextIO | Path, use: list[str] = None, tlim: tuple[datetime, datetime] = None
 ) -> xarray.Dataset:
     """
     Reads RINEX 3.x NAV files
@@ -34,9 +34,9 @@ def rinexnav3(
 
     svs = []
     raws = []
-    svtypes: List[str] = []
-    fields: Dict[str, List[str]] = {}
-    times: List[datetime] = []
+    svtypes: list[str] = []
+    fields: dict[str, list[str]] = {}
+    times: list[datetime] = []
 
     with opener(fn) as f:
         header = navheader3(f)
@@ -166,7 +166,7 @@ def rinexnav3(
     return nav
 
 
-def _skip(f: TextIO, Nl: int):
+def _skip(f: T.TextIO, Nl: int):
     for _, _ in zip(range(Nl), f):
         pass
 
@@ -183,7 +183,7 @@ def _time(ln: str) -> datetime:
     )
 
 
-def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
+def _sparefields(cf: list[str], sys: str, raw: str) -> list[str]:
     """
     check for optional spare fields, or GPS "fit interval" field
 
@@ -228,7 +228,7 @@ def _sparefields(cf: List[str], sys: str, raw: str) -> List[str]:
     return cf
 
 
-def _newnav(ln: str, sv: str) -> List[str]:
+def _newnav(ln: str, sv: str) -> list[str]:
 
     if sv.startswith("G"):
         """
@@ -461,7 +461,7 @@ def _newnav(ln: str, sv: str) -> List[str]:
     return fields
 
 
-def navheader3(f: TextIO) -> Dict[str, Any]:
+def navheader3(f: T.TextIO) -> dict[str, T.Any]:
 
     if isinstance(f, (str, Path)):
         with opener(f, header=True) as h:
@@ -491,7 +491,7 @@ def navheader3(f: TextIO) -> Dict[str, Any]:
     return hdr
 
 
-def navtime3(fn: Union[TextIO, Path]) -> np.ndarray:
+def navtime3(fn: T.TextIO | Path) -> np.ndarray:
     """
     return all times in RINEX file
     """

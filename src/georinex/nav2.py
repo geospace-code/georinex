@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+from __future__ import annotations
+import typing as T
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Union, Any, Sequence
-from typing.io import TextIO
 import xarray
 import numpy as np
 import logging
@@ -15,7 +14,7 @@ STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {"G": 7, "R": 3, "E": 7}  # number of additional SV lines
 
 
-def rinexnav2(fn: Union[TextIO, str, Path], tlim: Sequence[datetime] = None) -> xarray.Dataset:
+def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xarray.Dataset:
     """
     Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.
@@ -214,7 +213,7 @@ def rinexnav2(fn: Union[TextIO, str, Path], tlim: Sequence[datetime] = None) -> 
     return nav
 
 
-def navheader2(f: TextIO) -> Dict[str, Any]:
+def navheader2(f: T.TextIO) -> dict[str, T.Any]:
     """
     For RINEX NAV version 2 only. End users should use rinexheader()
     """
@@ -254,12 +253,12 @@ def _timenav(ln: str) -> datetime:
     )
 
 
-def _skip(f: TextIO, Nl: int):
+def _skip(f: T.TextIO, Nl: int):
     for _, _ in zip(range(Nl), f):
         pass
 
 
-def navtime2(fn: Union[TextIO, Path]) -> np.ndarray:
+def navtime2(fn: T.TextIO | Path) -> np.ndarray:
     """
     read all times in RINEX 2 NAV file
     """

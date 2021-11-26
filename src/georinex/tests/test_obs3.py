@@ -130,7 +130,7 @@ def test_zip():
 
 
 def test_bad_system():
-    """ Z and Y are not currently used by RINEX """
+    """Z and Y are not currently used by RINEX"""
     with pytest.raises(KeyError):
         gr.load(R / "demo3.10o", use="Z")
 
