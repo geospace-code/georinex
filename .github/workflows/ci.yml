@@ -8,7 +8,8 @@ on:
 
 jobs:
 
-  linux_macos_windows:
+  ci:
+    timeout-minutes: 15
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,10 +24,15 @@ jobs:
 
     - run: pip install .[tests,lint,io]
 
-    - if:  ${{ matrix.os }} == "ubuntu-latest"
+    - name: syntax check
+      timeout-minutes: 1
+      if: startsWith(matrix.os,'ubuntu')
       run: flake8
 
-    - if:  ${{ matrix.os }} == "ubuntu-latest"
+    - name: type annotation check
+      timeout-minutes: 10
+      if: startsWith(matrix.os,'ubuntu')
       run: mypy
 
     - run: pytest
+      timeout-minutes: 5
