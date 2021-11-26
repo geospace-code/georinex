@@ -190,7 +190,7 @@ def test_one_sv():
     assert obs.fast_processing
 
 
-@pytest.mark.parametrize("use", (None, " ", "", ["G", "R", "S"]))
+@pytest.mark.parametrize("use", (None, {"G", "R", "S"}))
 def test_all_systems(tmp_path, use):
     """
     ./ReadRinex.py tests/demo.10o -o r2all.nc
@@ -201,6 +201,7 @@ def test_all_systems(tmp_path, use):
     truth = xarray.open_dataset(R / "r2all.nc", group="OBS")
     # %% test reading all satellites
     obs = gr.load(R / "demo.10o", use=use)
+
     assert obs.equals(truth)
     assert obs.fast_processing
 
