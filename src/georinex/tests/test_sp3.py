@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 from pytest import approx
-from pathlib import Path
+
 import georinex as gr
 
 #
@@ -18,6 +20,11 @@ def test_sp3a(fn):
     G2 = d0.sel(sv="2")
     assert G2["position"].data == approx([-22813.261065, -9927.616864, -9816.490189])
     assert G2["clock"].item() == approx(-131.328686)
+
+    if fn.startswith("example1"):
+        assert G2["velocity"].isnull().all()
+    elif fn.startswith("example2"):
+        assert G2["velocity"].data == approx([-8178.97433, -9924.32932, 27813.754308])
 
 
 @pytest.mark.parametrize("fn", ["igs19362.sp3c"])

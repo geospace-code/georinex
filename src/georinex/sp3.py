@@ -18,6 +18,12 @@ ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
 
 def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
+    """
+    The basic format is a position and clock record;
+    a second, optional, record contains velocities and clock rates-of-change.
+
+    http://epncb.oma.be/ftp/data/format/sp3_docu.txt  (sp3a)
+    """
     dat: dict[str, T.Any] = {}
     with fn.open("r") as f:
         ln = first_nonblank_line(f)
@@ -66,9 +72,13 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
                 ecefs.append(ecef)
                 clocks.append(clock)
                 vels.append(vel)
+
                 ecef = np.empty((Nsv, 3))
-                clock = np.empty((Nsv, 2))
+                clock = np.empty((Nsv, 2))  # clock and clock rate-of-change
+
                 vel = np.empty((Nsv, 3))
+                vel.fill(np.nan)  # may not always have velocity
+
                 i = 0
                 continue
 
@@ -101,9 +111,9 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     ds = xarray.Dataset(coords={"time": times, "sv": svs, "ECEF": ["x", "y", "z"]})
     ds["position"] = (("time", "sv", "ECEF"), ecefs)
     ds["clock"] = (("time", "sv"), aclock[:, :, 0])
-    if not np.isnan(vel).all():
-        ds["velocity"] = (("time", "sv", "ECEF"), vels)
-        ds["dclock"] = (("time", "sv"), aclock[:, :, 1])
+
+    ds["velocity"] = (("time", "sv", "ECEF"), vels)
+    ds["dclock"] = (("time", "sv"), aclock[:, :, 1])
 
     ds.attrs = dat
 
