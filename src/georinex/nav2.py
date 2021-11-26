@@ -121,8 +121,9 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xa
             ]
         else:
             raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {header["sys"]}  {fn}')
-        # %% read data
+        # %% loop over times
         for ln in f:
+            # %% read Epoch / ToC (Time of Clock)
             try:
                 time = _timenav(ln)
             except ValueError:
@@ -138,21 +139,17 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xa
             svs.append(f"{svtype}{ln[:2]}")
 
             times.append(time)
-            """
-            now get the data as one big long string per SV
-            """
-            raw = ln[
-                22:79
-            ]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
+            # %% read the data as one big long string per SV
+            raw = ln[22:79]
+            # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
             for _ in range(Nl[header["systems"]]):
                 raw += f.readline()[STARTCOL2:79]
             # one line per SV
-            # NOTE: Sebastijan added .replace('  ', ' ').replace(' -', '-')
-            # here, I would like to see a file that needs this first, to be sure
-            # I'm not needlessly slowing down reading or creating new problems.
+            # Sebastijan also added .replace('  ', ' ').replace(' -', '-') here,
+            # I didn't add that yet because I don't know if it's generally needed.
             raws.append(raw.replace("D", "E").replace("\n", ""))
 
-    # %% parse
+    # %% parse collected data lines per SV
     svs = [s.replace(" ", "0") for s in svs]
     svu = sorted(set(svs))
 
@@ -193,7 +190,7 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xa
     # GLONASS uses kilometers to report its ephemeris.
     # Convert to meters here to be consistent with NAV3 implementation.
     if svtype == "R":
-        for name in ["X", "Y", "Z", "dX", "dY", "dZ", "dX2", "dY2", "dZ2"]:
+        for name in {"X", "Y", "Z", "dX", "dY", "dZ", "dX2", "dY2", "dZ2"}:
             nav[name] *= 1e3
 
     # %% other attributes
