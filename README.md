@@ -6,7 +6,11 @@
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 
 RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
-Batch converts NAV and OBS GPS RINEX (including Hatanaka compressed OBS) data into
+Batch converts
+[NAV](./Readme_NAV.md)
+and
+[OBS](./Readme_OBS.md)
+GPS RINEX (including Hatanaka compressed OBS) data into
 [xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset)
 for easy use in analysis and plotting.
 This gives remarkable speed vs. legacy iterative methods, and allows for HPC / out-of-core operations on massive amounts of GNSS data.
@@ -16,7 +20,7 @@ Pure compiled language RINEX processors such as within Fortran NAPEOS give perha
 However, the initial goal of this Python program was to be for one-time offline conversion of ASCII (and compressed ASCII) RINEX to HDF5/NetCDF4,
 where ease of cross-platform install and correctness are primary goals.
 
-![RINEX plot](src/georinex/tests/example_plot.png)
+![RINEX plot](./src/georinex/tests/example_plot.png)
 
 ## Input data types
 
@@ -29,9 +33,13 @@ where ease of cross-platform install and correctness are primary goals.
   * `.bz2` bzip2
   * `.zip`
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
-* Python `io.StringIO` text stream RINEX'
-* .sp3 [SP3-c](ftp://igs.org/pub/data/format/sp3c.txt) ephemeris
-* .sp3d [SP3-d](ftp://ftp.igs.org/pub/data/format/sp3d.pdf) extended ephemeris
+* Python `io.StringIO` text stream RINEX
+
+Also SP3 ephemeris:
+
+* SP3-a
+* [SP3-c](ftp://igs.org/pub/data/format/sp3c.txt)
+* [SP3-d](ftp://ftp.igs.org/pub/data/format/sp3d.pdf)
 
 ## Output
 
@@ -100,10 +108,6 @@ the following examples. Each example assumes you have first done:
 import georinex as gr
 ```
 
-Uses speculative time preallocation `gr.load(..., fast=True)` by default.
-Set `fast=False` or CLI option `python -m georinex.read -strict` to fall back to double-read strict (slow) preallocation.
-Please open a GitHub issue if this is a problem.
-
 ### Time limits
 
 Time bounds can be set for reading -- load only data between those time bounds:
@@ -118,23 +122,6 @@ option, where `start` and `stop` are formatted like `2017-02-23T12:00`
 dat = gr.load('my.rnx', tlim=['2017-02-23T12:59', '2017-02-23T13:13'])
 ```
 
-### Measurement selection
-
-Further speed increase can arise from reading only wanted measurements:
-
-```sh
---meas C1C L1C
-```
-
-```python
-dat = gr.load('my.rnx', meas=['C1C', 'L1C'])
-```
-
-### Use Signal and Loss of Lock indicators
-
-By default, the SSI and LLI (loss of lock indicators) are not loaded to speed up the program and save memory.
-If you need them, the `-useindicators` option loads SSI and LLI for OBS 2/3 files.
-
 ## read RINEX
 
 This convenience function reads any possible format (including compressed, Hatanaka) RINEX 2/3 OBS/NAV or `.nc` file:
@@ -143,131 +130,8 @@ This convenience function reads any possible format (including compressed, Hatan
 obs = gr.load('tests/demo.10o')
 ```
 
-### read times in OBS, NAV file(s)
-
-Print start, stop times and measurement interval in a RINEX OBS or NAV file:
-
-```sh
-TimeRinex ~/my.rnx
-```
-
-Print start, stop times and measurement interval for all files in a directory:
-
-```sh
-TimeRinex ~/data *.rnx
-```
-
-Get vector of `datetime.datetime` in RINEX file:
-
-```python
-times = gr.gettimes('~/my.rnx')
-```
-
-## read Obs
-
-If you desire to specifically read a RINEX 2 or 3 OBS file:
-
-```python
-obs = gr.load('tests/demo_MO.rnx')
-```
-
-This returns an
-[xarray.Dataset](http://xarray.pydata.org/en/stable/api.html#dataset) of
-data within the .XXo observation file.
-
-NaN is used as a filler value, so the commands typically end with
-.dropna(dim='time',how='all') to eliminate the non-observable data vs
-time. As per pg. 15-20 of RINEX 3.03
-[specification](ftp://igs.org/pub/data/format/rinex303.pdf),
-only certain fields are valid for particular satellite systems.
-Not every receiver receives every type of GNSS system.
-Most Android devices in the Americas receive at least GPS and GLONASS.
-
-### read OBS header
-
-Get a `dict()` of the RINEX file header:
-
-```python
-hdr = gr.rinexheader('myfile.rnx')
-```
-
-### Index OBS data
-
-assume the OBS data from a file is loaded in variable `obs`.
-
-Select satellite(s) (here, `G13`)
-
-```python
-obs.sel(sv='G13').dropna(dim='time',how='all')
-```
-
-Pick any parameter (say, `L1`) across all satellites and time (or index via `.sel()` by time and/or satellite too) by:
-
-```python
-obs['L1'].dropna(dim='time',how='all')
-```
-
-Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
-
-```python
-import georinex as gr
-obs = gr.load('myfile.o', use='E')
-```
-
-loads only Galileo data by the parameter E.
-`python -m georinex.read` allow this to be specified as the -use command line parameter.
-
-If however you want to do this after loading all the data anyway, you can make a Boolean indexer
-
-```python
-Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy Boolean 1-D array
-Edata = obs.isel(sv=Eind)  # any combination of other indices at same time or before/after also possible
-```
-
-### Plot OBS data
-
-Plot for all satellites L1C:
-
-```python
-from matplotlib.pyplot import figure, show
-ax = figure().gca()
-ax.plot(obs.time, obs['L1C'])
-show()
-```
-
-Suppose L1C pseudorange plot is desired for `G13`:
-
-```python
-obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
-```
-
-## read Nav
-
-If you desire to specifically read a RINEX 2 or 3 NAV file:
-
-```python
-nav = gr.load('tests/demo_MN.rnx')
-```
-
-Returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.
-Indexed by time x quantity
-
-### Index NAV data
-
-assume the NAV data from a file is loaded in variable `nav`.
-Select satellite(s) (here, `G13`) by
-
-```python
-nav.sel(sv='G13')
-```
-
-Pick any parameter (say, `M0`) across all satellites and time (or index by that first) by:
-
-```python
-nav['M0']
-```
-
 ## Analysis
+
 A significant reason for using `xarray` as the base class of GeoRinex is that big data operations are fast, easy and efficient.
 It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and conserve memory.
 
@@ -376,9 +240,9 @@ shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xar
 
 ## Notes
 
-* RINEX 3.03 specification: ftp://igs.org/pub/data/format/rinex303.pdf
-* RINEX 3.04 specification (Dec 2018): ftp://igs.org/pub/data/format/rinex304.pdf
-* RINEX 3.04 release notes:  ftp://igs.org/pub/data/format/rinex304-release-notes.pdf
+* RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
+* RINEX 3.04 [specification (Dec 2018)](ftp://igs.org/pub/data/format/rinex304.pdf)
+* RINEX 3.04 [release notes](ftp://igs.org/pub/data/format/rinex304-release-notes.pdf)
 
 * GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
 * https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
