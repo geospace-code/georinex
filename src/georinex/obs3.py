@@ -166,6 +166,7 @@ def _timeobs(ln: str) -> datetime:
     """
     convert time from RINEX 3 OBS text to datetime
     """
+
     if not ln.startswith("> "):  # pg. A13
         raise ValueError('RINEX 3 line beginning "> " is not present')
 
@@ -184,12 +185,17 @@ def obstime3(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
     """
     return all times in RINEX file
     """
+
     times = []
 
     with opener(fn) as f:
         for ln in f:
-            if ln.startswith(">"):
-                times.append(_timeobs(ln))
+            if ln.startswith("> "):
+                try:
+                    times.append(_timeobs(ln))
+                except (ValueError, IndexError):
+                    logging.debug(f"was not a time:\n{ln}")
+                    continue
 
     times = np.asarray(times)
 

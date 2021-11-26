@@ -80,8 +80,21 @@ def test_meas_wildcard():
     assert len(obs.data_vars) == 3
 
 
-def test_zip():
-    fn = R / "ABMF00GLP_R_20181330000_01D_30S_MO.zip"
+@pytest.mark.parametrize("fname", ["junk_time_obs3.10o"])
+def test_junk_time(fname):
+    """
+    some RINEX 3 are observed to have unexpected non-time data
+
+    fixes https://github.com/geospace-code/georinex/issues/77
+    """
+
+    times = gr.gettime(R / fname)
+    assert times.tolist() == [datetime(2010, 3, 5, 0, 0, 30), datetime(2010, 3, 5, 0, 1, 30)]
+
+
+@pytest.mark.parametrize("fname", ["ABMF00GLP_R_20181330000_01D_30S_MO.zip"])
+def test_zip(fname):
+    fn = R / fname
     obs = gr.load(fn)
 
     assert (
@@ -116,14 +129,11 @@ def test_zip():
     ).all()
 
     times = gr.gettime(fn)
-    assert (
-        times
-        == [
-            datetime(2018, 5, 13, 1, 30),
-            datetime(2018, 5, 13, 1, 30, 30),
-            datetime(2018, 5, 13, 1, 31),
-        ]
-    ).all()
+    assert times.tolist() == [
+        datetime(2018, 5, 13, 1, 30),
+        datetime(2018, 5, 13, 1, 30, 30),
+        datetime(2018, 5, 13, 1, 31),
+    ]
 
     hdr = gr.rinexheader(fn)
     assert hdr["t0"] <= times[0]
