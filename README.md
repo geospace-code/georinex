@@ -71,16 +71,16 @@ python -m pytest
 
 ## Usage
 
-The simplest command-line use is through the top-level `ReadRinex` script.
+The simplest command-line use is through the top-level `python -m georinex.read` script.
 Normally you'd use the `-p` option with single files to plot, if not converting.
 
 * Read single RINEX3 or RINEX 2 Obs or Nav file:
   ```sh
-  ReadRinex myrinex.XXx
+  python -m georinex.read myrinex.XXx
   ```
 * Read NetCDF converted RINEX data:
   ```sh
-  ReadRinex myrinex.nc
+  python -m georinex.read myrinex.nc
   ```
 * Batch convert RINEX to NetCDF4 / HDF5 (this example for RINEX 2 OBS):
   ```sh
@@ -215,7 +215,7 @@ obs = gr.load('myfile.o', use='E')
 ```
 
 loads only Galileo data by the parameter E.
-`ReadRinex` allow this to be specified as the -use command line parameter.
+`python -m georinex.read` allow this to be specified as the -use command line parameter.
 
 If however you want to do this after loading all the data anyway, you can make a Boolean indexer
 

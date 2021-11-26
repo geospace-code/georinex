@@ -141,7 +141,7 @@ def test_bad_system():
 @pytest.mark.parametrize("use", ("G", ["G"]))
 def test_one_system(use):
     """
-    ./ReadRinex.py -q tests/demo3.10o  -u G -o r3G.nc
+    python -m georinex.read -q tests/demo3.10o  -u G -o r3G.nc
     """
     pytest.importorskip("netCDF4")
 
@@ -159,7 +159,7 @@ def test_one_system(use):
 
 def test_multi_system():
     """
-    ./ReadRinex.py -q tests/demo3.10o  -u G R -o r3GR.nc
+    python -m georinex.read -q tests/demo3.10o  -u G R -o r3GR.nc
     """
     pytest.importorskip("netCDF4")
 
@@ -173,7 +173,7 @@ def test_multi_system():
 
 def test_all_system():
     """
-    ./ReadRinex.py -q tests/demo3.10o -o r3all.nc
+    python -m georinex.read -q tests/demo3.10o -o r3all.nc
     """
     pytest.importorskip("netCDF4")
 
@@ -185,7 +185,7 @@ def test_all_system():
 
 def tests_all_indicators():
     """
-    ./ReadRinex.py -q tests/demo3.10o -useindicators -o r3all_indicators.nc
+    python -m georinex.read -q tests/demo3.10o -useindicators -o r3all_indicators.nc
     """
     pytest.importorskip("netCDF4")
 

@@ -7,8 +7,6 @@ import numpy as np
 import math
 from datetime import datetime
 
-
-#
 from .rio import opener, rinexinfo
 from .common import rinex_string_to_float
 

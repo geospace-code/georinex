@@ -5,8 +5,14 @@ import xarray
 from datetime import datetime
 import georinex as gr
 
-#
+
 R = Path(__file__).parent / "data"
+
+
+def test_nav3header():
+    hdr = gr.rinexheader(R / "demo.17n")
+    assert hdr['IONOSPHERIC CORR']['GPSA'] == approx([1.1176e-08, -1.4901e-08, -5.9605e-08, 1.1921e-07])
+    assert hdr['TIME SYSTEM CORR']['GPUT'] == approx([-3.7252902985e-09, -1.065814104e-14, 61440, 1976])
 
 
 def test_time():
@@ -193,10 +199,10 @@ def test_large_all(sv, size):
 )
 def test_ref(rfn, ncfn):
     """
-    python ReadRinex.py tests/data/galileo3.15n -o r3galileo.nc
-    python ReadRinex.py tests/data/demo.17n -o r3gps.nc
-    python ReadRinex.py tests/data/qzss3.14n -o r3qzss.nc
-    python ReadRinex.py tests/data/demo3.10n -o r3sbas.nc
+    python -m georinex.read tests/data/galileo3.15n -o r3galileo.nc
+    python -m georinex.read tests/data/demo.17n -o r3gps.nc
+    python -m georinex.read tests/data/qzss3.14n -o r3qzss.nc
+    python -m georinex.read tests/data/demo3.10n -o r3sbas.nc
     """
     pytest.importorskip("netCDF4")
 

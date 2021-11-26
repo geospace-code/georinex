@@ -193,8 +193,8 @@ def test_one_sv():
 @pytest.mark.parametrize("use", (None, {"G", "R", "S"}))
 def test_all_systems(tmp_path, use):
     """
-    ./ReadRinex.py tests/demo.10o -o r2all.nc
-    ./ReadRinex.py tests/demo.10n -o r2all.nc
+    python -m georinex.read tests/demo.10o -o r2all.nc
+    python -m georinex.read tests/demo.10n -o r2all.nc
     """
     pytest.importorskip("netCDF4")
 
@@ -222,7 +222,7 @@ def test_all_systems(tmp_path, use):
 
 @pytest.mark.parametrize("use", ("G", ["G"]))
 def test_one_system(use):
-    """./ReadRinex.py tests/demo.10o -u G -o r2G.nc"""
+    """python -m georinex.read tests/demo.10o -u G -o r2G.nc"""
     pytest.importorskip("netCDF4")
 
     truth = xarray.open_dataset(R / "r2G.nc", group="OBS")
@@ -233,7 +233,7 @@ def test_one_system(use):
 
 
 def test_multi_system():
-    """./ReadRinex.py tests/demo.10o -u G R -o r2GR.nc"""
+    """python -m georinex.read tests/demo.10o -u G R -o r2GR.nc"""
     pytest.importorskip("netCDF4")
 
     truth = xarray.open_dataset(R / "r2GR.nc", group="OBS")
@@ -245,7 +245,7 @@ def test_multi_system():
 
 def test_all_indicators():
     """
-    ./ReadRinex.py tests/demo.10o -useindicators  -o r2all_indicators.nc
+    python -m georinex.read tests/demo.10o -useindicators  -o r2all_indicators.nc
     """
     pytest.importorskip("netCDF4")
 
@@ -258,7 +258,7 @@ def test_all_indicators():
 
 def test_meas_indicators():
     """
-    ./ReadRinex.py tests/demo.10o -useindicators -m C1 -o r2_C1_indicators.nc
+    python -m georinex.read tests/demo.10o -useindicators -m C1 -o r2_C1_indicators.nc
     """
     pytest.importorskip("netCDF4")
 
