@@ -19,7 +19,7 @@ Lf = 19  # string length per field
 
 
 def rinexnav3(
-    fn: T.TextIO | Path, use: list[str] = None, tlim: tuple[datetime, datetime] = None
+    fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, datetime] = None
 ) -> xarray.Dataset:
     """
     Reads RINEX 3.x NAV files
@@ -495,7 +495,7 @@ def navheader3(f: T.TextIO) -> dict[str, T.Any]:
                 rinex_string_to_float(content[5:22]),
                 rinex_string_to_float(content[22:38]),
                 int(content[38:45]),
-                int(content[45:50])
+                int(content[45:50]),
             ]
             hdr[kind][coeff_kind] = coeff
         else:

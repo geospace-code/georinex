@@ -20,7 +20,7 @@ from .common import determine_time_system, check_ram, check_time_interval, check
 
 def rinexobs2(
     fn: T.TextIO | Path,
-    use: list[str] = None,
+    use: set[str] = None,
     tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
     meas: list[str] = None,
@@ -31,10 +31,10 @@ def rinexobs2(
 ) -> xarray.Dataset:
 
     if isinstance(use, str):
-        use = [use]
+        use = {use}
 
-    if use is None or not use[0].strip():
-        use = ["C", "E", "G", "J", "R", "S"]
+    if not use:
+        use = {"C", "E", "G", "J", "R", "S"}
 
     obs = xarray.Dataset({}, coords={"time": [], "sv": []})
     attrs: dict[str, T.Any] = {}

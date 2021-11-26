@@ -20,7 +20,7 @@ ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 def load(
     rinexfn: T.TextIO | str | Path,
     out: Path = None,
-    use: list[str] = None,
+    use: set[str] = None,
     tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
     meas: list[str] = None,
@@ -29,7 +29,7 @@ def load(
     overwrite: bool = False,
     fast: bool = True,
     interval: float | int | timedelta = None,
-) -> xarray.Dataset | dict[str, xarray.Dataset]:
+) -> xarray.Dataset:
     """
     Reads OBS, NAV in RINEX 2.x and 3.x
 
@@ -109,7 +109,7 @@ def batch_convert(
     path: Path,
     glob: str,
     out: Path,
-    use: list[str] = None,
+    use: set[str] = None,
     tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
     meas: list[str] = None,
@@ -141,7 +141,7 @@ def batch_convert(
 def rinexnav(
     fn: T.TextIO | str | Path,
     outfn: Path = None,
-    use: list[str] = None,
+    use: set[str] = None,
     group: str = "NAV",
     tlim: tuple[datetime, datetime] = None,
     *,
@@ -185,7 +185,7 @@ def rinexnav(
 def rinexobs(
     fn: T.TextIO | Path,
     outfn: Path = None,
-    use: list[str] = None,
+    use: set[str] = None,
     group: str = "OBS",
     tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,

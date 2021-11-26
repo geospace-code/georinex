@@ -25,7 +25,7 @@ BEIDOU = 0
 
 def rinexobs3(
     fn: T.TextIO | Path,
-    use: list[str] = None,
+    use: set[str] = None,
     tlim: tuple[datetime, datetime] = None,
     useindicators: bool = False,
     meas: list[str] = None,
@@ -58,13 +58,10 @@ def rinexobs3(
     interval = check_time_interval(interval)
 
     if isinstance(use, str):
-        use = [use]
+        use = {use}
 
     if isinstance(meas, str):
         meas = [meas]
-
-    if not use or not use[0].strip():
-        use = None
 
     if not meas or not meas[0].strip():
         meas = None
@@ -263,7 +260,7 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
     return d
 
 
-def obsheader3(f: T.TextIO, use: list[str] = None, meas: list[str] = None) -> dict[str, T.Any]:
+def obsheader3(f: T.TextIO, use: set[str] = None, meas: list[str] = None) -> dict[str, T.Any]:
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
@@ -340,7 +337,7 @@ def obsheader3(f: T.TextIO, use: list[str] = None, meas: list[str] = None) -> di
     except (KeyError, ValueError):
         pass
     # %% select specific satellite systems only (optional)
-    if use is not None:
+    if use:
         if not set(fields.keys()).intersection(use):
             raise KeyError(f"system type {use} not found in RINEX file")
 

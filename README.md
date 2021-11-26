@@ -85,7 +85,7 @@ Normally you'd use the `-p` option with single files to plot, if not converting.
   ```
 * Batch convert RINEX to NetCDF4 / HDF5 (this example for RINEX 2 OBS):
   ```sh
-  rnx2hdf5 ~/data "*o" -o ~/data
+  python -m georinex.rinex2hdf5 ~/data "*o" -o ~/data
   ```
   in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
 
@@ -102,7 +102,7 @@ import georinex as gr
 ```
 
 Uses speculative time preallocation `gr.load(..., fast=True)` by default.
-Set `fast=False` or `georinex_read -strict` to fall back to double-read strict (slow) preallocation.
+Set `fast=False` or CLI option `python -m georinex.read -strict` to fall back to double-read strict (slow) preallocation.
 Please open a GitHub issue if this is a problem.
 
 ### Time limits
@@ -285,8 +285,9 @@ To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, us
 
 Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
 
-* using `georinex_loc` script, which loads and plots all RINEX and .nc files in a directory
+* `python -m georinex.loc` to load and plot all RINEX and .nc files in a directory
 * using `xarray`
+
   ```python
   obs = xarray.open_dataset('my.nc)
 
@@ -294,13 +295,15 @@ Read location from NetCDF4 / HDF5 file can be accomplished in a few ways:
   latlon = obs.position_geodetic  # only if pymap3d was used
   ```
 * Using `h5py`:
+
   ```python
   with h5py.File('my.nc') as f:
       ecef = h['OBS'].attrs['position']
       latlon = h['OBS'].attrs['position_geodetic']
   ```
 
-## Converting to Pandas DataFrames
+## Convert to Pandas DataFrames
+
 Although Pandas DataFrames are 2-D, using say `df = nav.to_dataframe()` will result in a reshaped 2-D DataFrame.
 Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 [Pandas Multiindexing methods](http://pandas.pydata.org/pandas-docs/stable/advanced.html).
@@ -308,6 +311,7 @@ Satellites can be selected like `df.loc['G12'].dropna(0, 'all')` using the usual
 ## Benchmark
 
 An Intel Haswell i7-3770 CPU with plain uncompressed RINEX 2 OBS processes in about:
+
 * [6 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab140210.18o.Z): 5 seconds
 * [13 MB file](ftp://data-out.unavco.org/pub/rinex/obs/2018/021/ab180210.18o.Z): 10 seconds
 
@@ -316,35 +320,40 @@ This processing speed is about within a factor of 2 of compiled RINEX parsers, w
 OBS2 and NAV2 currently have the fast pure Python read that has C-like speed.
 
 ### Obs3
+
 OBS3 / NAV3 are not yet updated to new fast pure Python method.
 
-Done on 5 year old Haswell laptop:
+On Haswell laptop:
+
 ```sh
-time georinex_read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
+time python -m georinex.read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E
 ```
 
 > real 48.6 s
 
 ```sh
-time georinex_read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
+time python -m georinex.read tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz -u E -m C1C
 ```
 
 > real 17.6 s
 
 ### Profiling
+
 using
+
 ```sh
 conda install line_profiler
 ```
+
 and `ipython`:
+
 ```ipython
 %load_ext line_profiler
 
 %lprun -f gr.obs3._epoch gr.load('tests/CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz', use='E', meas='C1C')
 ```
+
 shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xarray.concat` and xarray.Dataset` nested inside `concat` takes over 60% of time.
-
-
 
 ## Notes
 
@@ -352,14 +361,12 @@ shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xar
 * RINEX 3.04 specification (Dec 2018): ftp://igs.org/pub/data/format/rinex304.pdf
 * RINEX 3.04 release notes:  ftp://igs.org/pub/data/format/rinex304-release-notes.pdf
 
-
--   GPS satellite position is given for each time in the NAV file as
-    Keplerian parameters, which can be
-    [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
--   <https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf>
--   <http://www.gage.es/gFD>
+* GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
+* https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+* http://www.gage.es/gFD
 
 ### Number of SVs visible
+
 With the GNSS constellations in 2018, per the
 [Trimble Planner](https://www.gnssplanning.com/)
 the min/max visible SV would be about:
@@ -367,15 +374,10 @@ the min/max visible SV would be about:
 * Maximum: ~60 SV maximum near the equator in Asia / Oceania with 5 degree elev. cutoff
 * Minimum: ~6 SV minimum at poles with 20 degree elev. cutoff and GPS only
 
-
 ### RINEX OBS reader algorithm
 
-1.  read overall OBS header (so we know what to expect in the rest of the OBS file)
-2.  fill the xarray.Dataset with the data by reading in blocks --
-    another key difference from other programs out there, instead of
-    reading character by character, I ingest a whole time step of text
-    at once, helping keep the processing closer to CPU cache making it
-    much faster.
+1. read overall OBS header (so we know what to expect in the rest of the OBS file)
+2. fill the xarray.Dataset with the data by reading in blocks -- another key difference from other programs out there, instead of reading character by character, I ingest a whole time step of text at once, helping keep the processing closer to CPU cache making it much faster.
 
 ### Data
 
@@ -397,11 +399,10 @@ UNAVCO RINEX 2 data:
 * OBS: ftp://data-out.unavco.org/pub/rinex/obs/
 * NAV: ftp://data-out.unavco.org/pub/rinex/nav/
 
-
 ### Hatanaka compressed RINEX .crx
+
 The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx`.
 These are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
 
-Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation
-          Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.
+Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.
 (available at http://www.gsi.go.jp/ENGLISH/Bulletin55.html)
