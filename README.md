@@ -3,7 +3,6 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2580306.svg)](https://doi.org/10.5281/zenodo.2580306)
 ![ci](https://github.com/geospace-code/georinex/workflows/ci/badge.svg)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/scivision/georinex.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/scivision/georinex/context:python)
-[![PyPi versions](https://img.shields.io/pypi/pyversions/georinex.svg)](https://pypi.python.org/pypi/georinex)
 [![PyPi Download stats](http://pepy.tech/badge/georinex)](http://pepy.tech/project/georinex)
 
 RINEX 3 and RINEX 2 reader and batch conversion to NetCDF4 / HDF5 in Python or Matlab.
@@ -112,6 +111,7 @@ Time bounds can be set for reading -- load only data between those time bounds:
 ```sh
 --tlim start stop
 ```
+
 option, where `start` and `stop` are formatted like `2017-02-23T12:00`
 
 ```python
@@ -121,19 +121,19 @@ dat = gr.load('my.rnx', tlim=['2017-02-23T12:59', '2017-02-23T13:13'])
 ### Measurement selection
 
 Further speed increase can arise from reading only wanted measurements:
+
 ```sh
 --meas C1C L1C
 ```
-
 
 ```python
 dat = gr.load('my.rnx', meas=['C1C', 'L1C'])
 ```
 
 ### Use Signal and Loss of Lock indicators
+
 By default, the SSI and LLI (loss of lock indicators) are not loaded to speed up the program and save memory.
 If you need them, the `-useindicators` option loads SSI and LLI for OBS 2/3 files.
-
 
 ## read RINEX
 
@@ -143,19 +143,22 @@ This convenience function reads any possible format (including compressed, Hatan
 obs = gr.load('tests/demo.10o')
 ```
 
-
 ### read times in OBS, NAV file(s)
+
 Print start, stop times and measurement interval in a RINEX OBS or NAV file:
+
 ```sh
 TimeRinex ~/my.rnx
 ```
 
 Print start, stop times and measurement interval for all files in a directory:
+
 ```sh
 TimeRinex ~/data *.rnx
 ```
 
 Get vector of `datetime.datetime` in RINEX file:
+
 ```python
 times = gr.gettimes('~/my.rnx')
 ```
@@ -180,9 +183,10 @@ only certain fields are valid for particular satellite systems.
 Not every receiver receives every type of GNSS system.
 Most Android devices in the Americas receive at least GPS and GLONASS.
 
-
 ### read OBS header
-To get a `dict()` of the RINEX file header:
+
+Get a `dict()` of the RINEX file header:
+
 ```python
 hdr = gr.rinexheader('myfile.rnx')
 ```
@@ -191,33 +195,39 @@ hdr = gr.rinexheader('myfile.rnx')
 
 assume the OBS data from a file is loaded in variable `obs`.
 
-Select satellite(s) (here, `G13`) by
+Select satellite(s) (here, `G13`)
+
 ```python
 obs.sel(sv='G13').dropna(dim='time',how='all')
 ```
 
 Pick any parameter (say, `L1`) across all satellites and time (or index via `.sel()` by time and/or satellite too) by:
+
 ```python
 obs['L1'].dropna(dim='time',how='all')
 ```
 
 Indexing only a particular satellite system (here, Galileo) using Boolean indexing.
+
 ```python
 import georinex as gr
 obs = gr.load('myfile.o', use='E')
 ```
-would load only Galileo data by the parameter E.
+
+loads only Galileo data by the parameter E.
 `ReadRinex` allow this to be specified as the -use command line parameter.
 
 If however you want to do this after loading all the data anyway, you can make a Boolean indexer
+
 ```python
 Eind = obs.sv.to_index().str.startswith('E')  # returns a simple Numpy Boolean 1-D array
 Edata = obs.isel(sv=Eind)  # any combination of other indices at same time or before/after also possible
 ```
 
-###  Plot OBS data
+### Plot OBS data
 
 Plot for all satellites L1C:
+
 ```python
 from matplotlib.pyplot import figure, show
 ax = figure().gca()
@@ -226,31 +236,33 @@ show()
 ```
 
 Suppose L1C pseudorange plot is desired for `G13`:
+
 ```python
 obs['L1C'].sel(sv='G13').dropna(dim='time',how='all').plot()
 ```
 
 ## read Nav
 
-
 If you desire to specifically read a RINEX 2 or 3 NAV file:
+
 ```python
 nav = gr.load('tests/demo_MN.rnx')
 ```
 
-This returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.
+Returns an `xarray.Dataset` of the data within the RINEX 3 or RINEX 2 Navigation file.
 Indexed by time x quantity
-
 
 ### Index NAV data
 
 assume the NAV data from a file is loaded in variable `nav`.
 Select satellite(s) (here, `G13`) by
+
 ```python
 nav.sel(sv='G13')
 ```
 
 Pick any parameter (say, `M0`) across all satellites and time (or index by that first) by:
+
 ```python
 nav['M0']
 ```
@@ -260,24 +272,31 @@ A significant reason for using `xarray` as the base class of GeoRinex is that bi
 It's suggested to load the original RINEX files with the `-use` or `use=` option to greatly speed loading and conserve memory.
 
 A copy of the processed data can be saved to NetCDF4 for fast reloading and out-of-core processing by:
+
 ```python
 obs.to_netcdf('process.nc', group='OBS')
 ```
+
 `georinex.__init.py__` shows examples of using compression and other options if desired.
 
 ### Join data from multiple files
+
 Please see documentation for `xarray.concat` and `xarray.merge` for more details.
 Assuming you loaded OBS data from one file into `obs1` and data from another file into `obs2`, and the data needs to be concatenated in time:
+
 ```python
 obs = xarray.concat((obs1, obs2), dim='time')
 ```
+
 The `xarray.concat`operation may fail if there are different SV observation types in the files.
 you can try the more general:
+
 ```python
 obs = xarray.merge((obs1, obs2))
 ```
 
 ### Receiver location
+
 While `APPROX LOCATION XYZ` gives ECEF location in RINEX OBS files, this is OPTIONAL for moving platforms.
 If available, the `location` is written to the NetCDF4 / HDF5 output file on conversion.
 To convert ECEF to Latitude, Longitude, Altitude or other coordinate systems, use

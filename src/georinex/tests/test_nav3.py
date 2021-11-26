@@ -38,7 +38,7 @@ def test_mixed():
     assert E04tt != approx(E04_1tt)
 
     assert isinstance(nav, xarray.Dataset)
-    assert sorted(nav.svtype) == ["C", "E", "G", "R"]
+    assert set(nav.svtype) == {"C", "E", "G", "R"}
 
     times = gr.to_datetime(nav.time)
 
@@ -175,7 +175,7 @@ def test_large(filename, sv, shape):
 def test_large_all(sv, size):
     fn = R / "VILL00ESP_R_20181700000_01D_MN.rnx.gz"
     nav = gr.load(fn)
-    assert sorted(nav.svtype) == ["C", "E", "G", "R", "S"]
+    assert set(nav.svtype) == {"C", "E", "G", "R", "S"}
 
     dat = nav.sel(sv=sv).dropna(how="all", dim="time").to_dataframe()
     assert dat.shape[0] == size  # manually counted from file
