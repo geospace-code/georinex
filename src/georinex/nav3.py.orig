@@ -101,18 +101,30 @@ def rinexnav3(
 
             for j, i in enumerate(svi):
                 try:
+<<<<<<< HEAD
+                    darr[j, :] = [float(raws[i][LF * k : LF * (k + 1)]) for k in gi]
+                except ValueError:
+                    logging.info(f"malformed line for {sv}")
+                    darr[j, :] = np.nan
+=======
                     darr[j, compact_index] = [
                         float(raws[i][LF * k : LF * (k + 1)]) for k in range(len(compact_index))
                     ]
                 except ValueError:
                     logging.info(f"malformed line for {sv}")
 
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
             # %% discard duplicated times
             darr = darr[check, :][iu, :]
 
             dsf = {}
+<<<<<<< HEAD
+            for (i, d) in zip(gi, darr.T):
+                if sv[0] in {"R", "S"} and cf[i] in {
+=======
             for i, field in enumerate(full_fields):
                 if sv[0] in {"R", "S"} and field in {
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
                     "X",
                     "dX",
                     "dX2",
@@ -123,7 +135,11 @@ def rinexnav3(
                     "dZ",
                     "dZ2",
                 }:
+<<<<<<< HEAD
+                    d *= 1000  # km => m
+=======
                     darr[:, i] *= 1000  # km => m
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
 
                 dsf[field] = (("time", "sv"), darr[:, i][:, None])
 
@@ -193,6 +209,10 @@ def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
     GitHub Issue or Pull Request.
     """
 
+<<<<<<< HEAD
+    N = math.ceil(len(raw) / LF)  # need this for irregularly defined files
+=======
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
     # %% patching for Spare entries, some receivers include, and some don't include...
     if sys == "G":
         if N == 30:

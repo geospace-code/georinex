@@ -38,6 +38,8 @@ def test_tlim_past_eof(fname):
     assert times == datetime(2018, 7, 29, 23)
 
 
+<<<<<<< HEAD
+=======
 @pytest.mark.parametrize("fname", ["spare_filled_nav3.rnx"])
 def test_spare(fname):
     """
@@ -51,6 +53,7 @@ def test_spare(fname):
     assert (G01["FitIntvl"] == approx([4.0, 4.0])).all()
 
 
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
 @pytest.mark.parametrize("fname", ["ELKO00USA_R_20182100000_01D_MN.rnx.gz"])
 def test_mixed(fname):
     fn = R / fname
@@ -216,19 +219,33 @@ def test_large_all(sv, size):
 @pytest.mark.parametrize(
     "rfn, ncfn",
     [
+<<<<<<< HEAD
+        ("galileo3.15n", "r3galileo.nc"),
+        ("demo_nav3.17n", "r3gps.nc"),
+        ("qzss3.14n", "r3qzss.nc"),
+        ("demo3.10n", "r3sbas.nc"),
+=======
         ("galileo3.15n", "galileo3.15n.nc"),
         ("demo_nav3.17n", "demo_nav3.17n.nc"),
         ("qzss_nav3.14n", "qzss_nav3.14n.nc"),
         ("demo_nav3.10n", "demo_nav3.10n.nc"),
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
     ],
     ids=["GAL", "GPS", "QZSS", "SBAS"],
 )
 def test_ref(rfn, ncfn):
     """
+<<<<<<< HEAD
+    python -m georinex.read src/georinex/tests/data/galileo3.15n -o r3galileo.nc
+    python -m georinex.read src/georinex/tests/data/demo.17n -o r3gps.nc
+    python -m georinex.read src/georinex/tests/data/qzss3.14n -o r3qzss.nc
+    python -m georinex.read src/georinex/tests/data/demo3.10n -o r3sbas.nc
+=======
     python -m georinex.read src/georinex/tests/data/galileo3.15n -o galileo3.15n.nc
     python -m georinex.read src/georinex/tests/data/demo_nav3.17n -o demo_nav3.17n.nc
     python -m georinex.read src/georinex/tests/data/qzss_nav3.14n -o qzss_nav3.14n.nc
     python -m georinex.read src/georinex/tests/data/demo_nav3.10n -o demo_nav3.10n.nc
+>>>>>>> 512a8bb (nav3: handle files with mixed missing/present spare field)
     """
     pytest.importorskip("netCDF4")
 
