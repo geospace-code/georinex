@@ -92,22 +92,27 @@ def rinexnav3(
             tu, iu = np.unique(t[svi][check], return_index=True)
             duplicate = tu.size != t[svi][check].size
 
-            cf = _sparefields(fields[sv[0]], sv[0], raws[svi[0]])
-            gi = [i for i, c in enumerate(cf) if not c.startswith(("spare", "FitIntvl"))]
-            darr = np.empty((svi.size, len(gi)))
+            full_fields = fields[sv[0]]
+            compact_fields = _sparefields(full_fields, sys=sv[0], N=_num_fields(raws[svi[0]]))
+            compact_index = [i for i, c in enumerate(full_fields) if c in compact_fields]
+
+            darr = np.empty((svi.size, len(full_fields)))
+            darr.fill(np.nan)
 
             for j, i in enumerate(svi):
                 try:
-                    darr[j, :] = [float(raws[i][LF * k : LF * (k + 1)]) for k in gi]
+                    darr[j, compact_index] = [
+                        float(raws[i][LF * k : LF * (k + 1)]) for k in range(len(compact_index))
+                    ]
                 except ValueError:
                     logging.info(f"malformed line for {sv}")
-                    darr[j, :] = np.nan
+
             # %% discard duplicated times
             darr = darr[check, :][iu, :]
 
             dsf = {}
-            for (i, d) in zip(gi, darr.T):
-                if sv[0] in {"R", "S"} and cf[i] in {
+            for i, field in enumerate(full_fields):
+                if sv[0] in {"R", "S"} and field in {
                     "X",
                     "dX",
                     "dX2",
@@ -118,9 +123,9 @@ def rinexnav3(
                     "dZ",
                     "dZ2",
                 }:
-                    d *= 1000  # km => m
+                    darr[:, i] *= 1000  # km => m
 
-                dsf[cf[i]] = (("time", "sv"), d[:, None])
+                dsf[field] = (("time", "sv"), darr[:, i][:, None])
 
             svv = sv if not sv_copies else sv + f"_{sv_copies}"
 
@@ -155,6 +160,14 @@ def rinexnav3(
     return nav
 
 
+def _num_fields(raw: str) -> int:
+    """
+    Return the number of fields in a raw string.
+    """
+
+    return math.ceil(len(raw.rstrip()) / LF)
+
+
 def _skip(f: T.TextIO, Nl: int):
     for _, _ in zip(range(Nl), f):
         pass
@@ -172,7 +185,7 @@ def _time(ln: str) -> datetime:
     )
 
 
-def _sparefields(cf: list[str], sys: str, raw: str) -> list[str]:
+def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
     """
     check for optional spare fields, or GPS "fit interval" field
 
@@ -180,7 +193,6 @@ def _sparefields(cf: list[str], sys: str, raw: str) -> list[str]:
     GitHub Issue or Pull Request.
     """
 
-    N = math.ceil(len(raw) / LF)  # need this for irregularly defined files
     # %% patching for Spare entries, some receivers include, and some don't include...
     if sys == "G":
         if N == 30:

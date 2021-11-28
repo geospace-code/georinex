@@ -38,6 +38,19 @@ def test_tlim_past_eof(fname):
     assert times == datetime(2018, 7, 29, 23)
 
 
+@pytest.mark.parametrize("fname", ["spare_filled_nav3.rnx"])
+def test_spare(fname):
+    """
+    NAV3 with filled spare fields (many files omit the spare fields)
+    """
+
+    fn = R / fname
+    nav = gr.load(fn)
+    G01 = nav.sel(sv="G01").dropna(dim="time", how="all")
+    assert G01.time.size == 2
+    assert (G01["FitIntvl"] == approx([4.0, 4.0])).all()
+
+
 @pytest.mark.parametrize("fname", ["ELKO00USA_R_20182100000_01D_MN.rnx.gz"])
 def test_mixed(fname):
     fn = R / fname
@@ -163,11 +176,11 @@ def test_mixed(fname):
 @pytest.mark.parametrize(
     "filename, sv, shape",
     [
-        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "S36", (542, 16)),
-        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "G05", (7, 29)),
-        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "C05", (25, 28)),
-        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "E05", (45, 28)),
-        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "R05", (19, 16)),
+        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "S36", (542, 15)),
+        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "G05", (7, 31)),
+        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "C05", (25, 31)),
+        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "E05", (45, 31)),
+        ("VILL00ESP_R_20181700000_01D_MN.rnx.gz", "R05", (19, 15)),
     ],
     ids=["SBAS", "GPS", "BDS", "GAL", "GLO"],
 )
@@ -177,10 +190,15 @@ def test_large(filename, sv, shape):
 
     assert nav.svtype[0] == sv[0] and len(nav.svtype) == 1
 
-    dat = nav.sel(sv=sv).dropna(how="all", dim="time").to_dataframe()
-    assert dat.shape == shape
+    dat = nav.sel(sv=sv).dropna(how="all", dim="time")
 
-    assert dat.notnull().all().all()
+    assert dat.time.size == shape[0]
+    assert len(dat.data_vars) == shape[1]
+
+    for v in dat.data_vars:
+        if v.startswith("spare"):
+            continue
+        assert all(dat[v].notnull())
 
 
 @pytest.mark.parametrize(
@@ -198,19 +216,19 @@ def test_large_all(sv, size):
 @pytest.mark.parametrize(
     "rfn, ncfn",
     [
-        ("galileo3.15n", "r3galileo.nc"),
-        ("demo_nav3.17n", "r3gps.nc"),
-        ("qzss3.14n", "r3qzss.nc"),
-        ("demo3.10n", "r3sbas.nc"),
+        ("galileo3.15n", "galileo3.15n.nc"),
+        ("demo_nav3.17n", "demo_nav3.17n.nc"),
+        ("qzss_nav3.14n", "qzss_nav3.14n.nc"),
+        ("demo_nav3.10n", "demo_nav3.10n.nc"),
     ],
     ids=["GAL", "GPS", "QZSS", "SBAS"],
 )
 def test_ref(rfn, ncfn):
     """
-    python -m georinex.read src/georinex/tests/data/galileo3.15n -o r3galileo.nc
-    python -m georinex.read src/georinex/tests/data/demo.17n -o r3gps.nc
-    python -m georinex.read src/georinex/tests/data/qzss3.14n -o r3qzss.nc
-    python -m georinex.read src/georinex/tests/data/demo3.10n -o r3sbas.nc
+    python -m georinex.read src/georinex/tests/data/galileo3.15n -o galileo3.15n.nc
+    python -m georinex.read src/georinex/tests/data/demo_nav3.17n -o demo_nav3.17n.nc
+    python -m georinex.read src/georinex/tests/data/qzss_nav3.14n -o qzss_nav3.14n.nc
+    python -m georinex.read src/georinex/tests/data/demo_nav3.10n -o demo_nav3.10n.nc
     """
     pytest.importorskip("netCDF4")
 
