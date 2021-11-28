@@ -32,8 +32,19 @@ p.add_argument("rinexfn", help="path to RINEX 2 or RINEX 3 file")
 p.add_argument("-o", "--out", help="write data to path or file as NetCDF4")
 p.add_argument("-v", "--verbose", action="store_true")
 p.add_argument("-p", "--plot", help="display plots", action="store_true")
-p.add_argument("-u", "--use", help="select which GNSS system(s) to use", nargs="+")
-p.add_argument("-m", "--meas", help="select which GNSS measurement(s) to use", nargs="+")
+p.add_argument(
+    "-u",
+    "--use",
+    help="select which GNSS system(s) to use",
+    choices=["G", "C", "E", "S", "J", "R", "I"],
+    nargs="+",
+)
+p.add_argument(
+    "-m",
+    "--meas",
+    help="select which GNSS measurement(s) to use",
+    nargs="+",
+)
 p.add_argument("-t", "--tlim", help="specify time limits (process part of file)", nargs=2)
 p.add_argument(
     "-useindicators",
