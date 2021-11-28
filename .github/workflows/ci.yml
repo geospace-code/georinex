@@ -35,4 +35,4 @@ jobs:
       run: mypy
 
     - run: pytest
-      timeout-minutes: 5
+      timeout-minutes: 7
