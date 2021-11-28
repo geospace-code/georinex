@@ -9,8 +9,9 @@ import georinex as gr
 R = Path(__file__).parent / "data"
 
 
-def test_nav3header():
-    hdr = gr.rinexheader(R / "demo.17n")
+@pytest.mark.parametrize("fname", ["demo_nav3.17n"])
+def test_nav3header(fname):
+    hdr = gr.rinexheader(R / fname)
     assert hdr["IONOSPHERIC CORR"]["GPSA"] == approx(
         [1.1176e-08, -1.4901e-08, -5.9605e-08, 1.1921e-07]
     )
@@ -19,15 +20,17 @@ def test_nav3header():
     )
 
 
-def test_time():
-    times = gr.gettime(R / "VILL00ESP_R_20181700000_01D_MN.rnx.gz")
+@pytest.mark.parametrize("fname", ["VILL00ESP_R_20181700000_01D_MN.rnx.gz"])
+def test_time(fname):
+    times = gr.gettime(R / fname)
 
     assert times[0] == datetime(2018, 4, 24, 8)
     assert times[-1] == datetime(2018, 6, 20, 22)
 
 
-def test_tlim_past_eof():
-    fn = R / "CEDA00USA_R_20182100000_01D_MN.rnx.gz"
+@pytest.mark.parametrize("fname", ["CEDA00USA_R_20182100000_01D_MN.rnx.gz"])
+def test_tlim_past_eof(fname):
+    fn = R / fname
     nav = gr.load(fn, tlim=("2018-07-29T23", "2018-07-29T23:30"))
 
     times = gr.to_datetime(nav.time)
@@ -35,8 +38,9 @@ def test_tlim_past_eof():
     assert times == datetime(2018, 7, 29, 23)
 
 
-def test_mixed():
-    fn = R / "ELKO00USA_R_20182100000_01D_MN.rnx.gz"
+@pytest.mark.parametrize("fname", ["ELKO00USA_R_20182100000_01D_MN.rnx.gz"])
+def test_mixed(fname):
+    fn = R / fname
     nav = gr.load(fn, tlim=(datetime(2018, 7, 28, 21), datetime(2018, 7, 28, 23)))
 
     E04 = nav.sel(sv="E04").dropna(dim="time", how="all")
@@ -187,15 +191,15 @@ def test_large_all(sv, size):
     nav = gr.load(fn)
     assert set(nav.svtype) == {"C", "E", "G", "R", "S"}
 
-    dat = nav.sel(sv=sv).dropna(how="all", dim="time").to_dataframe()
-    assert dat.shape[0] == size  # manually counted from file
+    dat = nav.sel(sv=sv).dropna(how="all", dim="time")
+    assert dat.time.size == size  # manually counted from file
 
 
 @pytest.mark.parametrize(
     "rfn, ncfn",
     [
         ("galileo3.15n", "r3galileo.nc"),
-        ("demo.17n", "r3gps.nc"),
+        ("demo_nav3.17n", "r3gps.nc"),
         ("qzss3.14n", "r3qzss.nc"),
         ("demo3.10n", "r3sbas.nc"),
     ],
@@ -203,21 +207,23 @@ def test_large_all(sv, size):
 )
 def test_ref(rfn, ncfn):
     """
-    python -m georinex.read tests/data/galileo3.15n -o r3galileo.nc
-    python -m georinex.read tests/data/demo.17n -o r3gps.nc
-    python -m georinex.read tests/data/qzss3.14n -o r3qzss.nc
-    python -m georinex.read tests/data/demo3.10n -o r3sbas.nc
+    python -m georinex.read src/georinex/tests/data/galileo3.15n -o r3galileo.nc
+    python -m georinex.read src/georinex/tests/data/demo.17n -o r3gps.nc
+    python -m georinex.read src/georinex/tests/data/qzss3.14n -o r3qzss.nc
+    python -m georinex.read src/georinex/tests/data/demo3.10n -o r3sbas.nc
     """
     pytest.importorskip("netCDF4")
 
     truth = gr.load(R / ncfn)
     nav = gr.load(R / rfn)
 
+    for v in nav.data_vars:
+        assert truth[v].equals(nav[v])
     assert nav.equals(truth)
 
 
 def test_ionospheric_correction():
-    nav = gr.load(R / "demo.17n")
+    nav = gr.load(R / "demo_nav3.17n")
 
     assert nav.attrs["ionospheric_corr_GPS"] == approx(
         [
