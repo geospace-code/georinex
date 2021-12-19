@@ -11,12 +11,7 @@ import logging
 import xarray
 
 from hatanaka import crx2rnx
-
-try:
-    # The C-based unlzw lib is more efficient but also more difficult to install
-    from unlzw import unlzw
-except ImportError:
-    from unlzw3 import unlzw
+from ncompress import decompress as unlzw
 
 
 @contextmanager
@@ -68,8 +63,6 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
                         )
                         yield f
         elif suffix == ".z":
-            if unlzw is None:
-                raise ImportError("pip install unlzw3")
             with fn.open("rb") as zu:
                 with io.StringIO(unlzw(zu.read()).decode("ascii")) as f:
                     yield f
