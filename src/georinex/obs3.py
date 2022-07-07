@@ -169,41 +169,37 @@ def rinexobs3(
                     # update list of satellites
                     if not k in svl:
                         svl[np.argmax(svl=='   ')]=k
-                        
+
                 
                 darr = np.atleast_2d(
                         np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
                     )
                 
                 t = time==times
-                
-                #print(darr.shape)
-                #print(sv)
+
                 for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
                     # satellite indices "si" to extract from this time's measurements
-                    
-                    
+
                     si = [i for i, s in enumerate(sv) if s[0] in sk]
                     if len(si) == 0:  # no SV of this system "sk" at this time
                         continue
                     
                     gsv = np.array(sv)[si]
-                    #print(gsv)
-                    #isv = [i for i,s in enumerate(svl) if s in gsv]
+
                     isv = [np.where(s==gsv) for i,s in enumerate(svl)]
                     isv,jsv = np.nonzero(np.atleast_2d(svl).T == np.atleast_2d(gsv))
-                    #jsv = [i for i,s in enumerate(sv) if s in gsv]
-                    #print(isv)
-                    #print(jsv)
-                    #print(svl[isv])
+
+
                     for i,j in enumerate(hdr['fields'][sk]):
                         o = obl==j
                         if not np.any(o):
                             continue
+
                         data[o,t,isv]=darr[jsv,i*3]    
                         if useindicators:
                             data_lli[o,t,isv]=darr[jsv,i*3+1]  
                             data_ssi[o,t,isv]=darr[jsv,i*3+2]  
+
             else:
                 # this time epoch is complete, assemble the data.
                 data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
@@ -214,7 +210,7 @@ def rinexobs3(
            svl=svl[:np.argmax(svl=='   ')]
        
        svl, isv = np.unique(svl,return_index=True)
-       #isv = range(svl.size)
+
        data=data[:,:,isv]
        if useindicators:
            data_lli=data_lli[:,:,isv]
