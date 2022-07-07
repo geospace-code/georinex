@@ -72,6 +72,13 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
                 raise ImportError("pip install unlzw3")
             with fn.open("rb") as zu:
                 with io.StringIO(unlzw(zu.read()).decode("ascii")) as f:
+                    _, is_crinex = rinex_version(first_nonblank_line(f))
+                    f.seek(0)
+
+                    if is_crinex and not header:
+                        # Conversion to string is necessary because of a quirk where gzip.open()
+                        # even with 'rt' doesn't decompress until read.
+                        f = io.StringIO(crx2rnx(f.read()))
                     yield f
         else:  # assume not compressed (or Hatanaka)
             with fn.open("r", encoding="ascii", errors="ignore") as f:

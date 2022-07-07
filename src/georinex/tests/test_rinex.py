@@ -61,7 +61,7 @@ def test_minimal(tmp_path, filename):
         if int(dat.version) == 2:
             assert dat.fast_processing
         elif int(dat.version) == 3:
-            assert not dat.fast_processing  # FIXME: update when OBS3 fast processing is added.
+            assert dat.fast_processing 
 
 
 def test_dont_care_file_extension():
