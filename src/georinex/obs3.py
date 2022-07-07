@@ -169,6 +169,7 @@ def rinexobs3(
                     # update list of satellites
                     if not k in svl:
                         svl[np.argmax(svl=='   ')]=k
+
                 
                 darr = np.atleast_2d(
                         np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
@@ -178,21 +179,27 @@ def rinexobs3(
 
                 for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
                     # satellite indices "si" to extract from this time's measurements
+
                     si = [i for i, s in enumerate(sv) if s[0] in sk]
                     if len(si) == 0:  # no SV of this system "sk" at this time
                         continue
                     
                     gsv = np.array(sv)[si]
-                    isv = [i for i,s in enumerate(svl) if s in gsv]
-                    
+
+                    isv = [np.where(s==gsv) for i,s in enumerate(svl)]
+                    isv,jsv = np.nonzero(np.atleast_2d(svl).T == np.atleast_2d(gsv))
+
+
                     for i,j in enumerate(hdr['fields'][sk]):
                         o = obl==j
                         if not np.any(o):
                             continue
-                        data[o,t,isv]=darr[si,i*3]    
+
+                        data[o,t,isv]=darr[jsv,i*3]    
                         if useindicators:
-                            data_lli[o,t,isv]=darr[si,i*3+1]  
-                            data_ssi[o,t,isv]=darr[si,i*3+2]  
+                            data_lli[o,t,isv]=darr[jsv,i*3+1]  
+                            data_ssi[o,t,isv]=darr[jsv,i*3+2]  
+
             else:
                 # this time epoch is complete, assemble the data.
                 data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
@@ -203,7 +210,7 @@ def rinexobs3(
            svl=svl[:np.argmax(svl=='   ')]
        
        svl, isv = np.unique(svl,return_index=True)
-           
+
        data=data[:,:,isv]
        if useindicators:
            data_lli=data_lli[:,:,isv]
@@ -260,7 +267,7 @@ def rinexobs3(
 
     if time_offset:
         data.attrs["time_offset"] = time_offset
-
+        
     if "RCV CLOCK OFFS APPL" in hdr.keys():
         try:
             data.attrs["receiver_clock_offset_applied"] = int(hdr["RCV CLOCK OFFS APPL"])
