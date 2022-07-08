@@ -186,9 +186,11 @@ def rinexobs3(
                     
                     gsv = np.array(sv)[si]
 
-                    isv = [np.where(s==gsv) for i,s in enumerate(svl)]
-                    isv,jsv = np.nonzero(np.atleast_2d(svl).T == np.atleast_2d(gsv))
-
+                    #isv = [np.where(s==gsv) for i,s in enumerate(svl)]
+                    isv,jsv = np.nonzero(np.logical_and(
+                        np.atleast_2d(svl).T == np.atleast_2d(sv),
+                                      np.isin(sv,gsv))                  )
+                    
 
                     for i,j in enumerate(hdr['fields'][sk]):
                         o = obl==j
