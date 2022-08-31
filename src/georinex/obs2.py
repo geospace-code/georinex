@@ -36,7 +36,9 @@ def rinexobs2(
     if not use:
         use = {"C", "E", "G", "J", "R", "S"}
 
-    obs = xarray.Dataset({}, coords={"time": [], "sv": []})
+    obs = xarray.Dataset({},
+                         coords={"time": np.array([], dtype='datetime64[ns]'),
+                                 "sv": np.array([], dtype='<U3')})
     attrs: dict[str, T.Any] = {}
     for u in use:
         o = rinexsystem2(
