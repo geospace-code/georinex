@@ -154,7 +154,7 @@ def rinexnav(
 
         if fn.suffix == ".nc":
             try:
-                return xarray.open_dataset(fn, group=group)
+                return xarray.load_dataset(fn, group=group)
             except OSError as e:
                 raise LookupError(f"Group {group} not found in {fn}    {e}")
 
@@ -205,7 +205,7 @@ def rinexobs(
         # %% NetCDF4
         if fn.suffix == ".nc":
             try:
-                return xarray.open_dataset(fn, group=group)
+                return xarray.load_dataset(fn, group=group)
             except OSError as e:
                 raise LookupError(f"Group {group} not found in {fn}   {e}")
 
@@ -259,7 +259,7 @@ def _groupexists(fn: Path, group: str, overwrite: bool) -> str:
 
     # be sure there isn't already NAV in it
     try:
-        xarray.open_dataset(fn, group=group)
+        xarray.load_dataset(fn, group=group)
         raise ValueError(f"{group} already in {fn}")
     except OSError:
         pass

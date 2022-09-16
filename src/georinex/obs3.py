@@ -88,14 +88,13 @@ def rinexobs3(
         
 
         if fast:
-            hdr = obsheader3(f,use)
+            hdr = obsheader3(f,use)    
             
             obl = []
             for sk in hdr["fields"]:
                 obl=obl+hdr["fields"][sk]
             obl = np.unique(np.array(obl))
             obl = obl[np.argsort([i[1:]+i[0] for i in iter(obl)])]
-            
             
             if meas is not None:
                 obl = obl[np.any([np.char.find(obl,j)==0 for i, j  in enumerate(meas)],0)]
@@ -186,7 +185,6 @@ def rinexobs3(
                     
                     gsv = np.array(sv)[si]
 
-                    #isv = [np.where(s==gsv) for i,s in enumerate(svl)]
                     isv,jsv = np.nonzero(np.logical_and(
                         np.atleast_2d(svl).T == np.atleast_2d(sv),
                                       np.isin(sv,gsv))                  )
@@ -234,7 +232,7 @@ def rinexobs3(
                    obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
                    
        obs = obs.dropna(dim="sv", how="all")
-       obs = obs.dropna(dim="time", how="all")  # when tlim specified
+       #obs = obs.dropna(dim="time", how="all")  # when tlim specified
             
        data=obs
         
@@ -266,7 +264,8 @@ def rinexobs3(
         data.attrs["position"] = hdr["position"]
         if ecef2geodetic is not None:
             data.attrs["position_geodetic"] = hdr["position_geodetic"]
-
+    if "rxmodel" in hdr.keys():
+        obs.attrs["rxmodel"] = hdr["rxmodel"]
     if time_offset:
         data.attrs["time_offset"] = time_offset
         
