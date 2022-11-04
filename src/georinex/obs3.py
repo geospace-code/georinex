@@ -75,7 +75,7 @@ def rinexobs3(
 
     # %% allocate
     if fast:
-        times = np.unique(obstime3(fn))
+        times = obstime3(fn)
     else:
         data = xarray.Dataset({}, coords={"time": [], "sv": []})
 
@@ -194,10 +194,11 @@ def rinexobs3(
                         o = obl==j
                         if not np.any(o):
                             continue
-                            data[o,t,isv]=darr[jsv,i*3]
+                        data[np.ix_(o,t,isv)]=darr[jsv,i*3]
+
                         if useindicators:
-                            data_lli[o,t,isv]=darr[jsv,i*3+1]
-                            data_ssi[o,t,isv]=darr[jsv,i*3+2]
+                            data_lli[np.ix_(o,t,isv)]=darr[jsv,i*3+1]
+                            data_ssi[np.ix_(o,t,isv)]=darr[jsv,i*3+2]
 
             else:
                 # this time epoch is complete, assemble the data.
