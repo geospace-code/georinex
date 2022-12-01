@@ -28,7 +28,7 @@ def rinexobs2(
     *,
     fast: bool = True,
     interval: float | int | timedelta = None,
-) -> xarray.Dataset:
+):
 
     if isinstance(use, str):
         use = {use}
@@ -39,7 +39,8 @@ def rinexobs2(
     obs = xarray.Dataset({},
                          coords={"time": np.array([], dtype='datetime64[ns]'),
                                  "sv": np.array([], dtype='<U3')})
-    attrs: dict[str, T.Any] = {}
+    attrs: dict[T.Hashable, T.Any] = {}
+
     for u in use:
         o = rinexsystem2(
             fn,
@@ -312,7 +313,7 @@ def rinexsystem2(
 
 def _num_times(
     fn: T.TextIO | Path, Nextra: int, tlim: T.Optional[tuple[datetime, datetime]], verbose: bool
-) -> np.ndarray:
+):
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
     if Nextra:
@@ -343,7 +344,7 @@ def _num_times(
 
 def obsheader2(
     f: T.TextIO | Path, useindicators: bool = False, meas: list[str] = None
-) -> dict[str, T.Any]:
+) -> dict[T.Hashable, T.Any]:
     """
     End users should use rinexheader()
     """
@@ -487,7 +488,7 @@ def _getSVlist(ln: str, N: int, sv: list[str]) -> list[str]:
     return sv
 
 
-def obstime2(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
+def obstime2(fn: T.TextIO | Path, verbose: bool = False):
     """
     read all times in RINEX2 OBS file
     """

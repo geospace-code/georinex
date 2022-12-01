@@ -32,7 +32,7 @@ def keplerian2ecef(
 
     A = sv["sqrtA"].values ** 2
 
-    n0 = np.sqrt(GM / A ** 3)  # computed mean motion
+    n0 = np.sqrt(GM / A**3)  # computed mean motion
     #    T = 2*pi / n0  # Satellite orbital period
 
     n = n0 + sv["DeltaN"].values  # corrected mean motion
@@ -63,7 +63,7 @@ def keplerian2ecef(
     Mk = sv["M0"].values + n * tk  # Mean Anomaly
     Ek = Mk + e * np.sin(Mk)  # Eccentric anomaly
     # %% true anomaly
-    nuK = np.arctan2(np.sqrt(1 - e ** 2) * np.sin(Ek), np.cos(Ek) - e)
+    nuK = np.arctan2(np.sqrt(1 - e**2) * np.sin(Ek), np.cos(Ek) - e)
     # %% latitude
     PhiK = nuK + sv["omega"].values  # argument of latitude
     duk = sv["Cuc"].values * np.cos(2 * PhiK) + sv["Cus"].values * np.sin(
