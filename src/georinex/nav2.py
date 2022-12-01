@@ -14,7 +14,7 @@ STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {"G": 7, "R": 3, "E": 7}  # number of additional SV lines
 
 
-def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xarray.Dataset:
+def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None):
     """
     Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.
@@ -210,7 +210,7 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None) -> xa
     return nav
 
 
-def navheader2(f: T.TextIO) -> dict[str, T.Any]:
+def navheader2(f: T.TextIO) -> dict[T.Hashable, T.Any]:
     """
     For RINEX NAV version 2 only. End users should use rinexheader()
     """
@@ -255,7 +255,7 @@ def _skip(f: T.TextIO, Nl: int):
         pass
 
 
-def navtime2(fn: T.TextIO | Path) -> np.ndarray:
+def navtime2(fn: T.TextIO | Path):
     """
     read all times in RINEX 2 NAV file
     """
@@ -277,4 +277,4 @@ def navtime2(fn: T.TextIO | Path) -> np.ndarray:
 
             _skip(f, Nl[hdr["systems"]])
 
-    return np.unique(times)
+    return np.unique(times)  # type: ignore

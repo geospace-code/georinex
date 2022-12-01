@@ -24,7 +24,7 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
 
     http://epncb.oma.be/ftp/data/format/sp3_docu.txt  (sp3a)
     """
-    dat: dict[str, T.Any] = {}
+    dat: dict[T.Hashable, T.Any] = {}
     with fn.open("r") as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"

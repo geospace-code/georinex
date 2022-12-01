@@ -111,14 +111,14 @@ def first_nonblank_line(f: T.TextIO, max_lines: int = 10) -> str:
     return line
 
 
-def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
+def rinexinfo(f: T.TextIO | Path) -> dict[T.Hashable, T.Any]:
     """verify RINEX version"""
 
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
         if fn.suffix == ".nc":
-            attrs: dict[str, T.Any] = {"rinextype": []}
+            attrs: dict[T.Hashable, T.Any] = {"rinextype": []}
             for g in ("OBS", "NAV"):
                 try:
                     dat = xarray.open_dataset(fn, group=g)
@@ -160,7 +160,7 @@ def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
         else:
             rinex_type = line[20]
 
-        info = {
+        info: dict[T.Hashable, T.Any] = {
             "version": version,
             "filetype": file_type,
             "rinextype": rinex_type,

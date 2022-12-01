@@ -2,6 +2,7 @@ from __future__ import annotations
 import pandas
 import io
 import xarray
+import typing as T
 from pathlib import Path
 
 from .utils import rinexheader
@@ -25,6 +26,7 @@ def get_locations(files: list[Path]) -> pandas.DataFrame:
     else:
         raise TypeError("Expecting pathlib.Path")
 
+    hdr: dict[T.Hashable, T.Any]
     for file in files:
         if isinstance(file, Path) and file.suffix == ".nc":
             dat = xarray.open_dataset(file, group="OBS")

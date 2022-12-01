@@ -4,6 +4,15 @@ requires = ["setuptools", "wheel"]
 [tool.black]
 line-length = 99
 
+[tool.mypy]
+files = ["src"]
+ignore_missing_imports = true
+strict_optional = false
+allow_redefinition = true
+show_error_context = false
+show_column_numbers = true
+warn_unreachable = false
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 filterwarnings = [

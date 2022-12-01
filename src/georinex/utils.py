@@ -5,7 +5,6 @@ from datetime import datetime
 from dateutil.parser import parse
 import io
 import xarray
-import numpy as np
 
 from .rio import rinexinfo, opener
 from .obs2 import obstime2, obsheader2
@@ -30,7 +29,7 @@ def globber(path: Path, glob: list[str]) -> list[Path]:
     return flist
 
 
-def gettime(fn: T.TextIO | Path) -> np.ndarray:
+def gettime(fn: T.TextIO | Path):
     """
     get times in RINEX 2/3 file
     Note: in header,
@@ -76,7 +75,7 @@ def gettime(fn: T.TextIO | Path) -> np.ndarray:
     return times
 
 
-def rinexheader(fn: T.TextIO | Path) -> dict[str, T.Any]:
+def rinexheader(fn: T.TextIO | Path) -> dict[T.Hashable, T.Any]:
     """
     retrieve RINEX 2/3 or CRINEX 1/3 header as unparsed dict()
     """
@@ -97,6 +96,7 @@ def rinexheader(fn: T.TextIO | Path) -> dict[str, T.Any]:
 
     info = rinexinfo(fn)
 
+    hdr: dict[T.Hashable, T.Any]
     if int(info["version"]) in (1, 2):
         if info["rinextype"] == "obs":
             hdr = obsheader2(fn)
@@ -130,7 +130,8 @@ def _tlim(tlim: tuple[datetime, datetime] = None) -> tuple[datetime, datetime]:
     return tlim
 
 
-def to_datetime(times: xarray.DataArray) -> datetime:
+def to_datetime(times: xarray.DataArray):
+    """convert to datetime.dattime"""
     if not isinstance(times, xarray.DataArray):
         return times
 
