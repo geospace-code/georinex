@@ -86,18 +86,18 @@ def rinexobs3(
     # %% loop
     with opener(fn) as f:
 
-
         if fast:
-            hdr = obsheader3(f,use)
+            hdr = obsheader3(f, use)
 
             obl = []
             for sk in hdr["fields"]:
-                obl=obl+hdr["fields"][sk]
+                obl = obl + hdr["fields"][sk]
             obl = np.unique(np.array(obl))
             obl = obl[np.argsort([i[1:]+i[0] for i in iter(obl)])]
 
             if meas is not None:
-                obl = obl[np.any([np.char.find(obl,j)==0 for i, j  in enumerate(meas)],0)]
+                obl = obl[np.any([np.char.find(obl, j) == 0
+                                  for i, j in enumerate(meas)], 0)]
 
             Nt = times.size
             Npages = len(obl)
@@ -106,20 +106,19 @@ def rinexobs3(
             else:
                 Nsv = Nsvsys * len(hdr['fields'])
 
-            svl = np.tile('   ',Nsv)
+            svl = np.tile('   ', Nsv)
 
             data = np.empty((Npages, Nt, Nsv))
             data.fill(np.nan)
 
             if useindicators:
-                data_lli = np.full_like(data,np.nan)
-                data_ssi = np.full_like(data,np.nan)
+                data_lli = np.full_like(data, np.nan)
+                data_ssi = np.full_like(data, np.nan)
 
         else:
             hdr = obsheader3(f, use, meas)
 
-
-        # %% process OBS file
+        # process OBS file
         time_offset = []
         for ln in f:
             if not ln.startswith(">"):  # end of file
@@ -166,15 +165,14 @@ def rinexobs3(
             if fast:
                 for k in sv:
                     # update list of satellites
-                    if not k in svl:
-                        svl[np.argmax(svl=='   ')]=k
-
+                    if k not in svl:
+                        svl[np.argmax(svl == '   ')] = k
 
                 darr = np.atleast_2d(
-                        np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
-                    )
+                        np.genfromtxt(io.BytesIO(raw.encode("ascii")),
+                                      delimiter=(14, 1, 1) * hdr["Fmax"]))
 
-                t = time==times
+                t = time == times
 
                 for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
                     # satellite indices "si" to extract from this time's measurements
@@ -185,60 +183,60 @@ def rinexobs3(
 
                     gsv = np.array(sv)[si]
 
-                    isv,jsv = np.nonzero(np.logical_and(
+                    isv, jsv = np.nonzero(np.logical_and(
                         np.atleast_2d(svl).T == np.atleast_2d(sv),
-                                      np.isin(sv,gsv))                  )
+                                      np.isin(sv, gsv))                  )
 
-
-                    for i,j in enumerate(hdr['fields'][sk]):
-                        o = obl==j
+                    for i, j in enumerate(hdr['fields'][sk]):
+                        o = obl == j
                         if not np.any(o):
                             continue
-                        data[np.ix_(o,t,isv)]=darr[jsv,i*3]
+                        data[np.ix_(o, t, isv)] = darr[jsv, i*3]
 
                         if useindicators:
-                            data_lli[np.ix_(o,t,isv)]=darr[jsv,i*3+1]
-                            data_ssi[np.ix_(o,t,isv)]=darr[jsv,i*3+2]
+                            data_lli[np.ix_(o, t, isv)] = darr[jsv, i*3+1]
+                            data_ssi[np.ix_(o, t, isv)] = darr[jsv, i*3+2]
 
             else:
                 # this time epoch is complete, assemble the data.
                 data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
 
     if fast:
-       if '   ' in svl:
-           # remove blank satellites (if tlim used)
-           svl=svl[:np.argmax(svl=='   ')]
+        if '   ' in svl:
+            # remove blank satellites (if tlim used)
+            svl = svl[:np.argmax(svl == '   ')]
 
-       svl, isv = np.unique(svl,return_index=True)
+        svl, isv = np.unique(svl, return_index=True)
 
-       data=data[:,:,isv]
-       if useindicators:
-           data_lli=data_lli[:,:,isv]
-           data_ssi=data_ssi[:,:,isv]
+        data = data[:, :, isv]
+        if useindicators:
+            data_lli = data_lli[:, :, isv]
+            data_ssi = data_ssi[:, :, isv]
 
-       obs = xarray.Dataset(coords={"sv": svl,"time":times})
-       for i, k in enumerate(obl):
-           if k is None:
-               continue
-           elif np.all(np.isnan(data[i, :, :])): # drop all nan datasets like tests expect
-               continue
-           obs[k] = (("time", "sv"), data[i, :, :])
-           if useindicators:
-               if k[0] == 'L':
-                   obs[k+'lli'] = (("time", "sv"), data_lli[i, :, :])
-                   obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
-               #elif k[0] == 'C': # only for code?
-               else:
-                   obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
+        obs = xarray.Dataset(coords={"sv": svl, "time": times})
+        for i, k in enumerate(obl):
+            if k is None:
+                continue
+            elif np.all(np.isnan(data[i, :, :])):
+                # drop all nan datasets like tests expect
+                continue
+            obs[k] = (("time", "sv"), data[i, :, :])
+            if useindicators:
+                if k[0] == 'L':
+                    obs[k+'lli'] = (("time", "sv"), data_lli[i, :, :])
+                    obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
+                # elif k[0] == 'C': # only for code?
+                else:
+                    obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
 
-       obs = obs.dropna(dim="sv", how="all")
-       #obs = obs.dropna(dim="time", how="all")  # when tlim specified
+        obs = obs.dropna(dim="sv", how="all")
+         # obs = obs.dropna(dim="time", how="all")  # when tlim specified
 
-       data=obs
-
+        data = obs
 
     # %% patch SV names in case of "G 7" => "G07"
-    data = data.assign_coords(sv=[s.replace(" ", "0") for s in data.sv.values.tolist()])
+    data = data.assign_coords(sv=[s.replace(" ", "0")
+                                  for s in data.sv.values.tolist()])
     # %% other attributes
     data.attrs["version"] = hdr["version"]
 
@@ -248,7 +246,8 @@ def rinexobs3(
     elif "time" in data.coords.keys():
         # median is robust against gaps
         try:
-            data.attrs["interval"] = np.median(np.diff(data.time) / np.timedelta64(1, "s"))
+            data.attrs["interval"] = np.median(np.diff(data.time)
+                                               / np.timedelta64(1, "s"))
         except TypeError:
             pass
     else:
@@ -333,9 +332,9 @@ def _epoch(
     block processing of each epoch (time step)
     """
     darr = np.atleast_2d(
-        np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
-    )
-    #data = xarray.Dataset({}, coords={"time": [], "sv": []})
+        np.genfromtxt(io.BytesIO(raw.encode("ascii")),
+                      delimiter=(14, 1, 1) * hdr["Fmax"]))
+    # data = xarray.Dataset({}, coords={"time": [], "sv": []})
     # %% assign data for each time step
     for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
         # satellite indices "si" to extract from this time's measurements
@@ -355,7 +354,7 @@ def _epoch(
             dsf[k] = (("time", "sv"), np.atleast_2d(garr[:, i * 3]))
 
             if useindicators:
-                dsf = _indicators(dsf, k, garr[:, i * 3 + 1 : i * 3 + 3])
+                dsf = _indicators(dsf, k, garr[:, i * 3 + 1: i * 3 + 3])
 
         if verbose:
             print(time, "\r", end="")
@@ -363,13 +362,14 @@ def _epoch(
         epoch_data = xarray.Dataset(dsf, coords={"time": [time], "sv": gsv})
         if len(data) == 0:
             data = epoch_data
-            #data = xarray.merge((data, epoch_data))
+            # data = xarray.merge((data, epoch_data))
         elif len(hdr["fields"]) == 1:  # one satellite system selected, faster to process
             data = xarray.concat((data, epoch_data), dim="time")
         else:  # general case, slower for different satellite systems all together
             data = xarray.merge((data, epoch_data))
 
     return data
+
 
 def rinexsystem3(
     fn: T.TextIO | Path,
@@ -415,7 +415,7 @@ def rinexsystem3(
         meas = None
     # %% allocate
     times = obstime3(fn)
-    #data = xarray.Dataset({}, coords={"time": [], "sv": []})
+    # data = xarray.Dataset({}, coords={"time": [], "sv": []})
     if tlim is not None and not isinstance(tlim[0], datetime):
         raise TypeError("time bounds are specified as datetime.datetime")
 
@@ -430,26 +430,25 @@ def rinexsystem3(
 
         obl = []
         for sk in hdr["fields"]:
-            obl=obl+hdr["fields"][sk]
+            obl = obl + hdr["fields"][sk]
         obl = np.unique(np.array(obl))
         obl = obl[np.argsort([i[1:]+i[0] for i in iter(obl)])]
 
-
         if meas is not None:
-            obl = obl[np.isin(obl,meas)]
+            obl = obl[np.isin(obl, meas)]
 
         Nt = times.size
         Npages = len(obl)
         Nsv = int(hdr['# OF SATELLITES'])
 
-        svl = np.tile('   ',Nsv)
+        svl = np.tile('   ', Nsv)
 
         data = np.empty((Npages, Nt, Nsv))
         data.fill(np.nan)
 
         if useindicators:
-            data_lli = np.full_like(data,np.nan)
-            data_ssi = np.full_like(data,np.nan)
+            data_lli = np.full_like(data, np.nan)
+            data_ssi = np.full_like(data, np.nan)
 
         # %% process OBS file
         time_offset = []
@@ -495,19 +494,15 @@ def rinexsystem3(
             if verbose:
                 print(time, end="\r")
 
-
             for k in sv:
-                if not k in svl:
-                    svl[np.argmax(svl=='   ')]=k
-
-
+                if k not in svl:
+                    svl[np.argmax(svl == '   ')] = k
 
             darr = np.atleast_2d(
-                    np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
-                )
+                    np.genfromtxt(io.BytesIO(raw.encode("ascii")),
+                                  delimiter=(14, 1, 1) * hdr["Fmax"]))
 
-            t = time==times
-
+            t = time == times
 
             for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
                 # satellite indices "si" to extract from this time's measurements
@@ -516,37 +511,26 @@ def rinexsystem3(
                     continue
 
                 gsv = np.array(sv)[si]
-                isv = [i for i,s in enumerate(svl) if s in gsv]
-                #isv = np.zeros_like(gsv,dtype=int)
+                isv = [i for i, s in enumerate(svl) if s in gsv]
 
-                #for ii,jj in enumerate(gsv):
-                 #   isv[ii] = np.nonzero(svl==jj)
-
-
-                for i,j in enumerate(hdr['fields'][sk]):
-                    o = obl==j
-                    #for ii,jj in enumerate(gsv):
-                    #    data[o,t,svl==jj]=darr[si[ii],i*3]
-                    data[o,t,isv]=darr[si,i*3]
+                for i, j in enumerate(hdr['fields'][sk]):
+                    o = obl == j
+                    data[o, t, isv]=darr[si,i*3]
                     if useindicators:
-                        data_lli[o,t,isv]=darr[si,i*3+1]
-                        data_ssi[o,t,isv]=darr[si,i*3+2]
-
-
-
-
+                        data_lli[o, t, isv]=darr[si, i*3+1]
+                        data_ssi[o, t, isv]=darr[si, i*3+2]
 
     if '   ' in svl:
-        svl=svl[:np.argmax(svl=='   ')]
+        svl = svl[:np.argmax(svl == '   ')]
 
-    svl, isv = np.unique(svl,return_index=True)
+    svl, isv = np.unique(svl, return_index=True)
 
-    data=data[:,:,isv]
+    data=data[:, :, isv]
     if useindicators:
-        data_lli=data_lli[:,:,isv]
-        data_ssi=data_ssi[:,:,isv]
+        data_lli = data_lli[:, :, isv]
+        data_ssi = data_ssi[:, :, isv]
 
-    obs = xarray.Dataset(coords={"time":times,"sv": svl})
+    obs = xarray.Dataset(coords={"time": times, "sv": svl})
     for i, k in enumerate(obl):
         # FIXME: for limited time span reads, this drops unused data variables
         # if np.isnan(data[i, ...]).all():
@@ -561,11 +545,10 @@ def rinexsystem3(
             elif k[0] == 'C':
                 obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
 
-
     obs = obs.dropna(dim="sv", how="all")
     obs = obs.dropna(dim="time", how="all")  # when tlim specified
 
-    data=obs
+    data = obs
     # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(" ", "0") for s in data.sv.values.tolist()])
     # %% other attributes
@@ -716,7 +699,7 @@ def obsheader3(f: T.TextIO, use: set[str] = None, meas: list[str] = None) -> dic
             fields[sk] = np.array(fields[sk])[ind].tolist()
             sysind[sk] = np.empty(Fmax * 3, dtype=bool)  # *3 due to LLI, SSI
             for j, i in enumerate(ind):
-                sysind[sk][j * 3 : j * 3 + 3] = i
+                sysind[sk][j * 3: j * 3 + 3] = i
     else:
         sysind = {k: np.s_[:] for k in fields}
 
