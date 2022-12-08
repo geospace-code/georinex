@@ -44,7 +44,7 @@ def rinexobs3(
     useindicators: SSI, LLI are output
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
 
-    fast: Still double-reading file to get times
+    fast: Loads entire file into memory as a string
           Uses # OF SATELLITES from header to try and size nparray, falls back
           to Nsvsys if missing
           if false, uses old _epoch method
@@ -73,8 +73,15 @@ def rinexobs3(
     """
     Nsvsys = 36
 
+    if isinstance(fn, Path):
+        file_name = fn
+    else:
+        file_name = None
+
     # %% allocate
     if fast:
+        with opener(fn) as f:
+            fn = [ln for ln in f]
         times = obstime3(fn)
     else:
         data = xarray.Dataset({}, coords={"time": [], "sv": []})
@@ -256,8 +263,8 @@ def rinexobs3(
     data.attrs["rinextype"] = "obs"
     data.attrs["fast_processing"] = int(fast)  # bool is not allowed in NetCDF4
     data.attrs["time_system"] = determine_time_system(hdr)
-    if isinstance(fn, Path):
-        data.attrs["filename"] = fn.name
+    if isinstance(file_name, Path):
+        data.attrs["filename"] = file_name.name
 
     if "position" in hdr.keys():
         data.attrs["position"] = hdr["position"]

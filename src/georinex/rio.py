@@ -20,13 +20,17 @@ except ImportError:
 
 
 @contextmanager
-def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
+def opener(fn: T.TextIO | Path | list, header: bool = False) -> T.Iterator[T.TextIO]:
     """provides file handle for regular ASCII or gzip files transparently"""
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
 
     if isinstance(fn, io.StringIO):
         fn.seek(0)
+        yield fn
+    elif isinstance(fn, list):
+        f = ''.join(fn)
+        fn = io.StringIO(f)
         yield fn
     elif isinstance(fn, Path):
         # need to have this check for Windows
