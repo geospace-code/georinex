@@ -15,13 +15,17 @@ from ncompress import decompress as unlzw
 
 
 @contextmanager
-def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
+def opener(fn: T.TextIO | Path | list, header: bool = False) -> T.Iterator[T.TextIO]:
     """provides file handle for regular ASCII or gzip files transparently"""
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
 
     if isinstance(fn, io.StringIO):
         fn.seek(0)
+        yield fn
+    elif isinstance(fn, list):
+        f = ''.join(fn)
+        fn = io.StringIO(f)
         yield fn
     elif isinstance(fn, Path):
         # need to have this check for Windows
@@ -65,6 +69,13 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
         elif suffix == ".z":
             with fn.open("rb") as zu:
                 with io.StringIO(unlzw(zu.read()).decode("ascii")) as f:
+                    _, is_crinex = rinex_version(first_nonblank_line(f))
+                    f.seek(0)
+
+                    if is_crinex and not header:
+                        # Conversion to string is necessary because of a quirk where gzip.open()
+                        # even with 'rt' doesn't decompress until read.
+                        f = io.StringIO(crx2rnx(f.read()))
                     yield f
         else:  # assume not compressed (or Hatanaka)
             with fn.open("r", encoding="ascii", errors="ignore") as f:

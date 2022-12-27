@@ -40,6 +40,7 @@ def rinexobs2(
         {}, coords={"time": np.array([], dtype="datetime64[ns]"), "sv": np.array([], dtype="<U3")}
     )
     attrs: dict[T.Hashable, T.Any] = {}
+
     for u in use:
         o = rinexsystem2(
             fn,
@@ -391,7 +392,7 @@ def obsheader2(
     hdr["Nl_sv"] = ceil(hdr["Nobs"] / 5)
     # %% list with receiver location in x,y,z cartesian ECEF (OPTIONAL)
     try:
-        hdr["position"] = [float(j) for j in hdr["APPROX POSITION XYZ"].split()]
+        hdr["position"] = [float(j) for j in hdr["APPROX POSITION XYZ"].split()][:3]
         if ecef2geodetic is not None:
             hdr["position_geodetic"] = ecef2geodetic(*hdr["position"])
     except (KeyError, ValueError):
