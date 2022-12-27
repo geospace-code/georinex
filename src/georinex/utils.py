@@ -45,7 +45,7 @@ def gettime(fn: T.TextIO | Path):
     Returns
     -------
 
-    times : numpy.ndarray of datetime.datetime
+    times : numpy.ndarray of numpy.datetime64
         1-D vector of epochs in file
     """
     info = rinexinfo(fn)

@@ -277,4 +277,4 @@ def navtime2(fn: T.TextIO | Path):
 
             _skip(f, Nl[hdr["systems"]])
 
-    return np.unique(times)  # type: ignore
+    return np.unique(np.asarray(times, dtype="datetime64[ms]"))

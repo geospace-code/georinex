@@ -526,4 +526,4 @@ def navtime3(fn: T.TextIO | Path):
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
 
-    return np.unique(times)  # type: ignore
+    return np.unique(np.asarray(times, dtype="datetime64[ms]"))
