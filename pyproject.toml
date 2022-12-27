@@ -17,7 +17,7 @@ classifiers = [
 ]
 requires-python = ">=3.7"
 dynamic = ["readme"]
-dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "unlzw3"]
+dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "ncompress"]
 
 
 [tool.setuptools.dynamic]
