@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from .rio import first_nonblank_line
+from .rio import first_nonblank_line, opener
 
 # for NetCDF compression. too high slows down with little space savings.
 ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
@@ -25,7 +25,7 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     http://epncb.oma.be/ftp/data/format/sp3_docu.txt  (sp3a)
     """
     dat: dict[T.Hashable, T.Any] = {}
-    with fn.open("r") as f:
+    with opener(fn) as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
         # sp3_version = ln[1]
