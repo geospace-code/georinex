@@ -51,6 +51,7 @@ def rinexobs2(
             fast=fast,
             interval=interval,
         )
+
         if len(o.variables) > 0:
             attrs = o.attrs
             obs = xarray.merge((obs, o))
@@ -491,6 +492,7 @@ def obstime2(fn: T.TextIO | Path, verbose: bool = False):
     """
     read all times in RINEX2 OBS file
     """
+
     times = []
     with opener(fn) as f:
         # Capture header info
@@ -506,7 +508,7 @@ def obstime2(fn: T.TextIO | Path, verbose: bool = False):
 
             _skip(f, ln, hdr["Nl_sv"])
 
-    times = np.asarray(times)
+    times = np.asarray(times, dtype="datetime64[ms]")
 
     check_unique_times(times)
 
