@@ -16,9 +16,7 @@ Nl = {"C": 7, "E": 7, "G": 7, "J": 7, "R": 3, "S": 3, "I": 7}  # number of addit
 LF = 19  # string length per field
 
 
-def rinexnav3(
-    fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, datetime] = None
-) -> xarray.Dataset:
+def rinexnav3(fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, datetime] = None):
     """
     Read RINEX 3.x NAV files
 
@@ -467,7 +465,7 @@ def _fields(ln: str, sv_sys: str) -> list[str]:
     return fields
 
 
-def navheader3(f: T.TextIO) -> dict[str, T.Any]:
+def navheader3(f: T.TextIO) -> dict[T.Hashable, T.Any]:
 
     if isinstance(f, (str, Path)):
         with opener(f, header=True) as h:
@@ -510,7 +508,7 @@ def navheader3(f: T.TextIO) -> dict[str, T.Any]:
     return hdr
 
 
-def navtime3(fn: T.TextIO | Path) -> np.ndarray:
+def navtime3(fn: T.TextIO | Path):
     """
     return all times in RINEX file
     """
@@ -528,4 +526,4 @@ def navtime3(fn: T.TextIO | Path) -> np.ndarray:
             times.append(time)
             _skip(f, Nl[line[0]])  # different system types skip different line counts
 
-    return np.unique(times)
+    return np.unique(np.asarray(times, dtype="datetime64[ms]"))

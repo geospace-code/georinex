@@ -1,8 +1,45 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0.0", "wheel"]
+
+[project]
+name = "georinex"
+version = "1.16.1"
+description = "Python RINEX 2/3 NAV/OBS reader with speed and simplicity."
+keywords = ["RINEX", "sp3", "HDF5", "NetCDF4"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Atmospheric Science"
+]
+requires-python = ">=3.7"
+dynamic = ["readme"]
+dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "ncompress"]
+
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"], content-type = "text/markdown"}
+
+[project.optional-dependencies]
+tests = ["pytest", "pytest-timeout"]
+lint = ["flake8", "flake8-bugbear", "flake8-builtins", "flake8-blind-except", "mypy", "types-python-dateutil"]
+plot = ["matplotlib", "seaborn", "pymap3d", "cartopy"]
+io = ["netcdf4", "psutil"]
 
 [tool.black]
 line-length = 99
+
+[tool.mypy]
+files = ["src"]
+ignore_missing_imports = true
+strict_optional = false
+allow_redefinition = true
+show_error_context = false
+show_column_numbers = true
+warn_unreachable = false
 
 [tool.pytest.ini_options]
 addopts = "-ra"

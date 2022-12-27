@@ -10,7 +10,7 @@ R = Path(__file__).parent / "data"
 
 
 def test_obs2_lzw():
-    pytest.importorskip("unlzw3")
+    pytest.importorskip("ncompress")
 
     fn = R / "ac660270.18o.Z"
 

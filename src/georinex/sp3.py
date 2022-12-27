@@ -24,6 +24,7 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
 
     http://epncb.oma.be/ftp/data/format/sp3_docu.txt  (sp3a)
     """
+    
     dat: dict[str, T.Any] = {}
     with opener(fn) as f:
         ln = first_nonblank_line(f)

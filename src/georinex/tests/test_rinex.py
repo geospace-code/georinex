@@ -19,7 +19,7 @@ blanks = [
 
 
 @pytest.mark.parametrize("filename", blanks)
-def test_blank_read(tmp_path, filename):
+def test_blank_read(filename):
     dat = gr.load(R / filename)
     assert dat.time.size == 0
 
