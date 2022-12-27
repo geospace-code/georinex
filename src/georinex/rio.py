@@ -11,12 +11,7 @@ import logging
 import xarray
 
 from hatanaka import crx2rnx
-
-try:
-    # The C-based unlzw lib is more efficient but also more difficult to install
-    from unlzw import unlzw
-except ImportError:
-    from unlzw3 import unlzw
+from ncompress import decompress as unlzw
 
 
 @contextmanager
@@ -72,8 +67,6 @@ def opener(fn: T.TextIO | Path | list, header: bool = False) -> T.Iterator[T.Tex
                         )
                         yield f
         elif suffix == ".z":
-            if unlzw is None:
-                raise ImportError("pip install unlzw3")
             with fn.open("rb") as zu:
                 with io.StringIO(unlzw(zu.read()).decode("ascii")) as f:
                     _, is_crinex = rinex_version(first_nonblank_line(f))
@@ -122,14 +115,14 @@ def first_nonblank_line(f: T.TextIO, max_lines: int = 10) -> str:
     return line
 
 
-def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
+def rinexinfo(f: T.TextIO | Path) -> dict[T.Hashable, T.Any]:
     """verify RINEX version"""
 
     if isinstance(f, (str, Path)):
         fn = Path(f).expanduser()
 
         if fn.suffix == ".nc":
-            attrs: dict[str, T.Any] = {"rinextype": []}
+            attrs: dict[T.Hashable, T.Any] = {"rinextype": []}
             for g in ("OBS", "NAV"):
                 try:
                     dat = xarray.open_dataset(fn, group=g)
@@ -171,7 +164,7 @@ def rinexinfo(f: T.TextIO | Path) -> dict[str, T.Any]:
         else:
             rinex_type = line[20]
 
-        info = {
+        info: dict[T.Hashable, T.Any] = {
             "version": version,
             "filetype": file_type,
             "rinextype": rinex_type,

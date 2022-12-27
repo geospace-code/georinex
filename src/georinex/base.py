@@ -29,7 +29,7 @@ def load(
     overwrite: bool = False,
     fast: bool = True,
     interval: float | int | timedelta = None,
-) -> xarray.Dataset:
+):
     """
     Reads OBS, NAV in RINEX 2.x and 3.x
 
@@ -195,7 +195,7 @@ def rinexobs(
     overwrite: bool = False,
     fast: bool = True,
     interval: float | int | timedelta = None,
-) -> xarray.Dataset:
+):
     """
     Read RINEX 2.x and 3.x OBS files in ASCII or GZIP (or Hatanaka)
     """

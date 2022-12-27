@@ -8,7 +8,7 @@ except ImportError as e:
     logging.info(e)
 
 
-def timeseries(data: xarray.Dataset):
+def timeseries(data):
     if not isinstance(data, xarray.Dataset):
         return
 
