@@ -45,8 +45,7 @@ def rinexobs3(
     meas:  'L1C'  or  ['L1C', 'C1C'] or similar
 
     fast: Loads entire file into memory as a string
-          Uses # OF SATELLITES from header to try and size nparray, falls back
-          to Nsvsys if missing
+            TODO: time interval, time offset, etc.
           if false, uses old _epoch method
 
     interval: allows decimating file read by time e.g. every 5 seconds.
@@ -63,15 +62,6 @@ def rinexobs3(
 
     if not meas or not meas[0].strip():
         meas = None
-
-    """
-    Nsvsys may need updating as GNSS systems grow.
-    Let us know if you needed to change them.
-
-    Beidou is 35 max
-    Galileo is 36 max
-    """
-    Nsvsys = 36
 
     if isinstance(fn, Path):
         file_name = fn
@@ -108,138 +98,125 @@ def rinexobs3(
 
             Nt = times.size
             Npages = len(obl)
-            if '# OF SATELLITES' in hdr.keys():
-                Nsv = int(hdr['# OF SATELLITES'])
-            else:
-                Nsv = Nsvsys * len(hdr['fields'])
 
-            svl = np.tile('   ', Nsv)
+            f = np.array([f for f in f])  # don't need opener anymore
+            sv = np.array([ln[:3] for ln in f])
+            (usv, isv) = np.unique(sv, return_inverse=True)  # get all sv lines
 
-            data = np.empty((Npages, Nt, Nsv))
-            data.fill(np.nan)
+            # list of epoch numbers per datum
+            timeIndex = np.cumsum(isv ==
+                                  np.flatnonzero(np.char.rfind(usv, '>') == 0)
+                                  )-1
+
+            # usv contains epoch entries too, get only sv
+            svl = usv[np.logical_not(np.char.startswith(usv, '>'))]
+            Nsv = svl.size
+
+            data = np.full((Npages, Nt, Nsv), np.nan)
 
             if useindicators:
                 data_lli = np.full_like(data, np.nan)
                 data_ssi = np.full_like(data, np.nan)
 
-        else:
-            hdr = obsheader3(f, use, meas)
+            time_offset = []  # TODO: fill this list
 
-        # process OBS file
-        time_offset = []
-        for ln in f:
-            if not ln.startswith(">"):  # end of file
-                break
-
-            try:
-                time = _timeobs(ln)
-            except ValueError:  # garbage between header and RINEX data
-                logging.debug(f"garbage detected in {fn}, trying to parse at next time step")
-                continue
-
-            try:
-                time_offset.append(float(ln[41:56]))
-            except ValueError:
-                pass
-            # %% get SV indices
-            sv = []
-            raw = ""
-            # Number of visible satellites this time %i3  pg. A13
-            for _ in range(int(ln[33:35])):
-                ln = f.readline()
-                if use is None or ln[0] in use:
-                    sv.append(ln[:3])
-                    raw += ln[3:]
-
-            if tlim is not None:
-                if time < tlim[0]:
+            for i, sv in enumerate(usv):
+                if sv[0] == '>':
+                    # time offset processing here
                     continue
-                elif time > tlim[1]:
-                    break
+                elif use is not None and sv[0] not in use:
+                    continue
 
-            if interval is not None:
-                if last_epoch is None:  # initialization
-                    last_epoch = time
-                else:
-                    if time - last_epoch < interval:
-                        continue
-                    else:
-                        last_epoch += interval
-
-            if verbose:
-                print(time, end="\r")
-
-            if fast:
-                for k in sv:
-                    # update list of satellites
-                    if k not in svl:
-                        svl[np.argmax(svl == '   ')] = k
-
+                # genfromtext is bottleneck, limit calls this way
                 darr = np.atleast_2d(
-                        np.genfromtxt(io.BytesIO(raw.encode("ascii")),
+                        np.genfromtxt(np.char.lstrip(f[isv == i], sv),
                                       delimiter=(14, 1, 1) * hdr["Fmax"]))
 
-                t = time == times
+                t_i = timeIndex[isv == i]
 
-                for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
-                    # satellite indices "si" to extract from this time's measurements
+                # jsv == i-1 except for files spanning 1999-2000
+                jsv = svl == sv
 
-                    si = [i for i, s in enumerate(sv) if s[0] in sk]
-                    if len(si) == 0:  # no SV of this system "sk" at this time
+                for j, jobl in enumerate(hdr['fields'][sv[0]]):
+                    o = obl == jobl
+                    if not np.any(o):
                         continue
 
-                    gsv = np.array(sv)[si]
+                    data[o, t_i, jsv] = darr[:, j*3]
 
-                    isv, jsv = np.nonzero(np.logical_and(
-                        np.atleast_2d(svl).T == np.atleast_2d(sv),
-                                      np.isin(sv, gsv))                  )
+                    if useindicators:
+                        data_lli[np.ix_(o, t_i, jsv)] = darr[:, j*3+1]
+                        data_ssi[np.ix_(o, t_i, jsv)] = darr[:, j*3+2]
 
-                    for i, j in enumerate(hdr['fields'][sk]):
-                        o = obl == j
-                        if not np.any(o):
+            obs = xarray.Dataset(coords={"sv": svl, "time": times})
+            for i, k in enumerate(obl):
+                if k is None:
+                    continue
+                elif np.all(np.isnan(data[i, :, :])):
+                    # drop all nan datasets like tests expect
+                    continue
+                obs[k] = (("time", "sv"), data[i, :, :])
+                if useindicators:
+                    if k[0] == 'L':
+                        obs[k+'lli'] = (("time", "sv"), data_lli[i, :, :])
+                        obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
+                    # elif k[0] == 'C': # only for code?
+                    else:
+                        obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
+
+            obs = obs.dropna(dim="sv", how="all")
+             # obs = obs.dropna(dim="time", how="all")  # when tlim specified
+
+            data = obs
+
+        else:
+            hdr = obsheader3(f, use, meas)
+            # process OBS file
+            time_offset = []
+            for ln in f:
+                if not ln.startswith(">"):  # end of file
+                    break
+
+                try:
+                    time = _timeobs(ln)
+                except ValueError:  # garbage between header and RINEX data
+                    logging.debug(f"garbage detected in {fn}, trying to parse at next time step")
+                    continue
+
+                try:
+                    time_offset.append(float(ln[41:56]))
+                except ValueError:
+                    pass
+                # %% get SV indices
+                sv = []
+                raw = ""
+                # Number of visible satellites this time %i3  pg. A13
+                for _ in range(int(ln[33:35])):
+                    ln = f.readline()
+                    if use is None or ln[0] in use:
+                        sv.append(ln[:3])
+                        raw += ln[3:]
+
+                if tlim is not None:
+                    if time < tlim[0]:
+                        continue
+                    elif time > tlim[1]:
+                        break
+
+                if interval is not None:
+                    if last_epoch is None:  # initialization
+                        last_epoch = time
+                    else:
+                        if time - last_epoch < interval:
                             continue
-                        data[np.ix_(o, t, isv)] = darr[jsv, i*3]
+                        else:
+                            last_epoch += interval
 
-                        if useindicators:
-                            data_lli[np.ix_(o, t, isv)] = darr[jsv, i*3+1]
-                            data_ssi[np.ix_(o, t, isv)] = darr[jsv, i*3+2]
+                if verbose:
+                    print(time, end="\r")
 
-            else:
                 # this time epoch is complete, assemble the data.
                 data = _epoch(data, raw, hdr, time, sv, useindicators, verbose)
-
-    if fast:
-        if '   ' in svl:
-            # remove blank satellites (if tlim used)
-            svl = svl[:np.argmax(svl == '   ')]
-
-        svl, isv = np.unique(svl, return_index=True)
-
-        data = data[:, :, isv]
-        if useindicators:
-            data_lli = data_lli[:, :, isv]
-            data_ssi = data_ssi[:, :, isv]
-
-        obs = xarray.Dataset(coords={"sv": svl, "time": times})
-        for i, k in enumerate(obl):
-            if k is None:
-                continue
-            elif np.all(np.isnan(data[i, :, :])):
-                # drop all nan datasets like tests expect
-                continue
-            obs[k] = (("time", "sv"), data[i, :, :])
-            if useindicators:
-                if k[0] == 'L':
-                    obs[k+'lli'] = (("time", "sv"), data_lli[i, :, :])
-                    obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
-                # elif k[0] == 'C': # only for code?
-                else:
-                    obs[k+'ssi'] = (("time", "sv"), data_ssi[i, :, :])
-
-        obs = obs.dropna(dim="sv", how="all")
-         # obs = obs.dropna(dim="time", how="all")  # when tlim specified
-
-        data = obs
 
     # %% patch SV names in case of "G 7" => "G07"
     data = data.assign_coords(sv=[s.replace(" ", "0")
