@@ -120,7 +120,15 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     if outfn:
         outfn = Path(outfn).expanduser()
         enc = {k: ENC for k in ds.data_vars}
+        # Make a copy of the attributes to convert 't0' to a string for NetCDF
+        dat_for_netcdf = dat.copy()
+        # Convert the 't0' datetime to a string in the format YYYY-mm-dd HH:MM:SS
+        dat_for_netcdf["t0"] = dat_for_netcdf["t0"].strftime("%Y-%m-%d %H:%M:%S")
+        # Temporarily set the attributes to the copy with 't0' as a string
+        ds.attrs = dat_for_netcdf
         ds.to_netcdf(outfn, mode="w", encoding=enc)
+        # Reset the attributes to the original
+        ds.attrs = dat
 
     return ds
 
