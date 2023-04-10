@@ -100,7 +100,7 @@ def rinexnav3(fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, d
             for j, i in enumerate(svi):
                 try:
                     darr[j, compact_index] = [
-                        float(raws[i][LF * k : LF * (k + 1)]) for k in range(len(compact_index))
+                        float(raws[i][LF * k : LF * (k + 1)] or 0) for k in range(len(compact_index))
                     ]
                 except ValueError:
                     logging.info(f"malformed line for {sv}")
