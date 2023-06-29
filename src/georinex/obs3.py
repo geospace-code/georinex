@@ -99,7 +99,8 @@ def rinexobs3(
             Nt = times.size
             Npages = len(obl)
 
-            f = np.array([f for f in f])  # don't need opener anymore
+            f = np.array([f for f in f if f[1:3] != '  '])  # don't need opener anymore
+
             sv = np.array([ln[:3] for ln in f])
             (usv, isv) = np.unique(sv, return_inverse=True)  # get all sv lines
 
@@ -121,7 +122,7 @@ def rinexobs3(
             time_offset = []  # TODO: fill this list
 
             for i, sv in enumerate(usv):
-                if sv[0] == '>':
+                if sv[0] == '>' or sv[2] == ' ':
                     # time offset processing here
                     continue
                 elif use is not None and sv[0] not in use:
