@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta
 import io
 import xarray
+import re
 import typing as T
 
 try:
@@ -122,7 +123,7 @@ def rinexobs3(
             time_offset = []  # TODO: fill this list
 
             for i, sv in enumerate(usv):
-                if sv[0] == '>' or sv[2] == ' ':
+                if re.match(r'[A-Z][ \d]\d', sv) is None:
                     # time offset processing here
                     continue
                 elif use is not None and sv[0] not in use:
