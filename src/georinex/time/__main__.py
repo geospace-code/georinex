@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from pathlib import Path
 import argparse
+from datetime import datetime
 
 import numpy as np
 
@@ -22,13 +23,16 @@ def eachfile(fn: Path, verbose: bool = False):
     if Ntimes == 0:
         return
 
-    ostr = f"{fn.name}:" f" {times[0].isoformat()}" f" {times[-1].isoformat()}" f" {Ntimes}"
+    t0 = times[0].astype(datetime)
+    t1 = times[-1].astype(datetime)
+
+    ostr = f"{fn.name}:" f" {t0.isoformat()}" f" {t1.isoformat()}" f" {Ntimes}"
 
     hdr = gr.rinexheader(fn)
     interval = hdr.get("interval", np.nan)
     if ~np.isnan(interval):
         ostr += f" {interval}"
-        Nexpect = (times[-1] - times[0]) // timedelta(seconds=interval) + 1
+        Nexpect = (t1 - t0) // timedelta(seconds=interval) + 1
         if Nexpect != Ntimes:
             logging.warning(f"{fn.name}: expected {Nexpect} but got {Ntimes} times")
 

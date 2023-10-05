@@ -43,7 +43,7 @@ def check_ram(memneed: int, fn: T.TextIO | Path):
         raise RuntimeError(errmsg)
 
 
-def determine_time_system(header: dict[str, T.Any]) -> str:
+def determine_time_system(header: dict[T.Hashable, T.Any]) -> str:
     """Determine which time system is used in an observation file."""
     # Current implementation is quite inconsistent in terms what is put into
     # header.

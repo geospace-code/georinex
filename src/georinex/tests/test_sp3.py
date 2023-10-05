@@ -9,7 +9,7 @@ import georinex as gr
 R = Path(__file__).parent / "data"
 
 
-@pytest.mark.parametrize("fn", ["example1.sp3a", "example2.sp3a"])
+@pytest.mark.parametrize("fn", ["example1.sp3a", "example2.sp3a", "example1.sp3a.gz"])
 def test_sp3a(fn):
     dat = gr.load(R / fn)
 

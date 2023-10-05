@@ -34,7 +34,7 @@ def rinexobs3(
     *,
     fast: bool = False,
     interval: float | int | timedelta = None,
-) -> xarray.Dataset:
+):
     """
     process RINEX 3 OBS data
 
@@ -282,7 +282,7 @@ def _timeobs(ln: str) -> datetime:
     )
 
 
-def obstime3(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
+def obstime3(fn: T.TextIO | Path, verbose: bool = False):
     """
     return all times in RINEX file
     """
@@ -298,7 +298,7 @@ def obstime3(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
                     logging.debug(f"was not a time:\n{ln}")
                     continue
 
-    times = np.asarray(times)
+    times = np.asarray(times, dtype="datetime64[ms]")
 
     check_unique_times(times)
 
@@ -308,7 +308,7 @@ def obstime3(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
 def _epoch(
     data: xarray.Dataset,
     raw: str,
-    hdr: dict[str, T.Any],
+    hdr: dict[T.Hashable, T.Any],
     time: datetime,
     sv: list[str],
     useindicators: bool,
@@ -587,7 +587,9 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
     return d
 
 
-def obsheader3(f: T.TextIO, use: set[str] = None, meas: list[str] = None) -> dict[str, T.Any]:
+def obsheader3(
+    f: T.TextIO, use: set[str] = None, meas: list[str] = None
+) -> dict[T.Hashable, T.Any]:
     """
     get RINEX 3 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
