@@ -29,14 +29,13 @@ def rinexobs2(
     fast: bool = True,
     interval: float | int | timedelta = None,
 ) -> xarray.Dataset:
-
     if isinstance(use, str):
         use = {use}
 
     if not use:
         use = {"C", "E", "G", "J", "R", "S"}
 
-    obs = xarray.Dataset({}, coords={"time": np.array([],dtype='datetime64[ns]'), "sv": []})
+    obs = xarray.Dataset({}, coords={"time": np.array([], dtype="datetime64[ns]"), "sv": []})
     attrs: dict[str, T.Any] = {}
     for u in use:
         o = rinexsystem2(
@@ -233,7 +232,10 @@ def rinexsystem2(
             assert darr.shape[0] == gsv.size
 
             # %% select only "used" satellites
-            isv = [int(s[1:]) - 1 for s in gsv]
+            if system == "S":
+                isv = range(len(gsv))
+            else:
+                isv = [int(s[1:]) - 1 for s in gsv]
 
             for i, k in enumerate(hdr["fields_ind"]):
                 if useindicators:
@@ -263,9 +265,12 @@ def rinexsystem2(
             else:
                 fields.extend([None, None])
 
-    obs = xarray.Dataset(
-        coords={"time": times, "sv": [f"{system}{i:02d}" for i in range(1, Nsvsys + 1)]}
-    )
+    if system == "S":
+        obs = xarray.Dataset(coords={"time": times, "sv": gsv})
+    else:
+        obs = xarray.Dataset(
+            coords={"time": times, "sv": [f"{system}{i:02d}" for i in range(1, Nsvsys + 1)]}
+        )
 
     for i, k in enumerate(fields):
         # FIXME: for limited time span reads, this drops unused data variables
@@ -273,7 +278,7 @@ def rinexsystem2(
         #     continue
         if k is None:
             continue
-        obs[k] = (("time", "sv"), data[i, :, :])
+        obs[k] = (("time", "sv"), data[i, :, : len(obs["sv"])])
 
     obs = obs.dropna(dim="sv", how="all")
     obs = obs.dropna(dim="time", how="all")  # when tlim specified
@@ -557,7 +562,6 @@ def _timehdr(ln: str) -> datetime:
 
 
 def _timeobs(ln: str) -> datetime:
-
     year = int(ln[1:3])
     if year < 80:
         year += 2000
