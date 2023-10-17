@@ -15,7 +15,7 @@ from ncompress import decompress as unlzw
 
 
 @contextmanager
-def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
+def opener(fn: T.TextIO | Path | list, header: bool = False, encoding="ascii") -> T.Iterator[T.TextIO]:
     """provides file handle for regular ASCII or gzip files transparently"""
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
@@ -23,57 +23,96 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
     if isinstance(fn, io.StringIO):
         fn.seek(0)
         yield fn
+    elif isinstance(fn, list):
+        f = ''.join(fn)
+        fn = io.StringIO(f)
+        yield fn
     elif isinstance(fn, Path):
         # need to have this check for Windows
         if not fn.is_file():
             raise FileNotFoundError(fn)
 
-        finf = fn.stat()
-        if finf.st_size > 100e6:
-            logging.info(f"opening {finf.st_size/1e6} MByte {fn.name}")
+        try:
+            finf = fn.stat()
+            if finf.st_size > 100e6:
+                logging.info(f"opening {finf.st_size/1e6} MByte {fn.name}")
 
-        suffix = fn.suffix.lower()
+            suffix = fn.suffix.lower()
 
-        if suffix == ".gz":
-            with gzip.open(fn, "rt") as f:
-                _, is_crinex = rinex_version(first_nonblank_line(f))
-                f.seek(0)
+            if suffix == ".gz":
+                with gzip.open(fn, "rt", encoding=encoding) as f:
 
-                if is_crinex and not header:
-                    # Conversion to string is necessary because of a quirk where gzip.open()
-                    # even with 'rt' doesn't decompress until read.
-                    f = io.StringIO(crx2rnx(f.read()))
-                yield f
-        elif suffix == ".bz2":
-            # this is for plain bzip2 files, NOT tar.bz2, which requires f.seek(512)
-            with bz2.open(fn, "rt") as f:
-                _, is_crinex = rinex_version(first_nonblank_line(f))
-                f.seek(0)
+                    _, is_crinex = rinex_version(first_nonblank_line(f))
+                    f.seek(0)
 
-                if is_crinex and not header:
-                    f = io.StringIO(crx2rnx(f.read()))
-                yield f
-        elif suffix == ".zip":
-            with zipfile.ZipFile(fn, "r") as z:
-                flist = z.namelist()
-                for rinexfn in flist:
-                    with z.open(rinexfn, "r") as bf:
-                        f = io.StringIO(
-                            io.TextIOWrapper(bf, encoding="ascii", errors="ignore").read()  # type: ignore
-                        )
-                        yield f
-        elif suffix == ".z":
-            with fn.open("rb") as zu:
-                with io.StringIO(unlzw(zu.read()).decode("ascii")) as f:
+                    if is_crinex and not header:
+                        # Conversion to string is necessary because of a quirk where gzip.open()
+                        # even with 'rt' doesn't decompress until read.
+                        f = io.StringIO(crx2rnx(f.read()))
                     yield f
-        else:  # assume not compressed (or Hatanaka)
-            with fn.open("r", encoding="ascii", errors="ignore") as f:
-                _, is_crinex = rinex_version(first_nonblank_line(f))
-                f.seek(0)
+            elif suffix == ".bz2":
+                # this is for plain bzip2 files, NOT tar.bz2, which requires f.seek(512)
+                with bz2.open(fn, "rt", encoding=encoding) as f:
+                    _, is_crinex = rinex_version(first_nonblank_line(f))
+                    f.seek(0)
 
-                if is_crinex and not header:
-                    f = io.StringIO(crx2rnx(f))
-                yield f
+                    if is_crinex and not header:
+                        f = io.StringIO(crx2rnx(f.read()))
+                    yield f
+            elif suffix == ".zip":
+                with zipfile.ZipFile(fn, "r") as z:
+                    flist = z.namelist()
+                    for rinexfn in flist:
+                        with z.open(rinexfn, "r") as bf:
+                            f = io.StringIO(
+                                io.TextIOWrapper(bf, encoding=encoding, errors="ignore").read()  # type: ignore
+                            )
+                            yield f
+            elif suffix == ".z":
+                if unlzw is None:
+                    raise ImportError("pip install unlzw3")
+                try:
+                    with fn.open("rb") as zu:
+                        with io.StringIO(unlzw(zu.read()).decode(encoding)) as f:
+                            _, is_crinex = rinex_version(first_nonblank_line(f))
+                            f.seek(0)
+
+                            if is_crinex and not header:
+                                # Conversion to string is necessary because of a quirk where gzip.open()
+                                # even with 'rt' doesn't decompress until read.
+                                f = io.StringIO(crx2rnx(f.read()))
+                            yield f
+                except ValueError as e:
+                    if 'magic bytes' in e.args[0]:
+                        # sometimes .Z files are actually gzipped
+                        with gzip.open(fn, "rt", encoding=encoding) as f:
+                            _, is_crinex = rinex_version(first_nonblank_line(f))
+                            f.seek(0)
+
+                            if is_crinex and not header:
+                                # Conversion to string is necessary because of a quirk where gzip.open()
+                                # even with 'rt' doesn't decompress until read.
+                                f = io.StringIO(crx2rnx(f.read()))
+                            yield f
+
+            else:  # assume not compressed (or Hatanaka)
+                with fn.open("r", encoding=encoding, errors="ignore") as f:
+                    _, is_crinex = rinex_version(first_nonblank_line(f))
+                    f.seek(0)
+
+                    if is_crinex and not header:
+                        f = io.StringIO(crx2rnx(f))
+                    yield f
+        except UnicodeDecodeError as e:
+            # some RINEX files have awkward encoding
+            if encoding == "ascii":
+                with opener(fn, header, encoding="latin-1") as f:
+                    yield f
+            elif encoding == "latin-1":
+                with opener(fn, header, encoding="utf-8") as f:
+                    yield f
+            else:
+                raise(e)
     else:
         raise OSError(f"Unsure what to do with input of type: {type(fn)}")
 
