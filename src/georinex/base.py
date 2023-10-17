@@ -8,6 +8,7 @@ import logging
 from .rio import rinexinfo
 from .obs2 import rinexobs2
 from .obs3 import rinexobs3
+from .obs4 import rinexobs4
 from .nav2 import rinexnav2
 from .nav3 import rinexnav3
 from .sp3 import load_sp3
@@ -226,6 +227,17 @@ def rinexobs(
         )
     elif int(info["version"]) == 3:
         obs = rinexobs3(
+            fn,
+            use,
+            tlim=tlim,
+            useindicators=useindicators,
+            meas=meas,
+            verbose=verbose,
+            fast=fast,
+            interval=interval,
+        )
+    elif int(info["version"]) == 4:
+        obs = rinexobs4(
             fn,
             use,
             tlim=tlim,

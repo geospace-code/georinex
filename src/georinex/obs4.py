@@ -24,7 +24,7 @@ QZSS = 192
 BEIDOU = 0
 
 
-def rinexobs3(
+def rinexobs4(
     fn: T.TextIO | Path,
     use: set[str] = None,
     tlim: tuple[datetime, datetime] = None,
@@ -34,9 +34,9 @@ def rinexobs3(
     *,
     fast: bool = False,
     interval: float | int | timedelta = None,
-):
+) -> xarray.Dataset:
     """
-    process RINEX 3 OBS data
+    process RINEX 4 OBS data
 
     fn: RINEX OBS 3 filename
     use: 'G'  or ['G', 'R'] or similar
@@ -73,7 +73,7 @@ def rinexobs3(
     if fast:
         with opener(fn) as f:
             fn = [ln for ln in f]
-        times = obstime3(fn)
+        times = obstime4(fn)
     else:
         data = xarray.Dataset({}, coords={"time": [], "sv": []})
 
@@ -84,7 +84,7 @@ def rinexobs3(
     # %% loop
     with opener(fn) as f:
         if fast:
-            hdr = obsheader3(f, use)
+            hdr = obsheader4(f, use)
 
             obl = []
             for sk in hdr["fields"]:
@@ -170,7 +170,7 @@ def rinexobs3(
             data = obs
 
         else:
-            hdr = obsheader3(f, use, meas)
+            hdr = obsheader4(f, use, meas)
             # process OBS file
             time_offset = []
             for ln in f:
@@ -278,7 +278,7 @@ def _timeobs(ln: str) -> datetime:
     )
 
 
-def obstime3(fn: T.TextIO | Path, verbose: bool = False):
+def obstime4(fn: T.TextIO | Path, verbose: bool = False) -> np.ndarray:
     """
     return all times in RINEX file
     """
@@ -294,7 +294,7 @@ def obstime3(fn: T.TextIO | Path, verbose: bool = False):
                     logging.debug(f"was not a time:\n{ln}")
                     continue
 
-    times = np.asarray(times, dtype="datetime64[ms]")
+    times = np.asarray(times)
 
     check_unique_times(times)
 
@@ -304,7 +304,7 @@ def obstime3(fn: T.TextIO | Path, verbose: bool = False):
 def _epoch(
     data: xarray.Dataset,
     raw: str,
-    hdr: dict[T.Hashable, T.Any],
+    hdr: dict[str, T.Any],
     time: datetime,
     sv: list[str],
     useindicators: bool,
@@ -353,223 +353,6 @@ def _epoch(
     return data
 
 
-def rinexsystem3(
-    fn: T.TextIO | Path,
-    use: set[str] = None,
-    tlim: tuple[datetime, datetime] = None,
-    useindicators: bool = False,
-    meas: list[str] = None,
-    verbose: bool = False,
-    *,
-    fast: bool = False,
-    interval: float | int | timedelta = None,
-) -> xarray.Dataset:
-    """
-    process RINEX 3 OBS data
-
-    fn: RINEX OBS 3 filename
-    use: 'G'  or ['G', 'R'] or similar
-
-    tlim: read between these time bounds
-    useindicators: SSI, LLI are output
-    meas:  'L1C'  or  ['L1C', 'C1C'] or similar
-
-    fast:
-          TODO: FUTURE, not yet enabled for OBS3
-          speculative preallocation based on minimum SV assumption and file size.
-          Avoids double-reading file and more complicated linked lists.
-          Believed that Numpy array should be faster than lists anyway.
-          Reduce Nsvmin if error (let us know)
-
-    interval: allows decimating file read by time e.g. every 5 seconds.
-                Useful to speed up reading of very large RINEX files
-    """
-
-    interval = check_time_interval(interval)
-
-    if isinstance(use, str):
-        use = {use}
-
-    if isinstance(meas, str):
-        meas = [meas]
-
-    if not meas or not meas[0].strip():
-        meas = None
-    # %% allocate
-    times = obstime3(fn)
-    # data = xarray.Dataset({}, coords={"time": [], "sv": []})
-    if tlim is not None and not isinstance(tlim[0], datetime):
-        raise TypeError("time bounds are specified as datetime.datetime")
-
-    last_epoch = None
-    # %% loop
-    with opener(fn) as f:
-        if fast:
-            hdr = obsheader3(f)
-        else:
-            hdr = obsheader3(f, use, meas)
-
-        obl = []
-        for sk in hdr["fields"]:
-            obl = obl + hdr["fields"][sk]
-        obl = np.unique(np.array(obl))
-        obl = obl[np.argsort([i[1:] + i[0] for i in iter(obl)])]
-
-        if meas is not None:
-            obl = obl[np.isin(obl, meas)]
-
-        Nt = times.size
-        Npages = len(obl)
-        Nsv = int(hdr["# OF SATELLITES"])
-
-        svl = np.tile("   ", Nsv)
-
-        data = np.empty((Npages, Nt, Nsv))
-        data.fill(np.nan)
-
-        if useindicators:
-            data_lli = np.full_like(data, np.nan)
-            data_ssi = np.full_like(data, np.nan)
-
-        # %% process OBS file
-        time_offset = []
-        for ln in f:
-            if not ln.startswith(">"):  # end of file
-                break
-
-            try:
-                time = _timeobs(ln)
-            except ValueError:  # garbage between header and RINEX data
-                logging.debug(f"garbage detected in {fn}, trying to parse at next time step")
-                continue
-
-            try:
-                time_offset.append(float(ln[41:56]))
-            except ValueError:
-                pass
-            # %% get SV indices
-            sv = []
-            raw = ""
-            # Number of visible satellites this time %i3  pg. A13
-            for _ in range(int(ln[33:35])):
-                ln = f.readline()
-                if use is None or ln[0] in use:
-                    sv.append(ln[:3])
-                    raw += ln[3:]
-
-            if tlim is not None:
-                if time < tlim[0]:
-                    continue
-                elif time > tlim[1]:
-                    break
-
-            if interval is not None:
-                if last_epoch is None:  # initialization
-                    last_epoch = time
-                else:
-                    if time - last_epoch < interval:
-                        continue
-                    else:
-                        last_epoch += interval
-
-            if verbose:
-                print(time, end="\r")
-
-            for k in sv:
-                if k not in svl:
-                    svl[np.argmax(svl == "   ")] = k
-
-            darr = np.atleast_2d(
-                np.genfromtxt(io.BytesIO(raw.encode("ascii")), delimiter=(14, 1, 1) * hdr["Fmax"])
-            )
-
-            t = time == times
-
-            for sk in hdr["fields"]:  # for each satellite system type (G,R,S, etc.)
-                # satellite indices "si" to extract from this time's measurements
-                si = [i for i, s in enumerate(sv) if s[0] in sk]
-                if len(si) == 0:  # no SV of this system "sk" at this time
-                    continue
-
-                gsv = np.array(sv)[si]
-                isv = [i for i, s in enumerate(svl) if s in gsv]
-
-                for i, j in enumerate(hdr["fields"][sk]):
-                    o = obl == j
-                    data[o, t, isv] = darr[si, i * 3]
-                    if useindicators:
-                        data_lli[o, t, isv] = darr[si, i * 3 + 1]
-                        data_ssi[o, t, isv] = darr[si, i * 3 + 2]
-
-    if "   " in svl:
-        svl = svl[: np.argmax(svl == "   ")]
-
-    svl, isv = np.unique(svl, return_index=True)
-
-    data = data[:, :, isv]
-    if useindicators:
-        data_lli = data_lli[:, :, isv]
-        data_ssi = data_ssi[:, :, isv]
-
-    obs = xarray.Dataset(coords={"time": times, "sv": svl})
-    for i, k in enumerate(obl):
-        # FIXME: for limited time span reads, this drops unused data variables
-        # if np.isnan(data[i, ...]).all():
-        #     continue
-        if k is None:
-            continue
-        obs[k] = (("time", "sv"), data[i, :, :])
-        if useindicators:
-            if k[0] == "L":
-                obs[k + "lli"] = (("time", "sv"), data_lli[i, :, :])
-                obs[k + "ssi"] = (("time", "sv"), data_ssi[i, :, :])
-            elif k[0] == "C":
-                obs[k + "ssi"] = (("time", "sv"), data_ssi[i, :, :])
-
-    obs = obs.dropna(dim="sv", how="all")
-    obs = obs.dropna(dim="time", how="all")  # when tlim specified
-
-    data = obs
-    # %% patch SV names in case of "G 7" => "G07"
-    data = data.assign_coords(sv=[s.replace(" ", "0") for s in data.sv.values.tolist()])
-    # %% other attributes
-    data.attrs["version"] = hdr["version"]
-
-    # Get interval from header or derive it from the data
-    if "interval" in hdr.keys():
-        data.attrs["interval"] = hdr["interval"]
-    elif "time" in data.coords.keys():
-        # median is robust against gaps
-        try:
-            data.attrs["interval"] = np.median(np.diff(data.time) / np.timedelta64(1, "s"))
-        except TypeError:
-            pass
-    else:
-        data.attrs["interval"] = np.nan
-
-    data.attrs["rinextype"] = "obs"
-    data.attrs["fast_processing"] = 0  # bool is not allowed in NetCDF4
-    data.attrs["time_system"] = determine_time_system(hdr)
-    if isinstance(fn, Path):
-        data.attrs["filename"] = fn.name
-
-    if "position" in hdr.keys():
-        data.attrs["position"] = hdr["position"]
-        if ecef2geodetic is not None:
-            data.attrs["position_geodetic"] = hdr["position_geodetic"]
-
-    if time_offset:
-        data.attrs["time_offset"] = time_offset
-
-    if "RCV CLOCK OFFS APPL" in hdr.keys():
-        try:
-            data.attrs["receiver_clock_offset_applied"] = int(hdr["RCV CLOCK OFFS APPL"])
-        except ValueError:
-            pass
-
-    return data
-
-
 def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
     """
     handle LLI (loss of lock) and SSI (signal strength)
@@ -582,17 +365,15 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
     return d
 
 
-def obsheader3(
-    f: T.TextIO, use: set[str] = None, meas: list[str] = None
-) -> dict[T.Hashable, T.Any]:
+def obsheader4(f: T.TextIO, use: set[str] = None, meas: list[str] = None) -> dict[str, T.Any]:
     """
-    get RINEX 3 OBS types, for each system type
+    get RINEX 4 OBS types, for each system type
     optionally, select system type and/or measurement type to greatly
     speed reading and save memory (RAM, disk)
     """
     if isinstance(f, (str, Path)):
         with opener(f, header=True) as h:
-            return obsheader3(h, use, meas)
+            return obsheader4(h, use, meas)
 
     fields = {}
     Fmax = 0
