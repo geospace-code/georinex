@@ -8,7 +8,6 @@ R = Path(__file__).parent / "data"
 
 
 def test_obs2():
-
     fn = R / "york0440.15d"
 
     info = gr.rinexinfo(fn)
@@ -23,7 +22,6 @@ def test_obs2():
 
 @pytest.mark.timeout(30)
 def test_obs3_gz():
-
     fn = R / "CEBR00ESP_R_20182000000_01D_30S_MO.crx.gz"
 
     info = gr.rinexinfo(fn)

@@ -3,7 +3,6 @@ requires = ["setuptools>=61.0.0", "wheel"]
 
 [project]
 name = "georinex"
-version = "1.16.1"
 description = "Python RINEX 2/3 NAV/OBS reader with speed and simplicity."
 keywords = ["RINEX", "sp3", "HDF5", "NetCDF4"]
 classifiers = [
@@ -16,12 +15,13 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Atmospheric Science"
 ]
 requires-python = ">=3.7"
-dynamic = ["readme"]
+dynamic = ["readme", "version"]
 dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "ncompress"]
 
 
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"], content-type = "text/markdown"}
+version = {attr = "georinex.__version__"}
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-timeout"]

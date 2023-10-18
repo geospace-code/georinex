@@ -7,3 +7,5 @@ from .nav2 import rinexnav2, navheader2, navtime2
 from .nav3 import rinexnav3, navheader3, navtime3
 from .sp3 import load_sp3
 from .keplerian import keplerian2ecef
+
+__version__ = "1.16.2"

@@ -49,7 +49,6 @@ fg = figure(figsize=(9, 9))
 axs = fg.subplots(4, 1, sharex=True)
 
 for v, ax in zip(what, axs):
-
     if v not in obs:
         continue
 

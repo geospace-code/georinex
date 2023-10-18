@@ -185,7 +185,6 @@ def test_mixed(fname):
     ids=["SBAS", "GPS", "BDS", "GAL", "GLO"],
 )
 def test_large(filename, sv, shape):
-
     nav = gr.load(R / filename, use=sv[0])
 
     assert nav.svtype[0] == sv[0] and len(nav.svtype) == 1

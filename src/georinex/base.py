@@ -117,7 +117,6 @@ def batch_convert(
     *,
     fast: bool = True,
 ):
-
     path = Path(path).expanduser()
 
     flist = (f for f in path.glob(glob) if f.is_file())

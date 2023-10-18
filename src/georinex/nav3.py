@@ -172,7 +172,6 @@ def _skip(f: T.TextIO, Nl: int):
 
 
 def _time(ln: str) -> datetime:
-
     return datetime(
         year=int(ln[4:8]),
         month=int(ln[9:11]),
@@ -233,7 +232,6 @@ def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
 
 
 def _fields(ln: str, sv_sys: str) -> list[str]:
-
     if sv_sys == "G":
         """
         ftp://igs.org/pub/data/format/rinex303.pdf
@@ -466,7 +464,6 @@ def _fields(ln: str, sv_sys: str) -> list[str]:
 
 
 def navheader3(f: T.TextIO) -> dict[T.Hashable, T.Any]:
-
     if isinstance(f, (str, Path)):
         with opener(f, header=True) as h:
             return navheader3(h)

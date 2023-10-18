@@ -14,7 +14,6 @@ from .nav3 import navtime3, navheader3
 
 
 def globber(path: Path, glob: list[str]) -> list[Path]:
-
     path = Path(path).expanduser()
     if path.is_file():
         return [path]

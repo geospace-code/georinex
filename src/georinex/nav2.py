@@ -33,7 +33,6 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None):
     raws = []
 
     with opener(fn) as f:
-
         header = navheader2(f)
 
         if header["filetype"] == "N":
@@ -230,7 +229,6 @@ def navheader2(f: T.TextIO) -> dict[T.Hashable, T.Any]:
 
 
 def _timenav(ln: str) -> datetime:
-
     year = int(ln[3:5])
     if 80 <= year <= 99:
         year += 1900

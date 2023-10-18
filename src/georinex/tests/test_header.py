@@ -24,7 +24,6 @@ R = Path(__file__).parent / "data"
     ids=["obs2", "obs3", "nav2", "nav3", "Cobs1", "NetCDF_obs2"],
 )
 def test_header(fn, rtype, vers):
-
     if fn.suffix == ".nc" and netCDF4 is None:
         pytest.skip("no netCDF4")
 

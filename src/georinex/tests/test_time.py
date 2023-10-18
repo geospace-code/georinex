@@ -69,7 +69,6 @@ def test_tlim(fn, tlim, tref, tlen):
 # %% currently, interval is only for OBS2 and OBS3
 @pytest.mark.parametrize("interval, expected_len", [(None, 14), (15, 14), (35, 8)])
 def test_interval_obs3(interval, expected_len):
-
     obs = gr.load(
         R / "CEDA00USA_R_20182100000_23H_15S_MO.rnx.gz",
         interval=interval,

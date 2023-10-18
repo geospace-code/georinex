@@ -29,7 +29,6 @@ def rinexobs2(
     fast: bool = True,
     interval: float | int | timedelta = None,
 ):
-
     if isinstance(use, str):
         use = {use}
 
@@ -561,7 +560,6 @@ def _timehdr(ln: str) -> datetime:
 
 
 def _timeobs(ln: str) -> datetime:
-
     year = int(ln[1:3])
     if year < 80:
         year += 2000
