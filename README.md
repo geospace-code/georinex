@@ -36,9 +36,9 @@ where ease of cross-platform install and correctness are primary goals.
 
 Also SP3 ephemeris:
 
-* SP3-a
-* [SP3-c](ftp://igs.org/pub/data/format/sp3c.txt)
-* [SP3-d](ftp://ftp.igs.org/pub/data/format/sp3d.pdf)
+* [SP3-a](https://files.igs.org/pub/data/format/sp3.txt)
+* [SP3-c](https://files.igs.org/pub/data/format/sp3c.txt)
+* [SP3-d](https://files.igs.org/pub/data/format/sp3d.pdf)
 
 ## Output
 
@@ -239,9 +239,9 @@ shows that `np.genfromtxt()` is consuming about 30% of processing time, and `xar
 
 ## Notes
 
-* RINEX 3.03 [specification](ftp://igs.org/pub/data/format/rinex303.pdf)
-* RINEX 3.04 [specification (Dec 2018)](ftp://igs.org/pub/data/format/rinex304.pdf)
-* RINEX 3.04 [release notes](ftp://igs.org/pub/data/format/rinex304-release-notes.pdf)
+* RINEX 3.03 [specification](https://files.igs.org/pub/data/format/rinex303.pdf) [release notes](https://files.igs.org/pub/data/format/rinex303-release-notes.pdf)
+* RINEX 3.04 [specification](https://files.igs.org/pub/data/format/rinex304.pdf)  [release notes](https://files.igs.org/pub/data/format/rinex304-release-notes.pdf)
+* RINEX 3.05 [specification](https://files.igs.org/pub/data/format/rinex305.pdf) [release notes](https://www.igs.org/news/rinex305/)
 
 * GPS satellite position is given for each time in the NAV file as Keplerian parameters, which can be [converted to ECEF](https://ascelibrary.org/doi/pdf/10.1061/9780784411506.ap03).
 * https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
