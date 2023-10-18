@@ -24,12 +24,14 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
 
     http://epncb.oma.be/ftp/data/format/sp3_docu.txt  (sp3a)
     """
+
     dat: dict[T.Hashable, T.Any] = {}
+
     with opener(fn) as f:
         ln = first_nonblank_line(f)
         assert ln[0] == "#", f"failed to read {fn} line 1"
         # sp3_version = ln[1]
-        dat["t0"] = sp3dt(ln)
+        t0 = sp3dt(ln)
         # Nepoch != number of time steps, at least for some files
         dat["Nepoch"] = int(ln[32:39])
         dat["coord_sys"] = ln[46:51]
@@ -105,6 +107,7 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
     ecefs.append(ecef)
     clocks.append(clock)
     vels.append(vel)
+
     aclock = np.asarray(clocks)
 
     # assemble into final xarray.Dataset
@@ -114,6 +117,8 @@ def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
 
     ds["velocity"] = (("time", "sv", "ECEF"), vels)
     ds["dclock"] = (("time", "sv"), aclock[:, :, 1])
+
+    ds["t0"] = t0
 
     ds.attrs = dat
 

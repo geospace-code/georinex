@@ -71,6 +71,22 @@ def test_netcdf_write(tmp_path):
     assert obs.equals(wobs)
 
 
+def test_netcdf_write_sp3(tmp_path):
+    """
+    NetCDF4 wants suffix .nc -- arbitrary tempfile.NamedTemporaryFile names do NOT work!
+    """
+    pytest.importorskip("netCDF4")
+
+    fn = tmp_path / "sp3.nc"
+    obs = gr.load(R / "example1.sp3a", out=fn)
+
+    wobs = xarray.load_dataset(fn)
+
+    assert obs.equals(wobs)
+
+    assert obs.attrs == wobs.attrs
+
+
 def test_locs():
     pytest.importorskip("pymap3d")  # need to have this
     gg = pytest.importorskip("georinex.geo")
