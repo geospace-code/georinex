@@ -212,7 +212,7 @@ def rinexobs(
     # %% version selection
     info = rinexinfo(fn)
 
-    if int(info["version"]) in (1, 2):
+    if int(info["version"]) in {1, 2}:
         obs = rinexobs2(
             fn,
             use,

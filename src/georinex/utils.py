@@ -30,7 +30,7 @@ def globber(path: Path, glob: list[str]) -> list[Path]:
 
 def gettime(fn: T.TextIO | Path):
     """
-    get times in RINEX 2/3 file
+    get times in [C]RINEX 2/3 file
     Note: in header,
         * TIME OF FIRST OBS is mandatory
         * TIME OF LAST OBS is optional
@@ -47,6 +47,7 @@ def gettime(fn: T.TextIO | Path):
     times : numpy.ndarray of numpy.datetime64
         1-D vector of epochs in file
     """
+
     info = rinexinfo(fn)
 
     version = info["version"]
@@ -55,14 +56,14 @@ def gettime(fn: T.TextIO | Path):
 
     # %% select function
     if rtype == "obs":
-        if vers == 2:
+        if vers in {1, 2}:
             times = obstime2(fn)
         elif vers == 3:
             times = obstime3(fn)
         else:
             raise ValueError(f"Unknown RINEX version {version} {fn}")
     elif rtype == "nav":
-        if vers == 2:
+        if vers in {1, 2}:
             times = navtime2(fn)
         elif vers == 3:
             times = navtime3(fn)

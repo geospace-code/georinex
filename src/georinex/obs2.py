@@ -356,6 +356,7 @@ def obsheader2(
     """
     End users should use rinexheader()
     """
+
     if isinstance(f, (str, Path)):
         with opener(f, header=True) as h:
             return obsheader2(h, useindicators, meas)

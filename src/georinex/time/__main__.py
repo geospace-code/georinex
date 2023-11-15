@@ -10,11 +10,7 @@ import georinex as gr
 
 
 def eachfile(fn: Path):
-    try:
-        times = gr.gettime(fn)
-    except ValueError as e:
-        logging.error(f"{fn.name}: {e}")
-        return
+    times = gr.gettime(fn)
 
     # %% output
     Ntimes = times.size

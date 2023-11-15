@@ -17,6 +17,7 @@ from ncompress import decompress as unlzw
 @contextmanager
 def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
     """provides file handle for regular ASCII or gzip files transparently"""
+
     if isinstance(fn, str):
         fn = Path(fn).expanduser()
 

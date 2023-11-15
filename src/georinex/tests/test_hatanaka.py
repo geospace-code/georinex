@@ -1,3 +1,7 @@
+"""
+Hatanaka CRINEX
+"""
+
 import pytest
 from pathlib import Path
 from datetime import datetime
@@ -13,6 +17,9 @@ def test_obs2():
     info = gr.rinexinfo(fn)
     assert int(info["version"]) == 1
 
+    times = gr.gettime(fn)
+    assert times.size == 2880
+
     obs = gr.load(fn, tlim=("2015-02-13T23:00", "2015-02-13T23:01"))
 
     assert obs.time.size == 3
@@ -26,6 +33,10 @@ def test_obs3_gz():
 
     info = gr.rinexinfo(fn)
     assert int(info["version"]) == 3
+
+    # times out--need smaller test file
+    # times = gr.gettime(fn)
+    # assert times.size == 2880
 
     # %% full file
     obs = gr.load(fn, tlim=("2018-07-19T01", "2018-07-19T01:10"))
@@ -78,12 +89,16 @@ def test_obs3_gz():
 
 @pytest.mark.timeout(30)
 @pytest.mark.parametrize("suffix", [".crx", ".crx.bz2"])
-def test_obs3(suffix):
+def test_obs3_crx(suffix):
     fn = R / ("P43300USA_R_20190012056_17M_15S_MO" + suffix)
 
     info = gr.rinexinfo(fn)
 
     assert int(info["version"]) == 3
+
+    times = gr.gettime(fn)
+    assert times.size == 70
+
     # %% full file
     obs = gr.load(fn, tlim=("2019-01-01", "2019-01-01T20:57"))
 
