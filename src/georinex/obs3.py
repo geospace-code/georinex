@@ -25,14 +25,14 @@ BEIDOU = 0
 
 def rinexobs3(
     fn: T.TextIO | Path,
-    use: set[str] = None,
-    tlim: tuple[datetime, datetime] = None,
+    use: set[str] | None = None,
+    tlim: tuple[datetime, datetime] | None = None,
     useindicators: bool = False,
-    meas: list[str] = None,
+    meas: list[str] | None = None,
     verbose: bool = False,
     *,
     fast: bool = False,
-    interval: float | int | timedelta = None,
+    interval: float | int | timedelta | None = None,
 ):
     """
     process RINEX 3 OBS data
@@ -267,7 +267,7 @@ def _indicators(d: dict, k: str, arr: np.ndarray) -> dict[str, tuple]:
 
 
 def obsheader3(
-    f: T.TextIO, use: set[str] = None, meas: list[str] = None
+    f: T.TextIO, use: set[str] | None = None, meas: list[str] | None = None
 ) -> dict[T.Hashable, T.Any]:
     """
     get RINEX 3 OBS types, for each system type

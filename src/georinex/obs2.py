@@ -20,14 +20,14 @@ from .common import determine_time_system, check_ram, check_time_interval, check
 
 def rinexobs2(
     fn: T.TextIO | Path,
-    use: set[str] = None,
-    tlim: tuple[datetime, datetime] = None,
+    use: set[str] | None = None,
+    tlim: tuple[datetime, datetime] | None = None,
     useindicators: bool = False,
-    meas: list[str] = None,
+    meas: list[str] | None = None,
     verbose: bool = False,
     *,
     fast: bool = True,
-    interval: float | int | timedelta = None,
+    interval: float | int | timedelta | None = None,
 ):
     if isinstance(use, str):
         use = {use}
@@ -63,13 +63,13 @@ def rinexobs2(
 def rinexsystem2(
     fn: T.TextIO | Path,
     system: str,
-    tlim: tuple[datetime, datetime] = None,
+    tlim: tuple[datetime, datetime] | None = None,
     useindicators: bool = False,
-    meas: list[str] = None,
+    meas: list[str] | None = None,
     verbose: bool = False,
     *,
     fast: bool = True,
-    interval: float | int | timedelta = None,
+    interval: float | int | timedelta | None = None,
 ) -> xarray.Dataset:
     """
     process RINEX OBS data
@@ -342,7 +342,7 @@ def _num_times(
 
 
 def obsheader2(
-    f: T.TextIO | Path, useindicators: bool = False, meas: list[str] = None
+    f: T.TextIO | Path, useindicators: bool = False, meas: list[str] | None = None
 ) -> dict[T.Hashable, T.Any]:
     """
     End users should use rinexheader()
@@ -514,7 +514,7 @@ def obstime2(fn: T.TextIO | Path, verbose: bool = False):
     return times
 
 
-def _skip(f: T.TextIO, ln: str, Nl_sv: int, sv: list[str] = None):
+def _skip(f: T.TextIO, ln: str, Nl_sv: int, sv: list[str] | None = None):
     """
     skip ahead to next time step
     """

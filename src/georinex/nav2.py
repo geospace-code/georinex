@@ -14,7 +14,7 @@ STARTCOL2 = 3  # column where numerical data starts for RINEX 2
 Nl = {"G": 7, "R": 3, "E": 7}  # number of additional SV lines
 
 
-def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] = None):
+def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] | None = None):
     """
     Reads RINEX 2.x NAV files
     Michael Hirsch, Ph.D.

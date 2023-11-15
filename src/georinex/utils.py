@@ -116,7 +116,7 @@ def rinexheader(fn: T.TextIO | Path) -> dict[T.Hashable, T.Any]:
     return hdr
 
 
-def _tlim(tlim: tuple[datetime, datetime] = None) -> tuple[datetime, datetime]:
+def _tlim(tlim: tuple[datetime, datetime] | None = None) -> tuple[datetime, datetime] | None:
     if tlim is None:
         pass
     elif len(tlim) == 2 and isinstance(tlim[0], datetime):

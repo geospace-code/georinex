@@ -16,7 +16,9 @@ Nl = {"C": 7, "E": 7, "G": 7, "J": 7, "R": 3, "S": 3, "I": 7}  # number of addit
 LF = 19  # string length per field
 
 
-def rinexnav3(fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, datetime] = None):
+def rinexnav3(
+    fn: T.TextIO | Path, use: set[str] | None = None, tlim: tuple[datetime, datetime] | None = None
+):
     """
     Read RINEX 3.x NAV files
 
@@ -100,7 +102,8 @@ def rinexnav3(fn: T.TextIO | Path, use: set[str] = None, tlim: tuple[datetime, d
             for j, i in enumerate(svi):
                 try:
                     darr[j, compact_index] = [
-                        float(raws[i][LF * k : LF * (k + 1)] or 0) for k in range(len(compact_index))
+                        float(raws[i][LF * k : LF * (k + 1)] or 0)
+                        for k in range(len(compact_index))
                     ]
                 except ValueError:
                     logging.info(f"malformed line for {sv}")

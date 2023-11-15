@@ -74,7 +74,7 @@ def determine_time_system(header: dict[T.Hashable, T.Any]) -> str:
     return ts
 
 
-def check_time_interval(interval: float | int | timedelta) -> timedelta:
+def check_time_interval(interval: float | int | timedelta | None) -> timedelta | None:
     if isinstance(interval, (float, int)):
         if interval < 0:
             raise ValueError("time interval must be non-negative")

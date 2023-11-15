@@ -17,7 +17,7 @@ from .rio import first_nonblank_line, opener
 ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
 
-def load_sp3(fn: Path, outfn: Path) -> xarray.Dataset:
+def load_sp3(fn: Path, outfn: Path | None) -> xarray.Dataset:
     """
     The basic format is a position and clock record;
     a second, optional, record contains velocities and clock rates-of-change.
