@@ -17,7 +17,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dynamic = ["readme", "version"]
-dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "ncompress"]
+dependencies = ["python-dateutil", "numpy", "xarray", "hatanaka", "ncompress", "netcdf4"]
 
 
 [tool.setuptools.dynamic]
@@ -28,7 +28,7 @@ version = {attr = "georinex.__version__"}
 tests = ["pytest", "pytest-timeout"]
 lint = ["flake8", "flake8-bugbear", "flake8-builtins", "flake8-blind-except", "mypy", "types-python-dateutil"]
 plot = ["matplotlib", "seaborn", "pymap3d", "cartopy"]
-io = ["netcdf4", "psutil"]
+io = ["psutil"]
 
 [tool.black]
 line-length = 99

@@ -125,7 +125,7 @@ def load_sp3(fn: Path, outfn: Path | None) -> xarray.Dataset:
     if outfn:
         outfn = Path(outfn).expanduser()
         enc = {k: ENC for k in ds.data_vars}
-        ds.to_netcdf(outfn, mode="w", encoding=enc)
+        ds.to_netcdf(outfn, mode="w", encoding=enc, format="NETCDF4")
 
     return ds
 

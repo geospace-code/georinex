@@ -173,7 +173,7 @@ def rinexnav(
         wmode = _groupexists(outfn, group, overwrite)
 
         enc = {k: ENC for k in nav.data_vars}
-        nav.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
+        nav.to_netcdf(outfn, group=group, mode=wmode, encoding=enc, format="NETCDF4")
 
     return nav
 
@@ -246,7 +246,7 @@ def rinexobs(
         # Pandas >= 0.25.0 requires this, regardless of xarray version
         if obs.time.dtype != "datetime64[ns]":
             obs["time"] = obs.time.astype("datetime64[ns]")
-        obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc)
+        obs.to_netcdf(outfn, group=group, mode=wmode, encoding=enc, format="NETCDF4")
 
     return obs
 
