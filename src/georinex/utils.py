@@ -96,7 +96,7 @@ def rinexheader(fn: T.TextIO | Path) -> dict[T.Hashable, T.Any]:
     info = rinexinfo(fn)
 
     hdr: dict[T.Hashable, T.Any]
-    if int(info["version"]) in (1, 2):
+    if int(info["version"]) in {1, 2}:
         if info["rinextype"] == "obs":
             hdr = obsheader2(fn)
         elif info["rinextype"] == "nav":

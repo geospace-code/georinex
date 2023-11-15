@@ -256,8 +256,8 @@ def rinexsystem2(
     for field in hdr["fields"]:
         fields.append(field)
         if useindicators:
-            if field not in ("S1", "S2", "S5"):
-                if field in ("L1", "L2", "L5"):
+            if field not in {"S1", "S2", "S5"}:
+                if field in {"L1", "L2", "L5"}:
                     fields.append(f"{field}lli")
                 else:
                     fields.append(None)
@@ -582,7 +582,7 @@ def _timeobs(ln: str) -> datetime:
     )
     # %% check if valid time
     eflag = int(ln[28])
-    if eflag not in (0, 1, 5, 6):  # EPOCH FLAG
+    if eflag not in {0, 1, 5, 6}:  # EPOCH FLAG
         raise ValueError(f"{t}: epoch flag {eflag}")
 
     return t
