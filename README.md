@@ -59,9 +59,7 @@ Current development version:
 ```sh
 git clone https://github.com/geospace-code/georinex
 
-cd georinex
-
-python -m pip install -e .
+python -m pip install -e ./georinex
 ```
 
 ### Selftest

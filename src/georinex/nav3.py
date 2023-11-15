@@ -15,6 +15,8 @@ STARTCOL3 = 4  # column where numerical data starts for RINEX 3
 Nl = {"C": 7, "E": 7, "G": 7, "J": 7, "R": 3, "S": 3, "I": 7}  # number of additional SV lines
 LF = 19  # string length per field
 
+__all__ = ["rinexnav3", "navheader3", "navtime3"]
+
 
 def rinexnav3(
     fn: T.TextIO | Path, use: set[str] | None = None, tlim: tuple[datetime, datetime] | None = None

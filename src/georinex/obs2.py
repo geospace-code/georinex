@@ -17,6 +17,8 @@ except ImportError:
 from .rio import opener, rinexinfo
 from .common import determine_time_system, check_ram, check_time_interval, check_unique_times
 
+__all__ = ["rinexobs2", "rinexsystem2", "obsheader2", "obstime2"]
+
 
 def rinexobs2(
     fn: T.TextIO | Path,

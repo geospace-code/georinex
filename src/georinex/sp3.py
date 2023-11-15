@@ -16,6 +16,8 @@ from .rio import first_nonblank_line, opener
 # for NetCDF compression. too high slows down with little space savings.
 ENC = {"zlib": True, "complevel": 1, "fletcher32": True}
 
+__all__ = ["load_sp3"]
+
 
 def load_sp3(fn: Path, outfn: Path | None) -> xarray.Dataset:
     """

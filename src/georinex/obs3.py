@@ -22,6 +22,8 @@ GLONASS = 37
 QZSS = 192
 BEIDOU = 0
 
+__all__ = ["rinexobs3", "obsheader3", "obstime3"]
+
 
 def rinexobs3(
     fn: T.TextIO | Path,
