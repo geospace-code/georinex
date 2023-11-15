@@ -79,21 +79,31 @@ python -m pytest
 The simplest command-line use is through the top-level `python -m georinex.read` script.
 Normally you'd use the `-p` option with single files to plot, if not converting.
 
-* Read single RINEX3 or RINEX 2 Obs or Nav file:
-  ```sh
-  python -m georinex.read myrinex.XXx
-  ```
-* Read NetCDF converted RINEX data:
-  ```sh
-  python -m georinex.read myrinex.nc
-  ```
-* Batch convert RINEX to NetCDF4 / HDF5 (this example for RINEX 2 OBS):
-  ```sh
-  python -m georinex.rinex2hdf5 ~/data "*o" -o ~/data
-  ```
-  in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
+Read single RINEX3 or RINEX 2 Obs or Nav file:
 
-By default all plots and status messages are off, unless using the `-p` option to save processing time.
+```sh
+python -m georinex.read myrinex.XXx
+```
+
+Read times from a file (helpful for debugging a file that doesn't read properly):
+
+```sh
+python -m georinex.time myrinex.XXx
+```
+
+Read NetCDF converted RINEX data:
+
+```sh
+python -m georinex.read myrinex.nc
+```
+
+Batch convert RINEX to NetCDF4 / HDF5:
+
+```sh
+python -m georinex.rinex2hdf5 ~/data "*o" -o ~/data
+```
+
+in this example, the suffix `.nc` is appended to the original RINEX filename: `my.15o` => `my.15o.nc`
 
 It's suggested to save the GNSS data to NetCDF4 (a subset of HDF5) with the `-o`option,
 as NetCDF4 is also human-readable, yet say 1000x faster to load than RINEX.
@@ -281,7 +291,9 @@ UNAVCO RINEX 2 data:
 
 ### Hatanaka compressed RINEX .crx
 
-The compressed Hatanaka `.crx` or `.crx.gz` files are supported seamlessly via `crx2rnx`.
+Compressed Hatanaka CRINEX files are supported seamlessly via
+[hatanaka](https://github.com/valgur/hatanaka)
+Python package.
 These are distinct from the supported `.rnx`, `.gz`, or `.zip` RINEX files.
 
 Hatanaka, Y. (2008), A Compression Format and Tools for GNSS Observation Data, Bulletin of the Geospatioal Information Authority of Japan, 55, 21-30.

@@ -9,19 +9,18 @@ import numpy as np
 import georinex as gr
 
 
-def eachfile(fn: Path, verbose: bool = False):
+def eachfile(fn: Path):
     try:
         times = gr.gettime(fn)
     except ValueError as e:
-        if verbose:
-            print(f"{fn.name}: {e}")
+        logging.error(f"{fn.name}: {e}")
         return
 
     # %% output
     Ntimes = times.size
 
     if Ntimes == 0:
-        return
+        raise ValueError(f"{fn.name}: no times found")
 
     t0 = times[0].astype(datetime)
     t1 = times[-1].astype(datetime)
@@ -38,14 +37,12 @@ def eachfile(fn: Path, verbose: bool = False):
 
     print(ostr)
 
-    if verbose:
-        print(times)
+    print(times)
 
 
 p = argparse.ArgumentParser(description="Print times in RINEX file")
 p.add_argument("filename", help="RINEX filename to get times from")
 p.add_argument("-glob", help="file glob pattern", nargs="+", default="*")
-p.add_argument("-v", "--verbose", action="store_true")
 p = p.parse_args()
 
 filename = Path(p.filename).expanduser()
@@ -55,8 +52,11 @@ print("filename: start, stop, number of times, interval")
 if filename.is_dir():
     flist = gr.globber(filename, p.glob)
     for f in flist:
-        eachfile(f, p.verbose)
+        try:
+            eachfile(f)
+        except ValueError as err:
+            logging.error(f"{f.name}: {err}")
 elif filename.is_file():
-    eachfile(filename, p.verbose)
+    eachfile(filename)
 else:
     raise FileNotFoundError(f"{filename} is not a path or file")

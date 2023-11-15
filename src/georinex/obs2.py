@@ -313,16 +313,20 @@ def rinexsystem2(
 
 
 def _num_times(
-    fn: T.TextIO | Path, Nextra: int, tlim: T.Optional[tuple[datetime, datetime]], verbose: bool
+    fn: T.TextIO | Path, Nextra: int, tlim: tuple[datetime, datetime] | None, verbose: bool
 ):
+    """
+    estimate number of times in a RINEX OBS file
+    """
+
     Nsvmin = 6  # based on GPS only, 20 deg. min elev. at poles
 
     if Nextra:
         """
         estimated number of satellites per file:
-            * RINEX OBS2 files have at least one 80-byte line per time: Nsvmin* ceil(Nobs / 5)
+        RINEX OBS2 files have at least one 80-byte line per time: Nsvmin * ceil(Nobs / 5)
 
-        We open the file and seek because often we're using compressed files
+        Open the file and seek because often we're using compressed files
         that have been decompressed in memory only--there is no on-disk
         uncompressed file.
         """
@@ -333,7 +337,10 @@ def _num_times(
 
         Nt = ceil(filesize / 80 / (Nsvmin * Nextra))
         times = np.empty(Nt, dtype=datetime)
-    else:  # strict preallocation by double-reading file, OK for < 100 MB files
+    else:
+        """
+        strict preallocation by double-reading file, OK for < 100 MB files
+        """
         t = obstime2(fn, verbose=verbose)  # < 10 ms for 24 hour 15 second cadence
         if tlim is not None:
             times = t[(tlim[0] <= t) & (t <= tlim[1])]
