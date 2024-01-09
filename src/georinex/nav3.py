@@ -104,7 +104,7 @@ def rinexnav3(
             for j, i in enumerate(svi):
                 try:
                     darr[j, compact_index] = [
-                        float(raws[i][LF * k : LF * (k + 1)] or 0)
+                        float(raws[i][LF * k : LF * (k + 1)].strip() or 0)
                         for k in range(len(compact_index))
                     ]
                 except ValueError:
