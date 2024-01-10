@@ -1,0 +1,170 @@
+     3.04           NAVIGATION DATA     MIXED               RINEX VERSION / TYPE
+MergeMNfile.tcl     IGS                 20201002 035716 GMT PGM / RUN BY / DATE
+gfzrnx-1.13-7761    FILE MERGE          20200516 000208 UTC COMMENT
+GAL    3.8250e+01  1.2891e-01  6.6833e-03  0.0000e+00       IONOSPHERIC CORR
+GPSA   7.4506e-09  2.2352e-08 -5.9605e-08 -1.1921e-07       IONOSPHERIC CORR
+GPSB   8.6016e+04  8.1920e+04 -1.3107e+05 -5.2429e+05       IONOSPHERIC CORR
+GAGP  2.2700987756E-09 1.287858709E-14 432000 2105          TIME SYSTEM CORR
+GAUT -9.3132257462E-10 8.881784197E-16 432000 2105          TIME SYSTEM CORR
+GPUT -9.3132257462E-10 3.552713679E-15  61440 2106          TIME SYSTEM CORR
+    18    18  1929     7GPS                                 LEAP SECONDS
+                                                            COMMENT
+   ------------------------------------------------------   COMMENT
+      # of NAV. EPOCHS based on # of FILE CONTRIBUTIONS     COMMENT
+   ------------------------------------------------------   COMMENT
+                                                            COMMENT
+BRD_HD  PRN T    =1   <5  <10  <15  <25  <50 >=50    #EPO   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_STK E01 F    28    7    1    1    .    .    .      37   COMMENT
+BRD_STK E01 I    28    7    1    1    .    .    .      37   COMMENT
+BRD_STK E02 F    21    8    1    1    .    .    .      31   COMMENT
+BRD_STK E02 I    21    8    1    1    .    .    .      31   COMMENT
+BRD_STK E03 F    18    7    1    1    .    .    .      27   COMMENT
+BRD_STK E03 I    20    7    1    1    .    .    .      29   COMMENT
+BRD_STK E04 F    15    6    1    1    .    .    .      23   COMMENT
+BRD_STK E04 I    15    6    1    1    .    .    .      23   COMMENT
+BRD_STK E05 F    10    3    .    2    .    .    .      15   COMMENT
+BRD_STK E05 I    10    3    .    2    .    .    .      15   COMMENT
+BRD_STK E07 F    24   13    2    .    .    .    .      39   COMMENT
+BRD_STK E07 I    25   13    2    .    .    .    .      40   COMMENT
+BRD_STK E08 F    25   11    2    .    .    .    .      38   COMMENT
+BRD_STK E08 I    26   11    2    .    .    .    .      39   COMMENT
+BRD_STK E09 F    15    3    .    2    .    .    .      20   COMMENT
+BRD_STK E09 I    16    3    .    2    .    .    .      21   COMMENT
+BRD_STK E11 F    24    8    .    1    .    .    .      33   COMMENT
+BRD_STK E11 I    23    9    .    1    .    .    .      33   COMMENT
+BRD_STK E12 F    29    8    1    1    .    .    .      39   COMMENT
+BRD_STK E12 I    29    8    1    1    .    .    .      39   COMMENT
+BRD_STK E13 F    25    8    2    .    .    .    .      35   COMMENT
+BRD_STK E13 I    24    8    2    .    .    .    .      34   COMMENT
+BRD_STK E15 F    17    4    1    1    .    .    .      23   COMMENT
+BRD_STK E15 I    15    5    1    1    .    .    .      22   COMMENT
+BRD_STK E19 F    43   10    2    .    .    .    .      55   COMMENT
+BRD_STK E19 I    45   10    2    .    .    .    .      57   COMMENT
+BRD_STK E21 F    35   10    2    .    .    .    .      47   COMMENT
+BRD_STK E21 I    36   10    2    .    .    .    .      48   COMMENT
+BRD_STK E22 F     .    .    .    .    1    .    .       1   COMMENT
+BRD_STK E22 I     .    .    .    .    1    .    .       1   COMMENT
+BRD_STK E24 F    12    5    1    1    .    .    .      19   COMMENT
+BRD_STK E24 I    13    5    1    1    .    .    .      20   COMMENT
+BRD_STK E25 F    12    5    1    1    .    .    .      19   COMMENT
+BRD_STK E25 I    13    5    1    1    .    .    .      20   COMMENT
+BRD_STK E26 F    33   10    2    .    .    .    .      45   COMMENT
+BRD_STK E26 I    35   10    2    .    .    .    .      47   COMMENT
+BRD_STK E27 F    28   11    2    .    .    .    .      41   COMMENT
+BRD_STK E27 I    28   12    2    .    .    .    .      42   COMMENT
+BRD_STK E30 F    29   10    .    1    .    .    .      40   COMMENT
+BRD_STK E30 I    29   10    .    1    .    .    .      40   COMMENT
+BRD_STK E31 F    13    5    1    1    .    .    .      20   COMMENT
+BRD_STK E31 I    13    5    1    1    .    .    .      20   COMMENT
+BRD_STK E33 F    13   12    .    1    .    .    .      26   COMMENT
+BRD_STK E33 I    12   13    .    1    .    .    .      26   COMMENT
+BRD_STK E36 F    12    7    1    1    .    .    .      21   COMMENT
+BRD_STK E36 I    14    7    1    1    .    .    .      23   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_SYS E   F                                         694   COMMENT
+BRD_SYS E   I                                         707   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_SYS E   -                                        1401   COMMENT
+                                                            COMMENT
+BRD_HD  PRN T    =1   <5  <10  <15  <25  <50 >=50    #EPO   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_STK G01 _     .    6    1    1    .    .    .       8   COMMENT
+BRD_STK G02 _     2    5    1    1    .    .    .       9   COMMENT
+BRD_STK G03 _     1    4    1    1    .    .    .       7   COMMENT
+BRD_STK G04 _     1    6    1    1    .    .    .       9   COMMENT
+BRD_STK G05 _     1    4    1    1    .    .    .       7   COMMENT
+BRD_STK G06 _     2    4    1    1    .    .    .       8   COMMENT
+BRD_STK G07 _     1    3    1    1    .    .    .       6   COMMENT
+BRD_STK G08 _     .    7    .    1    .    .    .       8   COMMENT
+BRD_STK G09 _     1    4    .    .    1    .    .       6   COMMENT
+BRD_STK G10 _     .    6    2    .    .    .    .       8   COMMENT
+BRD_STK G11 _     .    7    .    1    .    .    .       8   COMMENT
+BRD_STK G12 _     .    4    2    .    .    .    .       6   COMMENT
+BRD_STK G13 _     .    6    2    .    .    .    .       8   COMMENT
+BRD_STK G14 _     1    6    2    .    .    .    .       9   COMMENT
+BRD_STK G15 _     .    7    2    .    .    .    .       9   COMMENT
+BRD_STK G16 _     1    4    1    1    .    .    .       7   COMMENT
+BRD_STK G17 _     .    7    .    1    .    .    .       8   COMMENT
+BRD_STK G18 _     .    5    2    .    .    .    .       7   COMMENT
+BRD_STK G19 _     .    7    1    1    .    .    .       9   COMMENT
+BRD_STK G20 _     .    4    3    .    .    .    .       7   COMMENT
+BRD_STK G21 _     .    5    2    .    .    .    .       7   COMMENT
+BRD_STK G22 _     1    5    .    .    1    .    .       7   COMMENT
+BRD_STK G24 _     .    4    3    .    .    .    .       7   COMMENT
+BRD_STK G25 _     .    5    2    .    .    .    .       7   COMMENT
+BRD_STK G26 _     1    5    1    1    .    .    .       8   COMMENT
+BRD_STK G27 _     .    6    1    1    .    .    .       8   COMMENT
+BRD_STK G28 _     .    6    1    1    .    .    .       8   COMMENT
+BRD_STK G29 _     2    3    1    1    .    .    .       7   COMMENT
+BRD_STK G30 _     2    3    .    .    1    .    .       6   COMMENT
+BRD_STK G31 _     1    5    1    1    .    .    .       8   COMMENT
+BRD_STK G32 _     1    6    2    .    .    .    .       9   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_SYS G   -                                         236   COMMENT
+                                                            COMMENT
+BRD_HD  PRN T    =1   <5  <10  <15  <25  <50 >=50    #EPO   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_STK R01 _     8    9    2    .    .    .    .      19   COMMENT
+BRD_STK R02 _     8    8    3    .    .    .    .      19   COMMENT
+BRD_STK R03 _     8    8    3    .    .    .    .      19   COMMENT
+BRD_STK R04 _     8    9    2    .    .    .    .      19   COMMENT
+BRD_STK R05 _    11   10    2    .    .    .    .      23   COMMENT
+BRD_STK R06 _    12    9    2    .    .    .    .      23   COMMENT
+BRD_STK R07 _    12    9    2    .    .    .    .      23   COMMENT
+BRD_STK R08 _    11    9    2    .    .    .    .      22   COMMENT
+BRD_STK R09 _    13    9    2    .    .    .    .      24   COMMENT
+BRD_STK R10 _    11   10    2    .    .    .    .      23   COMMENT
+BRD_STK R11 _     8   10    2    .    .    .    .      20   COMMENT
+BRD_STK R12 _     8    8    3    .    .    .    .      19   COMMENT
+BRD_STK R13 _     7    8    2    .    .    .    .      17   COMMENT
+BRD_STK R14 _     8   10    2    .    .    .    .      20   COMMENT
+BRD_STK R15 _    12    9    1    1    .    .    .      23   COMMENT
+BRD_STK R16 _    12    9    1    1    .    .    .      23   COMMENT
+BRD_STK R17 _     9    9    2    .    .    .    .      20   COMMENT
+BRD_STK R18 _    10    9    2    .    .    .    .      21   COMMENT
+BRD_STK R19 _     8    8    1    1    .    .    .      18   COMMENT
+BRD_STK R20 _     7    8    1    1    .    .    .      17   COMMENT
+BRD_STK R21 _     9   10    1    1    .    .    .      21   COMMENT
+BRD_STK R22 _    12    8    1    1    .    .    .      22   COMMENT
+BRD_STK R23 _    11    9    2    .    .    .    .      22   COMMENT
+BRD_STK R24 _    11   10    2    .    .    .    .      23   COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_SYS R   -                                         500   COMMENT
+                                                            COMMENT
+BRD_LN  -------------------------------------------------   COMMENT
+BRD_ALL                                              2137   COMMENT
+                                                            COMMENT
+                                                            END OF HEADER
+E24 2020 05 15 00 00 00 5.455514357891E-03-1.993782916543E-11 0.000000000000E+00
+     8.000000000000E+01 3.037500000000E+01 2.826903466162E-09 1.111185876666E-01
+     1.413747668266E-06 5.261546466500E-04 6.578862667084E-06 5.440599994659E+03
+     4.320000000000E+05-3.725290298462E-08 9.568013010147E-01-1.490116119385E-08
+     9.805210430486E-01 2.093750000000E+02 8.678592816169E-01-5.435583556730E-09
+    -2.946551307118E-10 2.580000000000E+02 2.105000000000E+03 0.000000000000E+00
+     3.120000000000E+00 0.000000000000E+00 4.540197551250E-08 0.000000000000E+00
+     4.327000000000E+05 0.000000000000E+00 0.000000000000E+00 0.000000000000E+00
+E24 2020 05 15 00 00 00 5.455520295072E-03-1.993782916543E-11 0.000000000000E+00
+     8.000000000000E+01 3.037500000000E+01 2.826903466162E-09 1.111185876666E-01
+     1.413747668266E-06 5.261546466500E-04 6.578862667084E-06 5.440599994659E+03
+     4.320000000000E+05-3.725290298462E-08 9.568013010147E-01-1.490116119385E-08
+     9.805210430486E-01 2.093750000000E+02 8.678592816169E-01-5.435583556730E-09
+    -2.946551307118E-10 5.130000000000E+02 2.105000000000E+03 0.000000000000E+00
+     3.120000000000E+00 0.000000000000E+00 4.540197551250E-08 5.098991096020E-08
+     4.326550000000E+05 0.000000000000E+00 0.000000000000E+00 0.000000000000E+00
+E24 2020 05 15 00 00 00 5.455520295070E-03-1.993782916540E-11 0.000000000000E+00
+     8.000000000000E+01 3.037500000000E+01 2.826903466160E-09 1.111185876670E-01
+     1.413747668270E-06 5.261546466500E-04 6.578862667080E-06 5.440599994660E+03
+     4.320000000000E+05-3.725290298460E-08 9.568013010150E-01-1.490116119380E-08
+     9.805210430490E-01 2.093750000000E+02 8.678592816170E-01-5.435583556730E-09
+    -2.946551307120E-10 5.160000000000E+02 2.105000000000E+03
+     3.120000000000E+00 0.000000000000E+00 4.540197551250E-08 5.098991096020E-08
+     4.326640000000E+05
+E24 2020 05 15 00 00 00 5.455520295072E-03-1.993782916543E-11 0.000000000000E+00
+     8.000000000000E+01 3.037500000000E+01 2.826903466162E-09 1.111185876666E-01
+     1.413747668266E-06 5.261546466500E-04 6.578862667084E-06 5.440599994659E+03
+     4.320000000000E+05-3.725290298462E-08 9.568013010147E-01-1.490116119385E-08
+     9.805210430486E-01 2.093750000000E+02 8.678592816169E-01-5.435583556730E-09
+    -2.946551307118E-10 5.170000000000E+02 2.105000000000E+03
+     3.120000000000E+00 0.000000000000E+00 4.540197551250E-08 5.098991096020E-08
+     4.326650000000E+05
