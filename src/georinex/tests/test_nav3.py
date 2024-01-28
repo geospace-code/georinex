@@ -264,7 +264,7 @@ def test_missing_fields():
 
     """
     nav = gr.load(R / "BRDC00IGS_R_20201360000_01D_MN.rnx", use='E', verbose=True)
-    # missing fields should be interpretted as zero and not NaN
+    # missing fields should be interpreted as zero and not NaN
     # no NaN values should exist when loading the provided rinex file
     assert nav.to_dataframe().isna().sum().sum() == 0
 
