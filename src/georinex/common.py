@@ -35,7 +35,7 @@ def check_ram(memneed: int, fn: T.TextIO | Path):
 
     if memneed > 0.5 * mem.available:  # because of array copy Numpy => Xarray
         errmsg = (
-            f"needs {memneed/1e9} GBytes RAM, but only {mem.available/1e9} Gbytes available \n"
+            f"needs {memneed / 1e9} GBytes RAM, but only {mem.available / 1e9} Gbytes available \n"
             "try fast=False to reduce RAM usage, raise a GitHub Issue to let us help"
         )
         if isinstance(fn, Path):

@@ -31,7 +31,7 @@ def opener(fn: T.TextIO | Path, header: bool = False) -> T.Iterator[T.TextIO]:
 
         finf = fn.stat()
         if finf.st_size > 100e6:
-            logging.info(f"opening {finf.st_size/1e6} MByte {fn.name}")
+            logging.info(f"opening {finf.st_size / 1e6} MByte {fn.name}")
 
         # %% get magic number
         """https://en.wikipedia.org/wiki/List_of_file_signatures"""
