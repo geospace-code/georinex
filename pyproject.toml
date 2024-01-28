@@ -26,7 +26,7 @@ version = {attr = "georinex.__version__"}
 
 [project.optional-dependencies]
 tests = ["pytest", "pytest-timeout"]
-lint = ["flake8", "flake8-bugbear", "flake8-builtins", "flake8-blind-except", "mypy", "types-python-dateutil"]
+lint = ["flake8", "flake8-bugbear", "flake8-builtins", "flake8-blind-except", "mypy"]
 plot = ["matplotlib", "seaborn", "pymap3d", "cartopy"]
 io = ["psutil"]
 

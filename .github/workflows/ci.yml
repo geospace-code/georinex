@@ -15,20 +15,20 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         os: [ubuntu-latest]
         experimental: [true]
         include:
         - os: windows-latest
-          python-version: "3.11"
+          python-version: "3.12"
           experimental: false
         - os: macos-latest
-          python-version: "3.11"
+          python-version: "3.12"
           experimental: false
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -42,7 +42,7 @@ jobs:
     - name: type annotation check
       timeout-minutes: 10
       if: runner.os == 'Linux'
-      run: mypy
+      run: mypy --install-types --non-interactive
 
     - run: pytest
       timeout-minutes: 7

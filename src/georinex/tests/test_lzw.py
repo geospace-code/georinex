@@ -1,6 +1,7 @@
 """
 test for LZW .Z file
 """
+
 from pathlib import Path
 import pytest
 

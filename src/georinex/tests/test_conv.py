@@ -2,6 +2,7 @@
 Self-test file, registration case
 for OBS RINEX reader
 """
+
 import pytest
 import xarray
 from datetime import datetime
