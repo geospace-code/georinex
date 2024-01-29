@@ -258,3 +258,23 @@ def test_ionospheric_correction():
     nav = gr.load(R / "galileo3.15n")
 
     assert nav.attrs["ionospheric_corr_GAL"] == approx([0.1248e03, 0.5039, 0.2377e-01])
+
+def test_missing_fields():
+    """Tests the conditions when missing fields exist within rinex data.
+
+    """
+    nav = gr.load(R / "BRDC00IGS_R_20201360000_01D_MN.rnx", use='E', verbose=True)
+    # missing fields should be interpreted as zero and not NaN
+    # no NaN values should exist when loading the provided rinex file
+    assert nav.to_dataframe().isna().sum().sum() == 0
+
+def test_missing_fields_end_of_line():
+    """Test when missing fields are at the end of the line.
+
+    In the test file, the J01 is missing the "FitIntvl" field which is
+    the final field. According to the Rinex specification, that missing
+    value should be interpretted as 0.
+
+    """
+    nav = gr.load(R / "BRDM00DLR_R_20130010000_01D_MN.rnx", use='J', verbose=True)
+    assert nav.to_dataframe()["FitIntvl"].to_list() == [0.,0.]

@@ -215,7 +215,10 @@ def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
             cf = cf[:30]
     elif sys == "J":
         # QZSS
-        if N == 29:
+        if N==28:
+            N = 29
+            cf = cf[:29]
+        elif N == 29:
             cf = cf[:29]
         elif N == 30:
             cf = cf[:30]
