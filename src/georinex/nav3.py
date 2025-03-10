@@ -78,7 +78,6 @@ def rinexnav3(
                 raw += ln[STARTCOL3:80]
             # one line per SV
             raws.append(raw.replace("D", "E").replace("\n", ""))
-
     # %% parse collected data per SV
     # NOTE: must be 'ns' or .to_netcdf will fail!
     t = np.array([np.datetime64(t, "ns") for t in times])
@@ -153,7 +152,8 @@ def rinexnav3(
             nav.attrs["ionospheric_corr_BDS"] = np.hstack((corr["BDSA"], corr["BDSB"]))
         if "IRNA" in corr and "IRNB" in corr:
             nav.attrs["ionospheric_corr_IRN"] = np.hstack((corr["IRNA"], corr["IRNB"]))
-
+    if "LEAP SECONDS" in header:
+        nav.attrs["leap_seconds"] = int(header["LEAP SECONDS"].split()[0])
     nav.attrs["version"] = header["version"]
     nav.attrs["svtype"] = svtypes
     nav.attrs["rinextype"] = "nav"
@@ -230,9 +230,10 @@ def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
         elif N == 27:  # no middle or trailing spare fields
             cf = cf[:22] + cf[23:-3]
     elif sys == "I":
-        if N == 28:
+        if N == 26:
+            cf = cf[:22] + cf[23:26] + [cf[27]]
+        elif N == 28:
             cf = cf[:28]
-
     if N != len(cf):
         raise ValueError(f"System {sys} NAV data is not the same length as the number of fields.")
 

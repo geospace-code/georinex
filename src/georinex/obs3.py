@@ -160,7 +160,8 @@ def rinexobs3(
             data.attrs["receiver_clock_offset_applied"] = int(hdr["RCV CLOCK OFFS APPL"])
         except ValueError:
             pass
-
+    if "LEAP SECONDS" in hdr.keys():
+        data.attrs["leap_seconds"] = int(hdr["LEAP SECONDS"].split()[0])
     return data
 
 

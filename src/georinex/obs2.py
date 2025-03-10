@@ -52,13 +52,10 @@ def rinexobs2(
             fast=fast,
             interval=interval,
         )
-
         if len(o.variables) > 0:
             attrs = o.attrs
             obs = xarray.merge((obs, o))
-
     obs.attrs = attrs
-
     return obs
 
 
@@ -253,7 +250,6 @@ def rinexsystem2(
                     data[i, j, isv] = darr[:, k]
     # %% output gathering
     data = data[:, : times.size, :]  # trims down for unneeded preallocated
-
     fields = []
     for field in hdr["fields"]:
         fields.append(field)
@@ -283,19 +279,19 @@ def rinexsystem2(
     obs = obs.dropna(dim="time", how="all")  # when tlim specified
     # %% attributes
     obs.attrs["version"] = hdr["version"]
-
+    
     # Get interval from header or derive it from the data
-    if "interval" in hdr.keys():
+    if "interval" in hdr.keys() and np.isfinite(hdr["interval"]):
         obs.attrs["interval"] = hdr["interval"]
     elif "time" in obs.coords.keys():
         # median is robust against gaps
         try:
             obs.attrs["interval"] = np.median(np.diff(obs.time) / np.timedelta64(1, "s"))
         except TypeError:
-            pass
-    else:
-        obs.attrs["interval"] = np.nan
-
+            print ("Couldn't process interval")
+    # else:
+    #     obs.attrs["interval"] = np.nan
+    
     obs.attrs["rinextype"] = "obs"
     obs.attrs["fast_processing"] = int(fast)  # bool is not allowed in NetCDF4
     obs.attrs["time_system"] = determine_time_system(hdr)
@@ -305,10 +301,14 @@ def rinexsystem2(
         obs.attrs["rxmodel"] = hdr["rxmodel"]
     if "position" in hdr.keys():
         obs.attrs["position"] = hdr["position"]
-
     if "position_geodetic" in hdr.keys():
         obs.attrs["position_geodetic"] = hdr["position_geodetic"]
-
+    if "LEAP SECONDS" in hdr.keys():
+        try:
+            obs.attrs["leap_seconds"] = int(hdr["LEAP SECONDS"])
+        except:
+            pass
+    
     return obs
 
 
@@ -450,11 +450,14 @@ def obsheader2(
     except (KeyError, ValueError):
         pass
 
-    try:  # This key is OPTIONAL
+    try:  
         hdr["interval"] = float(hdr["INTERVAL"][:10])
     except (KeyError, ValueError):
         pass
-
+    try:  
+        hdr["version"] = float(hdr["RINEX VERSION / TYPE"].split()[0])
+    except (KeyError, ValueError):
+        pass
     try:
         s = " "
         hdr["rxmodel"] = s.join(hdr["REC # / TYPE / VERS"].split()[1:-1])

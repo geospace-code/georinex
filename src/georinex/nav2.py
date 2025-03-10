@@ -195,6 +195,8 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] | None = None
             nav[name] *= 1e3
 
     # %% other attributes
+    if "LEAP SECONDS" in header:
+        nav.attrs["leap_seconds"] = int(header["LEAP SECONDS"])
     nav.attrs["version"] = header["version"]
     nav.attrs["svtype"] = [svtype]  # Use list for consistency with NAV3.
     nav.attrs["rinextype"] = "nav"
