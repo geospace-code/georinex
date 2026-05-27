@@ -34,7 +34,8 @@ where ease of cross-platform install and correctness are primary goals.
 * Hatanaka compressed RINEX (plain `.crx` or `.crx.gz` etc.)
 * Python `io.StringIO` text stream RINEX
 
-Also SP3 ephemeris:
+[SP3 ephemeris / clock](https://gssc.esa.int/education/library/standards-and-data-formats/file-formats/sp3/) 
+is also support by GeoRINEX:
 
 * [SP3-a](https://files.igs.org/pub/data/format/sp3.txt)
 * [SP3-c](https://files.igs.org/pub/data/format/sp3c.txt)
