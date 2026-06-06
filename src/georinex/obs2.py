@@ -305,10 +305,11 @@ def rinexsystem2(
         obs.attrs["rxmodel"] = hdr["rxmodel"]
     if "position" in hdr.keys():
         obs.attrs["position"] = hdr["position"]
-
     if "position_geodetic" in hdr.keys():
         obs.attrs["position_geodetic"] = hdr["position_geodetic"]
-
+    if "LEAP SECONDS" in hdr.keys():
+        obs.attrs["leap_seconds"] = int(hdr["LEAP SECONDS"])
+        
     return obs
 
 
@@ -450,11 +451,14 @@ def obsheader2(
     except (KeyError, ValueError):
         pass
 
-    try:  # This key is OPTIONAL
+    try:  
         hdr["interval"] = float(hdr["INTERVAL"][:10])
     except (KeyError, ValueError):
         pass
-
+    try:  
+        hdr["version"] = float(hdr["RINEX VERSION / TYPE"].split()[0])
+    except (KeyError, ValueError):
+        pass
     try:
         s = " "
         hdr["rxmodel"] = s.join(hdr["REC # / TYPE / VERS"].split()[1:-1])

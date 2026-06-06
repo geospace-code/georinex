@@ -208,3 +208,15 @@ def test_ionospheric_correction():
             -0.5243e06,
         ]
     )
+
+
+def test_delta_utc():
+    nav = gr.load(R / "14601736.18n")
+    assert [nav.A0, nav.A1, nav.Tot, nav.Wnt] == approx(
+        [
+            -0.186264514923e-08,
+            -0.888178419700e-15,
+            61440.0,
+            2006.0
+        ]
+    )

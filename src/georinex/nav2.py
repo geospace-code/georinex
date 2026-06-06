@@ -195,6 +195,8 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] | None = None
             nav[name] *= 1e3
 
     # %% other attributes
+    if "LEAP SECONDS" in header:
+        nav.attrs["leap_seconds"] = int(header["LEAP SECONDS"])
     nav.attrs["version"] = header["version"]
     nav.attrs["svtype"] = [svtype]  # Use list for consistency with NAV3.
     nav.attrs["rinextype"] = "nav"
@@ -207,6 +209,13 @@ def rinexnav2(fn: T.TextIO | Path, tlim: tuple[datetime, datetime] | None = None
         beta = header["ION BETA"]
         beta = [rinex_string_to_float(beta[2 + i * 12 : 2 + (i + 1) * 12]) for i in range(4)]
         nav.attrs["ionospheric_corr_GPS"] = np.hstack((alpha, beta))
+
+    if "DELTA-UTC: A0,A1,T,W" in header:
+        delta_utc = header["DELTA-UTC: A0,A1,T,W"]
+        nav.attrs["A0"] = rinex_string_to_float(delta_utc[2 : 22])
+        nav.attrs["A1"] = rinex_string_to_float(delta_utc[22 : 42])
+        nav.attrs["Tot"] = rinex_string_to_float(delta_utc[42 : 52])
+        nav.attrs["Wnt"] = rinex_string_to_float(delta_utc[52 : 59])
 
     return nav
 
