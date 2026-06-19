@@ -21,7 +21,7 @@ def keplerian2ecef(
     http://web.cecs.pdx.edu/~ssp/Reports/2006/Monaghan.pdf
     """
 
-    if "sv" in sv and sv["sv"] in {"R", "S"}:
+    if "sv" in sv and sv["sv"].__hash__ is not None and sv["sv"] in {"R", "S"}:
         return sv["X"], sv["Y"], sv["Z"]
 
     # sv = sv.dropna(dim='time', how='all')
