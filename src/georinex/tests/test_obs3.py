@@ -208,3 +208,11 @@ def tests_all_indicators():
 def test_time_system(fn, tname):
     obs = gr.load(ir.files(f"{__package__}.data") / fn)
     assert obs.attrs["time_system"] == tname
+
+
+@pytest.mark.parametrize("fname", ["CEBR00ESP_R_20182000000_01D_30S_MO.crx.gz"])
+def test_antenna_offset(fname):
+    fn = ir.files(f"{__package__}.data") / fname
+    obs = gr.load(fn, use=["G"], tlim=['2018-07-19T01:00', '2018-07-19T01:05'] )
+
+    assert obs.antenna == [0.178, 0.0, 0.0]

@@ -155,6 +155,9 @@ def rinexobs3(
     if time_offset:
         data.attrs["time_offset"] = time_offset
 
+    if "antenna" in hdr.keys():
+        data.attrs["antenna"] = hdr["antenna"]
+
     if "RCV CLOCK OFFS APPL" in hdr.keys():
         try:
             data.attrs["receiver_clock_offset_applied"] = int(hdr["RCV CLOCK OFFS APPL"])
@@ -362,6 +365,12 @@ def obsheader3(
             raise KeyError(f"system type {use} not found in RINEX file")
 
         fields = {k: fields[k] for k in use if k in fields}
+
+    # %% Antenna phase center (optional)
+    try:
+        hdr["antenna"] = [float(j) for j in hdr["ANTENNA: DELTA H/E/N"].split()]
+    except (KeyError, ValueError):
+        pass
 
     # perhaps this could be done more efficiently, but it's probably low impact on overall program.
     # simple set and frozenset operations do NOT preserve order, which would completely mess up reading!
