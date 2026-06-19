@@ -232,6 +232,8 @@ def _sparefields(cf: list[str], sys: str, N: int) -> list[str]:
     elif sys == "I":
         if N == 28:
             cf = cf[:28]
+        if N == 26: # Only one middle spare field
+            cf = cf[:22] + cf[23:26] + cf[27:28]
 
     if N != len(cf):
         raise ValueError(f"System {sys} NAV data is not the same length as the number of fields.")

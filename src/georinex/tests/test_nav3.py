@@ -48,6 +48,24 @@ def test_spare(fname):
     assert (G01["FitIntvl"] == approx([4.0, 4.0])).all()
 
 
+@pytest.mark.parametrize(
+    "fname",
+    [
+        "BRDC00IGS_R_20250870000_01D_MN.rnx.gz",
+        "BRDC00IGS_R_20250570000_01D_MN.rnx.gz",
+    ],
+)
+def test_mixed_igs(fname):
+    """
+    Test for mixed IGS files with multiple systems if all spare fields are detected
+    """
+    fn = ir.files(f"{__package__}.data") / fname
+    nav = gr.load(fn)
+
+    assert isinstance(nav, xarray.Dataset)
+    assert set(nav.svtype) == {"C", "E", "G", "R", "I", "S", "J"}
+
+
 @pytest.mark.parametrize("fname", ["ELKO00USA_R_20182100000_01D_MN.rnx.gz"])
 def test_mixed(fname):
     fn = ir.files(f"{__package__}.data") / fname
